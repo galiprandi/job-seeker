@@ -1,0 +1,171 @@
+---
+name: review
+description: Revisa novedades de postulaciones en Gmail, LinkedIn y plataformas. Prepara borradores, presenta resumen ejecutivo por prioridad, valida con el usuario y envía respuestas.
+---
+# Review
+
+## Trigger
+
+- On-demand: usuario dice "revisá novedades", "hay novedades?", "revisá", etc.
+- En paralelo: cuando el usuario lanza una postulación, ejecutar review al mismo tiempo
+
+## Flujo
+
+### 1. Recolectar novedades (en paralelo)
+
+Ejecutar todas las fuentes en paralelo:
+
+- [ ] **Gmail:** buscar emails no leídos desde la última revisión. Filtro: todo lo relacionado a búsqueda laboral y sitios laborales (recruiters, HR, plataformas, newsletters con jobs, respuestas a postulaciones). Ignorar spam obvio. Guardar `last_review_at` en DB para saber desde cuándo buscar
+- [ ] **LinkedIn mensajes:** mensajes no leídos en inbox. Filtrar recruiters, HR, respuestas a postulaciones
+- [ ] **LinkedIn notificaciones:** notificaciones de postulaciones (status changes, mensajes de reclutadores)
+- [ ] **Plataformas:** solo si hay postulaciones pendientes en DB. Navegar a cada plataforma, revisar status de postulaciones existentes
+- [ ] **Follow-ups pendientes:** consultar DB por applications sin respuesta después de X días (contextual: 3 días para urgentes, 5 para normales, 7 para cold)
+
+### 2. Clasificar y priorizar
+
+Cada item se clasifica en una categoría y se le asigna prioridad contextual:
+
+| Categoría | Descripción | Default prioridad |
+|---|---|---|
+| `interview` | Invitación a entrevista, scheduling | Alta |
+| `offer` | Oferta de trabajo, propuesta salarial | Alta |
+| `recruiter_new` | Outreach de recruiter nuevo (sin postulación previa) | Media |
+| `recruiter_reply` | Respuesta de recruiter a postulación | Media |
+| `follow_up` | Postulación sin respuesta, hay que seguir | Media-Baja |
+| `rejected` | Rechazo de postulación | Baja |
+| `new_job_must` | Nuevo job que matchea Must-have | Media-Alta |
+| `new_job_strong` | Nuevo job que matchea Strong | Media |
+| `new_job_nice` | Nuevo job que matchea Nice | Baja |
+| `newsletter` | Newsletter con jobs relevantes | Baja |
+
+Prioridad contextual ajusta según:
+- Salario vs expectativa (más alto que esperado → sube prioridad)
+- Fit con perfil (AI Strategy + Manager + remoto → sube)
+- Urgencia temporal (entrevista en 24h → alta)
+- Stage de proceso (más avanzado → más prioridad)
+
+### 3. Preparar borradores
+
+Por cada item que requiera respuesta, preparar borrador usando `style_profile` de DB:
+
+- [ ] **interview:** confirmar + proponer 2-3 horarios basados en disponibilidad del usuario
+- [ ] **offer:** agradecer + pedir detalles (salario, benefits, equity, start date) antes de negociar
+- [ ] **recruiter_new:** expresar interés o rechazar según fit con perfil. Si interés, compartir disponibilidad
+- [ ] **recruiter_reply:** responder según contexto (agendar, enviar info adicional, negociar)
+- [ ] **follow_up:** mensaje breve recordando la postulación y reiterando interés
+- [ ] **rejected:** agradecer + dejar puerta abierta (opcional, solo si la empresa interesa)
+- [ ] **new_job_must:** preparar postulación completa (cover letter + CV) para auto-aplicar
+- [ ] **new_job_strong/nice:** solo listar en resumen, no preparar borrador
+
+Borradores se guardan en `messages.draft` como JSONB.
+
+### 4. Resumen ejecutivo
+
+Presentar al usuario ordenado por prioridad (alta → baja). Formato:
+
+```
+## Resumen de novedades (12 items)
+
+### Alta prioridad (3)
+1. [interview] Google - Engineering Manager AI - Entrevista técnica martes 15:00
+   → Borrador: confirmar + proponer horarios
+   → [Aprobar] [Editar] [Rechazar]
+
+2. [offer] Stripe - $7k/mes - Oferta con equity 0.1%
+   → Borrador: agradecer + pedir detalles
+   → [Aprobar] [Editar] [Rechazar]
+
+3. [interview] Remote - AI Strategy Lead - Recruiter screening jueves
+   → Borrador: confirmar + proponer horarios
+   → [Aprobar] [Editar] [Rechazar]
+
+### Media prioridad (5)
+4. [recruiter_new] Meta - Recruiter outreach para Staff EM
+   → Borrador: expresar interés
+   → [Aprobar] [Editar] [Rechazar]
+...
+
+### Baja prioridad (4)
+10-12. [rejected] 3 rechazos (Mercado Libre, Globant, Bumeran)
+   → [Batch: agradecer todos] [Ignorar]
+
+13. [newsletter] Get on Board - 15 jobs nuevos esta semana
+   → [Ver jobs] [Ignorar]
+```
+
+### 5. Validación híbrida
+
+- **Uno por uno** para alta prioridad (interview, offer): el usuario aprueba, edita o rechaza cada borrador individualmente
+- **Batch** para media y baja prioridad: el usuario puede aprobar todos los de una categoría con una acción
+- **Auto-postular** Must-match: el agente postula automáticamente y notifica en el resumen
+- Si el usuario edita un borrador → actualizar antes de enviar
+- Si el usuario rechaza → marcar como `ignored` en DB
+
+### 6. Envío
+
+- Después de aprobación (individual o batch), el agente envía automáticamente
+- Gmail: responder email o enviar nuevo
+- LinkedIn: responder mensaje o enviar DM
+- Plataformas: completar formulario de postulación
+- Registrar envío en DB (`messages.sent_at`, `messages.status = sent`)
+
+### 7. Cerrar
+
+- [ ] Actualizar `last_review_at` en DB
+- [ ] Actualizar status de applications según respuestas recibidas
+- [ ] Reportar al usuario: "Enviadas 5 respuestas, 2 postulaciones automáticas, 3 items ignorados"
+
+## Schema de DB
+
+```sql
+CREATE TABLE IF NOT EXISTS applications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  platform TEXT,
+  company TEXT,
+  role TEXT,
+  url TEXT,
+  status TEXT DEFAULT 'applied', -- applied, interviewing, offered, rejected, withdrawn, follow_up_sent
+  applied_at TIMESTAMPTZ DEFAULT NOW(),
+  data JSONB DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  application_id INTEGER REFERENCES applications(id) NULL,
+  user_id INTEGER REFERENCES users(id),
+  channel TEXT, -- gmail, linkedin, platform
+  direction TEXT, -- inbound, outbound
+  sender TEXT,
+  subject TEXT,
+  body TEXT,
+  draft TEXT, -- borrador preparado por el agente
+  status TEXT DEFAULT 'pending', -- pending, approved, sent, ignored, draft
+  received_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  data JSONB DEFAULT '{}'
+);
+
+-- Control de última revisión
+-- users.data.last_review_at (JSONB)
+```
+
+## Reglas
+
+- Ejecutar fuentes en paralelo para minimizar tiempo
+- Borradores siempre usan `style_profile` de DB
+- Follow-up timing es contextual: 3 días urgentes, 5 normales, 7 cold
+- Auto-postular solo Must-match. Strong y Nice se listan, no se postulan
+- Filtro Gmail: todo lo relacionado a búsqueda laboral y sitios laborales
+- Plataformas: solo revisar si hay applications pendientes en DB
+- Persistir todo: applications, messages, borradores, envíos
+- `last_review_at` en `users.data` para saber desde cuándo buscar
+- Si no hay novedades: responder "Sin novedades. Última revisión: [fecha]"
+- Un solo usuario (propietario del repo)
+
+## Aprendizajes de LinkedIn
+
+- LinkedIn usa editor tiptap — los `ref` cambian tras cada acción. SIEMPRE tomar snapshot nuevo antes de interactuar
+- Mensajes: navegar a `linkedin.com/messaging/` → snapshot → buscar conversaciones no leídas
+- Notificaciones: navegar a `linkedin.com/notifications/` → snapshot
+- `mcp6_send_message` y `mcp6_connect_with_person` requieren `confirm_send: true` (si se usa MCP de LinkedIn)

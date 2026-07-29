@@ -19,6 +19,7 @@ Tu perfil, preferencias, estilo de redacción e historial viven en Postgres (Neo
 |---|---|
 | `setup` | Onboarding: browser con perfil dedicado, login Gmail + LinkedIn, DB en Neon, datos del usuario |
 | `profiling` | Perfilado: CV + cuestionario (30 preferencias con pesos) + voz/estilo + selección de plataformas |
+| `review` | Revisa novedades en Gmail, LinkedIn y plataformas. Prepara borradores, resumen ejecutivo por prioridad, validación híbrida y auto-envío |
 | `playwright-cli` | Browser automation: comandos, headless por defecto, anti-ban, detección de automation |
 
 ## Plataformas
@@ -60,6 +61,7 @@ Abrí tu agente coding en el repo y decile: *"ejecutá la skill setup"*
 .agents/skills/          # Skills consumidas por cualquier agente
   setup/SKILL.md         # Onboarding
   profiling/SKILL.md     # Perfilado
+  review/SKILL.md        # Revisión de novedades y seguimiento
   playwright-cli/SKILL.md # Browser automation
 .playwright/
   cli.config.json        # Config de playwright-cli (headless: true)
