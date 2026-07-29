@@ -1,0 +1,27 @@
+{
+  "name": "job-seeker",
+  "version": "0.1.0",
+  "description": "Skills + guías para automatizar búsqueda laboral con agentes coding",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galiprandi/job-seeker.git"
+  },
+  "keywords": ["job-search", "ai", "automation", "playwright", "skills"],
+  "author": "Germán Aliprandi",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/galiprandi/job-seeker/issues"
+  },
+  "homepage": "https://github.com/galiprandi/job-seeker#readme",
+  "dependencies": {
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
+  }
+}
