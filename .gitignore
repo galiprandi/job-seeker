@@ -1,1 +1,4 @@
-./tmp
+.browser-profile/
+.playwright-cli/
+.env
+node_modules/
