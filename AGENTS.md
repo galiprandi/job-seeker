@@ -18,6 +18,7 @@ Autonomía total. Solo pedir intervención del usuario para: (a) dato que el age
 | Plataformas de búsqueda | `PLATFORMS.md` |
 | Cómo usar playwright-cli | `.agents/skills/playwright-cli/SKILL.md` |
 | Cómo perfilar al usuario | `.agents/skills/profiling/SKILL.md` |
+| Cómo revisar novedades | `.agents/skills/review/SKILL.md` |
 | Cómo hacer onboarding | `.agents/skills/setup/SKILL.md` |
 
 ## Skills disponibles
@@ -26,6 +27,7 @@ Autonomía total. Solo pedir intervención del usuario para: (a) dato que el age
 |---|---|---|
 | `setup` | `.agents/skills/setup/` | Onboarding inicial, logins, DB |
 | `profiling` | `.agents/skills/profiling/` | Perfilar usuario, CV, cuestionario, voz |
+| `review` | `.agents/skills/review/` | Revisar novedades, preparar borradores, seguimiento |
 | `playwright-cli` | `.agents/skills/playwright-cli/` | Browser automation, anti-ban |
 
 ## Restricciones operativas
