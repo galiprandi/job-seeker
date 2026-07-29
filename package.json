@@ -1,7 +1,7 @@
 {
   "name": "job-seeker",
   "version": "0.1.0",
-  "description": "Skills + guías para automatizar búsqueda laboral con agentes coding",
+  "description": "Automatizá tu búsqueda laboral con tu agente coding favorito. Skills, guías y scripts que cualquier agente (Devin, Claude, opencode) consume para buscar, aplicar y hacer seguimiento de trabajos en tu nombre.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,7 +10,22 @@
     "type": "git",
     "url": "git+https://github.com/galiprandi/job-seeker.git"
   },
-  "keywords": ["job-search", "ai", "automation", "playwright", "skills"],
+  "keywords": [
+    "job-search",
+    "ai",
+    "automation",
+    "playwright",
+    "skills",
+    "agent",
+    "linkedin",
+    "career",
+    "job-board",
+    "postgres",
+    "neon",
+    "devin",
+    "claude",
+    "opencode"
+  ],
   "author": "Germán Aliprandi",
   "license": "MIT",
   "type": "commonjs",
