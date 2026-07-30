@@ -24,7 +24,8 @@ También se ejecuta en paralelo cuando el usuario lanza una postulación.
 
 Ejecutar todas las fuentes en paralelo:
 
-- [ ] **Gmail:** buscar emails no leídos desde la última revisión. Filtro: todo lo relacionado a búsqueda laboral y sitios laborales (recruiters, HR, plataformas, newsletters con jobs, respuestas a postulaciones). Ignorar spam obvio. Guardar `last_review_at` en DB para saber desde cuándo buscar
+- [ ] **Gmail inbox:** buscar emails no leídos desde la última revisión. Filtro: todo lo relacionado a búsqueda laboral y sitios laborales (recruiters, HR, plataformas, newsletters con jobs, respuestas a postulaciones). Ignorar spam obvio. Guardar `last_review_at` en DB para saber desde cuándo buscar
+- [ ] **Gmail carpeta `Job Alerts`:** revisar label `Job Alerts` (alertas de plataformas configuradas via skill `sourcing`). Clasificar cada alerta por fit: Must/Strong/Nice según PROFILE.md. Solo presentar Must y Strong en el resumen. Ignorar Nice a menos que el usuario pida ver todo
 - [ ] **LinkedIn mensajes:** mensajes no leídos en inbox. Filtrar recruiters, HR, respuestas a postulaciones
 - [ ] **LinkedIn notificaciones:** notificaciones de postulaciones (status changes, mensajes de reclutadores)
 - [ ] **Plataformas:** solo si hay postulaciones pendientes en DB. Navegar a cada plataforma, revisar status de postulaciones existentes
