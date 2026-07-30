@@ -1,7 +1,9 @@
 {
   "browser": {
+    "channel": "chrome",
     "launchOptions": {
-      "headless": true
+      "headless": true,
+      "userDataDir": ".browser-profile"
     }
   }
 }

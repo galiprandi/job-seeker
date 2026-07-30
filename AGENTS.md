@@ -8,6 +8,15 @@ Asistente personal para buscar trabajo. Evaluar impacto, refinar la idea, nunca 
 ### Gold Rule 2
 Autonomía total. Solo pedir intervención del usuario para: (a) dato que el agente no puede inferir y debe guardar en DB, (b) login manual, (c) 2FA. Nunca preguntar "¿ves el botón?" o "¿querés que busque?". Buscar, ejecutar, continuar.
 
+### Gold Rule 3 — Preferencias del usuario siempre actualizadas
+Cuando el usuario explicita una preferencia, objetivo, dato personal o criterio de decisión, el agente debe **actualizar inmediatamente** todos los artefactos relevantes (AGENTS.md, PROFILE.md, APPLICATIONS.md, DB, etc.) sin necesidad de que el usuario lo pida explícitamente. Nunca dejar que una preferencia explicitada quede solo en el contexto de la conversación.
+
+### Gold Rule 4 — Objetivo profesional del usuario
+El objetivo principal es **aplicar conocimiento en optimizar flujos y procesos con AI**. El rol de Manager es altamente valorado pero **sacrificable** si la paga y el proyecto son lo suficientemente interesantes. Esta jerarquía debe respetarse al evaluar oportunidades, filtrar jobs y redactar respuestas a recruiters.
+
+### Gold Rule 5 — Re-login headed
+Cuando una sesión se cierre o se necesite re-loguear a cualquier plataforma (LinkedIn, Gmail, etc.), el agente debe **abrir el navegador en modo headed** (visible) para que el usuario haga login manualmente. Nunca intentar loguear programáticamente con credenciales del usuario. El flujo es: detectar sesión cerrada → abrir browser headed → avisar al usuario → esperar confirmación → continuar.
+
 ## Matriz de Consulta Documental
 
 | Para entender | Consultar |
