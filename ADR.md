@@ -62,11 +62,13 @@ Implementar **passive sourcing** en 3 capas:
 
 | Plataforma | Por qué | Google login |
 |---|---|---|
-| Otta | Tech startups curadas, excelente filtrado remote + AI | Sí |
-| Torre | LATAM-focused con AI matching, remote-first | Sí |
-| We Work Remotely | Job board remote más grande, mucha variedad AI/EM | No |
+| HireIndex | AI/ML jobs aggregator (1678 roles, 800 companies). Newsletter semanal | N/A (newsletter) |
+| Torre | LATAM-focused con AI matching, remote-first | Email + OTP |
+| We Work Remotely | Job board remote más grande, mucha variedad AI/EM | No (Cloudflare) |
 | Built In | Tech-focused con ciudades + remote, empresas serias | Sí |
-| Y Combinator (workatastartup.com) | Startups YC exclusivamente, muchas AI startups | Sí |
+| Y Combinator (workatastartup.com) | Startups YC exclusivamente, muchas AI startups | Magic link |
+
+> **Nota:** Otta fue reemplazada por HireIndex — Otta fue adquirida por Welcome to the Jungle (jan 2024) y la plataforma degradada. HireIndex agrega 1678 AI/ML roles de 800 companies con refresh semanal.
 
 ### Tradeoffs
 
