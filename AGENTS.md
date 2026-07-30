@@ -41,7 +41,7 @@ Antes de responder cualquier mensaje de recruiter o contacto laboral, el agente 
 | `setup` | `.agents/skills/setup/` | Onboarding inicial, logins, DB |
 | `profiling` | `.agents/skills/profiling/` | Perfilar usuario, CV, cuestionario, voz |
 | `review` | `.agents/skills/review/` | **`news`** — revisar novedades, preparar borradores, seguimiento |
-| `sourcing` | `.agents/skills/sourcing/` | **`alerts`** — registrar plataformas, configurar alertas, filtro Gmail |
+| `sourcing` | `.agents/skills/sourcing/` | **`radar`** — registrar plataformas, configurar alertas, filtro Gmail |
 | `playwright-cli` | `.agents/skills/playwright-cli/` | Browser automation, anti-ban |
 
 ## Restricciones operativas

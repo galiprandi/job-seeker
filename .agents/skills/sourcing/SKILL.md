@@ -1,15 +1,15 @@
 ---
 name: sourcing
-description: Registra al usuario en plataformas de jobs, configura alertas con keywords del perfil, crea filtro de Gmail para rutear alertas a carpeta Job Alerts. Trigger: alerts.
-trigger: alerts
+description: Registra al usuario en plataformas de jobs, configura alertas con keywords del perfil, crea filtro de Gmail para rutear alertas a carpeta Job Alerts. Trigger: radar.
+trigger: radar
 ---
 # Sourcing
 
 ## Trigger
 
-**Palabra clave: `alerts`**
+**Palabra clave: `radar`**
 
-El usuario dice `alerts` (o variantes: "configurar alertas", "registrar en plataformas", "nuevas plataformas") y se dispara el flujo de registro + configuración de alertas + filtro de Gmail.
+El usuario dice `radar` (o variantes: "configurar alertas", "registrar en plataformas", "nuevas plataformas") y se dispara el flujo de registro + configuración de alertas + filtro de Gmail.
 
 ## Propósito
 

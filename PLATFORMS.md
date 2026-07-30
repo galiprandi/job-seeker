@@ -14,7 +14,7 @@ Plataformas con alertas configuradas. El agente revisa la carpeta `Job Alerts` e
 | Built In | builtin.com | — | — | — | — | Tech-focused, ciudades + remote. Google login |
 | Y Combinator | workatastartup.com | — | — | — | — | Startups YC. Google login |
 
-> **Estado inicial:** sin configurar. Ejecutar `alerts` para registrar y configurar.
+> **Estado inicial:** sin configurar. Ejecutar `radar` para registrar y configurar.
 
 ## Generales (alto volumen, todos los niveles)
 
