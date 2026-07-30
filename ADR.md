@@ -40,3 +40,49 @@ Repo de skills + guías + scripts para automatizar búsqueda laboral. No es un a
 - **Notificaciones:** solo en sesión.
 - **Cover letters:** LLM del agente del usuario + style profile desde DB.
 - **Rechazos/follow-ups:** usuario decide, se recuerda en DB.
+
+## ADR-003: Passive Sourcing via Job Alerts
+
+**Fecha:** 2026-07-30
+**Estado:** Aceptado
+
+### Contexto
+
+La búsqueda laboral activa (aplicar a jobs) es el flujo principal, pero depende de que el usuario invoque `job-search` o `news` manualmente. Las plataformas de jobs tienen alertas que pueden traer oportunidades pasivamente, pero sin filtrado generan ruido en el inbox.
+
+### Decisión
+
+Implementar **passive sourcing** en 3 capas:
+
+1. **Registro + alertas** (skill `sourcing`, trigger `alerts`): registrar al usuario en plataformas seleccionadas, configurar alertas con keywords del perfil, crear filtro de Gmail que rutee las alertas a una carpeta `Job Alerts` (skip inbox).
+2. **Consumo** (skill `review`, trigger `news`): al ejecutar `news`, revisar la carpeta `Job Alerts` además del inbox, clasificar las alertas por fit (Must/Strong/Nice), y presentar solo las relevantes en el resumen ejecutivo.
+3. **Tracking** (`PLATFORMS.md` + `PROFILE.md`): registrar qué plataformas tienen alertas configuradas, qué keywords se usan, y cuándo se revisaron por última vez.
+
+### Plataformas seleccionadas (5 iniciales)
+
+| Plataforma | Por qué | Google login |
+|---|---|---|
+| Otta | Tech startups curadas, excelente filtrado remote + AI | Sí |
+| Torre | LATAM-focused con AI matching, remote-first | Sí |
+| We Work Remotely | Job board remote más grande, mucha variedad AI/EM | No |
+| Built In | Tech-focused con ciudades + remote, empresas serias | Sí |
+| Y Combinator (workatastartup.com) | Startups YC exclusivamente, muchas AI startups | Sí |
+
+### Tradeoffs
+
+- **Pros:** pasivo, diversificación de fuentes, filtrado automático por el agente
+- **Cons:** ruido potencial (mitigado con filtro Gmail + clasificación del agente), algunas plataformas sin Google login (login manual), mantenimiento de perles en múltiples plataformas
+
+### Filtro de Gmail
+
+```
+from:(otta.com OR torre.co OR weworkremotely.com OR builtin.com OR workatastartup.com)
+→ skip inbox → label:Job Alerts
+```
+
+### Relación con skills existentes
+
+- `setup` no se modifica — sigue siendo onboarding inicial
+- `sourcing` es nueva — maneja registro + alertas + filtro
+- `review` se actualiza mínimamente — agrega carpeta `Job Alerts` al step 1
+- `job-search` no se modifica — sigue siendo búsqueda + aplicación activa

@@ -2,6 +2,20 @@
 
 Catálogo mantenido por la comunidad. El agente lo consulta para decidir dónde buscar según el perfil del usuario.
 
+## Tracking de Alertas (Passive Sourcing)
+
+Plataformas con alertas configuradas. El agente revisa la carpeta `Job Alerts` en Gmail cuando se ejecuta `news`.
+
+| Plataforma | URL | Perfil | Alertas | Filtro Gmail | Última revisión | Notas |
+|---|---|---|---|---|---|---|
+| Otta | otta.com | — | — | — | — | Tech startups curadas. Google login |
+| Torre | torre.co | — | — | — | — | LATAM AI matching. Google login |
+| We Work Remotely | weworkremotely.com | — | — | — | — | Remote job board más grande. Email+password |
+| Built In | builtin.com | — | — | — | — | Tech-focused, ciudades + remote. Google login |
+| Y Combinator | workatastartup.com | — | — | — | — | Startups YC. Google login |
+
+> **Estado inicial:** sin configurar. Ejecutar `alerts` para registrar y configurar.
+
 ## Generales (alto volumen, todos los niveles)
 
 | Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
