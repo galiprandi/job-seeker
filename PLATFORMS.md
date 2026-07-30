@@ -8,13 +8,13 @@ Plataformas con alertas configuradas. El agente revisa la carpeta `Job Alerts` e
 
 | Plataforma | URL | Perfil | Alertas | Filtro Gmail | Última revisión | Notas |
 |---|---|---|---|---|---|---|
-| Otta | otta.com | — | — | — | — | Tech startups curadas. Google login |
-| Torre | torre.co | — | — | — | — | LATAM AI matching. Google login |
-| We Work Remotely | weworkremotely.com | — | — | — | — | Remote job board más grande. Email+password |
-| Built In | builtin.com | — | — | — | — | Tech-focused, ciudades + remote. Google login |
-| Y Combinator | workatastartup.com | — | — | — | — | Startups YC. Google login |
+| HireIndex | hireindex.app | N/A (newsletter) | ✅ Newsletter semanal confirmado | ✅ | 2026-07-30 | AI/ML jobs aggregator. 1678 roles, 800 companies. Double opt-in confirmado |
+| Torre | torre.ai | ✅ Login (email+OTP) | ✅ AI matching automático | ✅ | 2026-07-30 | Genome pendiente de completar. Matching automático sin keywords |
+| We Work Remotely | weworkremotely.com | — | — | ✅ | — | Cloudflare block. Pendiente login headed |
+| Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails activados | ✅ | 2026-07-30 | Onboarding: EM, Argentina, remote, 11-1000+ emp, Senior/Expert |
+| Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Matching por perfil | ✅ | 2026-07-30 | Perfil preexistente. Matching automático sin keywords |
 
-> **Estado inicial:** sin configurar. Ejecutar `radar` para registrar y configurar.
+> **Filtro Gmail activo:** `from:(hireindex.app OR torre.ai OR weworkremotely.com OR builtin.com OR workatastartup.com OR ycombinator.com)` → Saltar Recibidos → Aplicar etiqueta "Job Alerts"
 
 ## Generales (alto volumen, todos los niveles)
 
