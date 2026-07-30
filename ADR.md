@@ -54,7 +54,7 @@ La búsqueda laboral activa (aplicar a jobs) es el flujo principal, pero depende
 
 Implementar **passive sourcing** en 3 capas:
 
-1. **Registro + alertas** (skill `sourcing`, trigger `alerts`): registrar al usuario en plataformas seleccionadas, configurar alertas con keywords del perfil, crear filtro de Gmail que rutee las alertas a una carpeta `Job Alerts` (skip inbox).
+1. **Registro + alertas** (skill `sourcing`, trigger `radar`): registrar al usuario en plataformas seleccionadas, configurar alertas con keywords del perfil, crear filtro de Gmail que rutee las alertas a una carpeta `Job Alerts` (skip inbox).
 2. **Consumo** (skill `review`, trigger `news`): al ejecutar `news`, revisar la carpeta `Job Alerts` además del inbox, clasificar las alertas por fit (Must/Strong/Nice), y presentar solo las relevantes en el resumen ejecutivo.
 3. **Tracking** (`PLATFORMS.md` + `PROFILE.md`): registrar qué plataformas tienen alertas configuradas, qué keywords se usan, y cuándo se revisaron por última vez.
 
