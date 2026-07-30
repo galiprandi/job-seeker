@@ -80,7 +80,27 @@ Borradores se guardan en `messages.draft` como JSONB.
 
 ### 4. Resumen ejecutivo
 
-Presentar al usuario ordenado por prioridad (alta → baja). Formato:
+Presentar al usuario ordenado por prioridad (alta → baja).
+
+**Template para propuesta prometedora** (recruiter outreach nuevo con JD + action items):
+
+```
+🎉 Propuesta prometedora: [Rol] en [Empresa]
+
+Empresa: [qué hace, tamaño, funding, socios, expansión]
+Fit: [Excelente/Bueno/Regular. Por qué]
+Reporta a: [CTO/VP Eng/etc]
+Compensación: [No mencionada / $X]
+Modalidad: [No mencionada / Remote / Híbrido]
+
+📆 Calendar para reservar: [link]
+📎 JD: Leída ([puntos clave del rol en 1 línea])
+
+Querés que investigue más sobre [Empresa]?
+Querés que prepare un borrador de respuesta?
+```
+
+**Formato para resto de items** (ordenado por prioridad):
 
 ```
 ## Resumen de novedades (12 items)
