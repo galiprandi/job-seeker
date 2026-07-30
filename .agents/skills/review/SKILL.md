@@ -60,9 +60,10 @@ Prioridad contextual ajusta según:
 
 Por cada item que requiera respuesta:
 
-1. **Investigar la empresa** (web search): qué hace, tamaño, funding, cultura, stack si está visible
-2. **Analizar fit** con el perfil del usuario (objetivo #1: AI flujos, objetivo #2: Manager sacrificable)
-3. **Preparar borrador** usando el estilo del usuario (cálido, directo, en español o inglés según contexto)
+1. **Extraer action items del mensaje original** — antes de investigar nada, parsear el mensaje y listar qué acciones concretas pide el remitente: ¿hay un calendar link? ¿pide CV? ¿pide responder un formulario? ¿pide agendar? Destacar **acciones inmediatas** (ej: "hay un link de Google Calendar, podés agendar ya") vs **acciones que requieren decisión** (ej: "pide confirmar interés")
+2. **Investigar la empresa** (web search): qué hace, tamaño, funding, cultura, stack si está visible
+3. **Analizar fit** con el perfil del usuario (objetivo #1: AI flujos, objetivo #2: Manager sacrificable)
+4. **Preparar borrador** usando el estilo del usuario (cálido, directo, en español o inglés según contexto)
 
 Tipos de borrador:
 
