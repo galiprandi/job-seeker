@@ -1,15 +1,24 @@
 ---
 name: review
 description: Revisa novedades de postulaciones en Gmail, LinkedIn y plataformas. Prepara borradores, presenta resumen ejecutivo por prioridad, valida con el usuario y envía respuestas.
+trigger: news
 ---
 # Review
 
 ## Trigger
 
-- On-demand: usuario dice "revisá novedades", "hay novedades?", "revisá", etc.
-- En paralelo: cuando el usuario lanza una postulación, ejecutar review al mismo tiempo
+**Palabra clave: `news`**
+
+El usuario dice `news` (o variantes: "novedades", "revisá", "hay novedades") y se dispara automáticamente la rutina completa de revisión. No requiere más instrucciones — el agente ejecuta todo el flujo de principio a fin.
+
+También se ejecuta en paralelo cuando el usuario lanza una postulación.
 
 ## Flujo
+
+### 0. Pre-flight
+
+- [ ] Verificar sesión activa en LinkedIn y Gmail. Si sesión cerrada → abrir browser headed (Gold Rule 5) → avisar al usuario → esperar confirmación
+- [ ] Usar perfil de Chrome `.browser-profile` siempre
 
 ### 1. Recolectar novedades (en paralelo)
 
@@ -46,11 +55,19 @@ Prioridad contextual ajusta según:
 
 ### 3. Preparar borradores
 
-Por cada item que requiera respuesta, preparar borrador usando `style_profile` de DB:
+**Gold Rule 6: SIEMPRE mostrar borrador al usuario antes de enviar. Nunca enviar sin aprobación.**
+
+Por cada item que requiera respuesta:
+
+1. **Investigar la empresa** (web search): qué hace, tamaño, funding, cultura, stack si está visible
+2. **Analizar fit** con el perfil del usuario (objetivo #1: AI flujos, objetivo #2: Manager sacrificable)
+3. **Preparar borrador** usando el estilo del usuario (cálido, directo, en español o inglés según contexto)
+
+Tipos de borrador:
 
 - [ ] **interview:** confirmar + proponer 2-3 horarios basados en disponibilidad del usuario
 - [ ] **offer:** agradecer + pedir detalles (salario, benefits, equity, start date) antes de negociar
-- [ ] **recruiter_new:** expresar interés o rechazar según fit con perfil. Si interés, compartir disponibilidad
+- [ ] **recruiter_new:** expresar interés o rechazar según fit con perfil. Si interés, compartir disponibilidad. Mencionar algo específico de la empresa investigada
 - [ ] **recruiter_reply:** responder según contexto (agendar, enviar info adicional, negociar)
 - [ ] **follow_up:** mensaje breve recordando la postulación y reiterando interés
 - [ ] **rejected:** agradecer + dejar puerta abierta (opcional, solo si la empresa interesa)
@@ -109,11 +126,17 @@ Presentar al usuario ordenado por prioridad (alta → baja). Formato:
 - Plataformas: completar formulario de postulación
 - Registrar envío en DB (`messages.sent_at`, `messages.status = sent`)
 
-### 7. Cerrar
+### 7. Cleanup
+
+- [ ] **Eliminar** emails irrelevantes (rechazos, job alerts no relevantes, marketing) — preguntar al usuario antes de eliminar en batch
+- [ ] **Archivar** emails ya respondidos o procesados
+- [ ] **Marcar como spam** job alerts recurrentes si el usuario lo pide
+
+### 8. Cerrar
 
 - [ ] Actualizar `last_review_at` en DB
 - [ ] Actualizar status de applications según respuestas recibidas
-- [ ] Reportar al usuario: "Enviadas 5 respuestas, 2 postulaciones automáticas, 3 items ignorados"
+- [ ] Reportar al usuario: "Enviadas 5 respuestas, 2 postulaciones automáticas, 3 items ignorados, 8 emails eliminados"
 
 ## Schema de DB
 
