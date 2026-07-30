@@ -17,6 +17,9 @@ El objetivo principal es **aplicar conocimiento en optimizar flujos y procesos c
 ### Gold Rule 5 — Re-login headed
 Cuando una sesión se cierre o se necesite re-loguear a cualquier plataforma (LinkedIn, Gmail, etc.), el agente debe **abrir el navegador en modo headed** (visible) para que el usuario haga login manualmente. Nunca intentar loguear programáticamente con credenciales del usuario. El flujo es: detectar sesión cerrada → abrir browser headed → avisar al usuario → esperar confirmación → continuar.
 
+### Gold Rule 6 — Borrador antes de responder
+Antes de responder cualquier mensaje de recruiter o contacto laboral, el agente debe **siempre mostrar un borrador o al menos la idea** de la respuesta al usuario. Nunca enviar sin aprobación. El flujo es: detectar mensaje que requiere respuesta → analizar la propuesta → investigar la empresa → presentar análisis + borrador → esperar aprobación → enviar.
+
 ## Matriz de Consulta Documental
 
 | Para entender | Consultar |
@@ -36,7 +39,7 @@ Cuando una sesión se cierre o se necesite re-loguear a cualquier plataforma (Li
 |---|---|---|
 | `setup` | `.agents/skills/setup/` | Onboarding inicial, logins, DB |
 | `profiling` | `.agents/skills/profiling/` | Perfilar usuario, CV, cuestionario, voz |
-| `review` | `.agents/skills/review/` | Revisar novedades, preparar borradores, seguimiento |
+| `review` | `.agents/skills/review/` | **`news`** — revisar novedades, preparar borradores, seguimiento |
 | `playwright-cli` | `.agents/skills/playwright-cli/` | Browser automation, anti-ban |
 
 ## Restricciones operativas
