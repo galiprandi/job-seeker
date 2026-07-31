@@ -84,6 +84,7 @@ onboarding → profile → radar
 | Architecture decisions | `ADR.md` |
 | Purpose, stack, bootstrap | `README.md` |
 | Operational rules and flow map | `AGENTS.md` (this file) |
+| **What data lives where (tables, JSONB keys, ownership)** | **`DATA.md`** |
 | Job platforms | `PLATFORMS.md` |
 | Browser automation | `.agents/skills/playwright-cli/SKILL.md` |
 | DB access (CLI) | `.agents/skills/db/SKILL.md` |
@@ -99,3 +100,4 @@ onboarding → profile → radar
 - Single user (repo owner)
 - `.env`, `.browser-profile/`, `.playwright-cli/` not tracked
 - Job platforms = output of analysis, never user input
+- **Consult `DATA.md` before assuming where data lives.** Never guess or discover by querying blindly. The data map is the source of truth for tables, JSONB keys, and flow ownership
