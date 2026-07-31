@@ -27,6 +27,10 @@ Passive sourcing: platforms bring opportunities to the user without having to se
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
   ```
+- [ ] Load target companies (40 companies: 19 LATAM + 21 Argentina, each `{name, url, sector}`). These are priority targets for alert configuration and platform prioritization:
+  ```bash
+  node scripts/db.js "SELECT data->'target_companies' AS target_companies FROM users WHERE id = 1"
+  ```
 
 ### 1. Register on platforms
 
@@ -51,6 +55,7 @@ For each platform with complete profile but no alerts:
   - `AI Architect`, `Engineering Manager`, `AI Strategy`, `AI Implementation`
   - `LLM`, `Agent-First`, `AI Workflow`, `SDLC AI`
   - `Technical Lead`, `Staff Engineer`, `Platform Engineer`
+- [ ] If the platform supports company-specific alerts or saved searches, configure alerts for target companies from the DB (40 companies: Nubank, dLocal, Mercado Libre, Globant, Ualá, BBVA, Santander Tecnología, Auth0, etc.). Group by sector if the platform allows it (Fintech, Banking, SaaS, IT Services)
 - [ ] Filters: remote only, full-time, senior/lead
 - [ ] Frequency: daily or weekly (depending on platform option)
 - [ ] Mark "Alerts" = "✅" in PLATFORMS.md with keywords used
@@ -105,4 +110,4 @@ Once, when configuring the first platform:
 
 ## Learnings
 
-- (Updated after first execution)
+- **2026-07-31**: An agent running radar couldn't identify target companies because the pre-flight didn't load `users.data.target_companies`. Fixed: added target_companies loading to pre-flight and company-specific alert configuration to step 2. The DB has 40 target companies (19 LATAM + 21 Argentina) with `{name, url, sector}` structure. See DATA.md for the canonical schema.
