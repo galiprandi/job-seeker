@@ -76,7 +76,7 @@ Tracks registration and application status per target company. Enables resumabil
 | `sector` | TEXT | Industry sector |
 | `careers_url` | TEXT | Direct URL to careers page |
 | `ats_platform` | TEXT | Detected ATS: `Greenhouse`, `Lever`, `Ashby`, `Workday`, `SmartRecruiters`, `Teamtailor`, `Eightfold`, `SuccessFactors`, `Workable`, `Phenom`, `Attrax`, `Gupy`, `Custom`, `Unknown` |
-| `registration_status` | TEXT | `pending`, `registered`, `no_fit`, `manual_login_needed`, `manual_apply_needed` |
+| `registration_status` | TEXT | `pending`, `registered`, `no_fit`, `manual_login_needed`, `manual_apply_needed`, `alert_only` (radar sets up alerts without full registration) |
 | `profile_completed` | BOOLEAN | Whether profile was fully filled |
 | `profile_url` | TEXT | URL to user's profile on the platform (if available) |
 | `login_method` | TEXT | `google`, `linkedin`, `email` |
@@ -166,7 +166,7 @@ Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`)
 |---|---|---|
 | `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info), `preferences` (`tooling.browser_mode`) | — |
 | `profile` | `users.data.profile`, `users.data.job_preferences`, `users.data.style_profile`, `users.data.platforms`, `users.data.target_companies` | `users.data` (validate before overwrite) |
-| `radar` | `users.data.platforms` (alert status), `PLATFORMS.md` | `users.data.platforms`, `PLATFORMS.md`, `preferences` |
+| `radar` | `users.data.platforms` (alert status), `PLATFORMS.md`, `company_registrations` (`alert_only` for big tech career sites) | `users.data.platforms`, `PLATFORMS.md`, `preferences` |
 | `targets` | `company_registrations`, `applications` | `users.data.profile`, `users.data.job_preferences`, `users.data.target_companies`, `users.data.cv_path`, `users.data.photo_path`, `company_registrations` (resumability), `applications` (dedup), `preferences` |
 | `news` | `messages`, `applications` (status updates), `users.data.last_review_at` | `applications`, `users.data.style_profile`, `users.data.profile`, `preferences` |
 | `apply` | `applications` | `users.data.profile`, `users.data.job_preferences`, `users.data.target_companies`, `applications` (dedup), `preferences` |

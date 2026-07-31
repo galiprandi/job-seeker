@@ -90,6 +90,27 @@ For each company with `registration_status = 'pending'` (or `profile_completed =
    ```bash
    node scripts/db.js "UPDATE company_registrations SET registration_status = 'registered', profile_completed = true, ats_platform = '<ats>', login_method = '<google|linkedin|email>', profile_url = '<url if available>', last_visit_at = NOW(), updated_at = NOW(), data = '<json with credentials if email login>'::jsonb WHERE id = <id>" --write
    ```
+7. **Subscribe to job alerts** if the ATS or career site supports it. This is critical for passive monitoring of new openings:
+   - **Greenhouse**: look for "Subscribe to alerts" or "Email me new jobs" link on the job board. Enter email, select job categories or keywords (AI, Engineering, Remote)
+   - **Lever**: look for "Subscribe" or "Alerts" button. Enter email, select departments or locations
+   - **Ashby**: look for "Subscribe to alerts" link. Enter email, select teams or locations
+   - **Workable**: look for "Subscribe" or "Job Alerts" link. Enter email, select job categories
+   - **SmartRecruiters**: look for "Job Alerts" or "Subscribe" link. Enter email, select filters
+   - **Teamtailor**: look for "Subscribe" or "Alerts" link. Enter email, select categories
+   - **Eightfold**: AI matching may auto-suggest relevant jobs. Look for "Save search" or "Alerts" option
+   - **Workday**: often has " Save Search" or "Job Alerts" after searching. Set up with filters
+   - **Custom ATS**: look for any "Subscribe", "Alerts", "Notify me", or RSS feed icon. If none exists, skip this step and note it in `company_registrations.notes`
+   - **Keywords for alerts**: `AI`, `AI Strategy`, `Engineering Manager`, `AI Architect`, `LLM`, `Agent`, `Platform Engineer`, `Staff Engineer`, `Remote`
+   - **Frequency**: daily if available, weekly otherwise
+   - **Email**: use the user's Gmail (from `users.email`) so alerts route through the Gmail filter
+   - Update DB with alert status:
+     ```bash
+     node scripts/db.js "UPDATE company_registrations SET data = jsonb_set(COALESCE(data, '{}'::jsonb), '{alerts_subscribed}', 'true'::jsonb), notes = COALESCE(notes, '') || ' | Alerts subscribed' WHERE id = <id>" --write
+     ```
+   - If alerts not available on the platform, note it:
+     ```bash
+     node scripts/db.js "UPDATE company_registrations SET notes = COALESCE(notes, '') || ' | No native alerts' WHERE id = <id>" --write
+     ```
 
 **If a company has no matching roles or no remote options:**
 - Mark `registration_status = 'no_fit'` with reason in `notes`
