@@ -1,29 +1,29 @@
 # DESIGN.md
 
-## Principios
+## Principles
 
-Este repo no tiene UI. Es consumido por agentes coding via skills (markdown) y scripts (Node.js). Los "usuarios" son agentes, no humanos.
+This repo has no UI. It's consumed by coding agents via skills (markdown) and scripts (Node.js). The "users" are agents, not humans.
 
-## Formato de skills
+## Skill format
 
-- Frontmatter YAML: `name`, `description`
-- Markdown plano, sin HTML
-- Checklists con `- [ ]` para pasos accionables
-- Tablas para datos estructurados
-- Bloques de código para comandos y SQL
-- Máxima densidad por token: breve, directo, sin prosa decorativa
+- YAML frontmatter: `name`, `description`
+- Plain markdown, no HTML
+- Checklists with `- [ ]` for actionable steps
+- Tables for structured data
+- Code blocks for commands and SQL
+- Maximum density per token: brief, direct, no decorative prose
 
-## Convenciones de nombres
+## Naming conventions
 
 - Skills: kebab-case (`playwright-cli`, `job-search`)
-- Tablas SQL: snake_case (`users`, `applications`)
+- SQL tables: snake_case (`users`, `applications`)
 - JSONB keys: snake_case (`job_preferences`, `style_profile`)
-- Archivos de doc: UPPERCASE (`ADR.md`, `PLATFORMS.md`)
+- Doc files: UPPERCASE (`ADR.md`, `PLATFORMS.md`)
 
-## Si se agrega UI en el futuro
+## If UI is added in the future
 
-Definir acá:
-- Tokens (color, tipografía, espaciado)
-- Catálogo de componentes
-- Patrones de estados (loading, error, empty)
-- Criterios de accesibilidad
+Define here:
+- Tokens (color, typography, spacing)
+- Component catalog
+- State patterns (loading, error, empty)
+- Accessibility criteria

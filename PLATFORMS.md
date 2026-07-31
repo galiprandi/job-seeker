@@ -1,76 +1,76 @@
-# Plataformas de Búsqueda Laboral
+# Job Search Platforms
 
-Catálogo mantenido por la comunidad. El agente lo consulta para decidir dónde buscar según el perfil del usuario.
+Community-maintained catalog. The agent consults it to decide where to search based on the user's profile.
 
-## Tracking de Alertas (Passive Sourcing)
+## Alert Tracking (Passive Sourcing)
 
-Plataformas con alertas configuradas. El agente revisa la carpeta `Job Alerts` en Gmail cuando se ejecuta `news`.
+Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gmail when `news` runs.
 
-| Plataforma | URL | Perfil | Alertas | Filtro Gmail | Última revisión | Notas |
+| Platform | URL | Profile | Alerts | Gmail Filter | Last review | Notes |
 |---|---|---|---|---|---|---|
-| HireIndex | hireindex.app | N/A (newsletter) | ✅ Newsletter semanal confirmado | ✅ | 2026-07-30 | AI/ML jobs aggregator. 1678 roles, 800 companies. Double opt-in confirmado |
-| Torre | torre.ai | ✅ Login (email+OTP) | ✅ AI matching automático | ✅ | 2026-07-30 | Genome pendiente de completar. Matching automático sin keywords |
-| We Work Remotely | weworkremotely.com | — | — | ✅ | — | Cloudflare block. Pendiente login headed |
-| Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails activados | ✅ | 2026-07-30 | Onboarding: EM, Argentina, remote, 11-1000+ emp, Senior/Expert |
-| Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Matching por perfil | ✅ | 2026-07-30 | Perfil preexistente. Matching automático sin keywords |
+| HireIndex | hireindex.app | N/A (newsletter) | ✅ Weekly newsletter confirmed | ✅ | 2026-07-30 | AI/ML jobs aggregator. 1678 roles, 800 companies. Double opt-in confirmed |
+| Torre | torre.ai | ✅ Login (email+OTP) | ✅ Automatic AI matching | ✅ | 2026-07-30 | Genome pending completion. Automatic matching without keywords |
+| We Work Remotely | weworkremotely.com | — | — | ✅ | — | Cloudflare block. Pending headed login |
+| Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails enabled | ✅ | 2026-07-30 | Onboarding: EM, Argentina, remote, 11-1000+ emp, Senior/Expert |
+| Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Profile-based matching | ✅ | 2026-07-30 | Pre-existing profile. Automatic matching without keywords |
 
-> **Filtro Gmail activo:** `from:(hireindex.app OR torre.ai OR weworkremotely.com OR builtin.com OR workatastartup.com OR ycombinator.com)` → Saltar Recibidos → Aplicar etiqueta "Job Alerts"
+> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR weworkremotely.com OR builtin.com OR workatastartup.com OR ycombinator.com)` → Skip Inbox → Apply label "Job Alerts"
 
-## Generales (alto volumen, todos los niveles)
+## General (high volume, all levels)
 
-| Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
+| Platform | URL | Role types | Seniority | Industries | Geography | Easy Apply | Anti-bot | Notes |
 |---|---|---|---|---|---|---|---|---|
-| LinkedIn | linkedin.com/jobs | Todos | Todos | Todas | Global | Sí (parcial) | Alto | Mayor volumen. Detecta automation. MCP oficial disponible |
-| Glassdoor | glassdoor.com | Todos | Mid-Senior | Todas | Global | No | Medio | Salary insights y reviews de empresas |
-| Indeed | indeed.com | Todos | Todos | Todas | Global | Sí | Medio | GraphQL API capturable. Mucho ruido |
-| Remotive | remotive.com | Remote | Todos | Varias | Global | No | Bajo | 125k+ remote jobs. API pública |
-| RemoteFront | remotefront.com | Remote | Todos | Varias | Global | No | Bajo | 154k+ jobs de career pages directos. Sin recruiters |
-| RemoteOrNothing | remoteornothing.com | Remote | Mid-Senior | Tech | Global | No | Bajo | Solo 100% remote, sin híbrido. Actualiza cada 6h |
-| RemNavi | remnavi.com | Remote | Todos | Varias | Global | No | Bajo | Agregador de 7 plataformas. Real Remote Score |
-| RemoteJobsGlobal | remotejobsglobal.com | Remote | Todos | Varias | Global | No | Bajo | Solo worldwide remote. 6k+ listings |
-| Remote100K | linkedin.com/company/remote100k | Remote | Senior+ | Varias | Global | No | Bajo | Solo $100k+ remote. Vía LinkedIn |
+| LinkedIn | linkedin.com/jobs | All | All | All | Global | Yes (partial) | High | Highest volume. Detects automation. Official MCP available |
+| Glassdoor | glassdoor.com | All | Mid-Senior | All | Global | No | Medium | Salary insights and company reviews |
+| Indeed | indeed.com | All | All | All | Global | Yes | Medium | Capturable GraphQL API. Lots of noise |
+| Remotive | remotive.com | Remote | All | Various | Global | No | Low | 125k+ remote jobs. Public API |
+| RemoteFront | remotefront.com | Remote | All | Various | Global | No | Low | 154k+ jobs from direct career pages. No recruiters |
+| RemoteOrNothing | remoteornothing.com | Remote | Mid-Senior | Tech | Global | No | Low | 100% remote only, no hybrid. Updates every 6h |
+| RemNavi | remnavi.com | Remote | All | Various | Global | No | Low | Aggregator of 7 platforms. Real Remote Score |
+| RemoteJobsGlobal | remotejobsglobal.com | Remote | All | Various | Global | No | Low | Worldwide remote only. 6k+ listings |
+| Remote100K | linkedin.com/company/remote100k | Remote | Senior+ | Various | Global | No | Low | $100k+ remote only. Via LinkedIn |
 
 ## Tech / Dev-focused
 
-| Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
+| Platform | URL | Role types | Seniority | Industries | Geography | Easy Apply | Anti-bot | Notes |
 |---|---|---|---|---|---|---|---|---|
-| Get on Board | getonbrd.com | Tech | Mid-Senior | Tech/SaaS | Latam | No | Bajo | Rails form API. Seniority IDs: 4=Senior, 5=Expert |
-| Wellfound | wellfound.com | Tech/Startup | Mid-Senior | Startups | Global | No | Alto | GraphQL APQ. OperationIds cambian por deploy. Filtra por location |
-| RemoteOK | remoteok.com | Remote/Tech | Todos | Tech | Global | No | Bajo | API pública. Tags por tecnología |
-| Remote.co | remote.co | Remote | Todos | Varias | Global | No | Bajo | Solo remoto. Volumen limitado |
-| Remotely | remotely.works | Tech | Mid-Senior | Startups US | Latam→US | No | Bajo | Match manual. LATAM devs → US startups. USD salary |
-| RemoteRocketship | remoterocketship.com | Tech | Mid-Senior | Tech | Global | No | Bajo | Filtra por país. Buenos listings de Latam |
-| RemoteOtter | remoteotter.com | Tech/Leadership | Mid-Senior | Tech | Global | No | Bajo | 270+ engineering leadership roles |
-| Remotery | remotery.co | Tech | Mid-Senior | Tech | Global | No | Bajo | Salary visible. Filtro por país |
-| YayRemote | yayremote.com | Tech | Mid-Senior | Tech | Global | No | Bajo | Worldwide roles. Salary visible |
+| Get on Board | getonbrd.com | Tech | Mid-Senior | Tech/SaaS | Latam | No | Low | Rails form API. Seniority IDs: 4=Senior, 5=Expert |
+| Wellfound | wellfound.com | Tech/Startup | Mid-Senior | Startups | Global | No | High | GraphQL APQ. OperationIds change per deploy. Filter by location |
+| RemoteOK | remoteok.com | Remote/Tech | All | Tech | Global | No | Low | Public API. Tags by technology |
+| Remote.co | remote.co | Remote | All | Various | Global | No | Low | Remote only. Limited volume |
+| Remotely | remotely.works | Tech | Mid-Senior | US Startups | Latam→US | No | Low | Manual match. LATAM devs → US startups. USD salary |
+| RemoteRocketship | remoterocketship.com | Tech | Mid-Senior | Tech | Global | No | Low | Filter by country. Good Latam listings |
+| RemoteOtter | remoteotter.com | Tech/Leadership | Mid-Senior | Tech | Global | No | Low | 270+ engineering leadership roles |
+| Remotery | remotery.co | Tech | Mid-Senior | Tech | Global | No | Low | Salary visible. Filter by country |
+| YayRemote | yayremote.com | Tech | Mid-Senior | Tech | Global | No | Low | Worldwide roles. Salary visible |
 
 ## AI / ML specialized
 
-| Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
+| Platform | URL | Role types | Seniority | Industries | Geography | Easy Apply | Anti-bot | Notes |
 |---|---|---|---|---|---|---|---|---|
-| AIJobs.ai | aijobs.ai | AI/ML/Data | Todos | AI | Global | No | Bajo | Miles de AI jobs. Startups + established |
-| NeuralHire | neuralhire.ai | AI/ML/Data | Mid-Senior | AI | Global | No | Bajo | Solo AI/ML. Salary range en cada listing |
-| AIRoles | airoles.ai | AI/ML/Leadership | Todos | AI | Global | No | Bajo | Categorías: AI Leader, AI Strategy, AI Safety |
-| AIEngJobs | alastairrushworth.com/aiengjobs | AI Engineering | Mid-Senior | AI | Global | No | Bajo | RAG, agents, evals, inference. 3k+ roles. Sin ghost jobs |
-| caio.pro | caio.pro | CAIO/VP AI/Head AI | Director+ | AI | Global | No | Bajo | C-level AI exclusivo. Verifica reporting line, comp, AI maturity |
+| AIJobs.ai | aijobs.ai | AI/ML/Data | All | AI | Global | No | Low | Thousands of AI jobs. Startups + established |
+| NeuralHire | neuralhire.ai | AI/ML/Data | Mid-Senior | AI | Global | No | Low | AI/ML only. Salary range on each listing |
+| AIRoles | airoles.ai | AI/ML/Leadership | All | AI | Global | No | Low | Categories: AI Leader, AI Strategy, AI Safety |
+| AIEngJobs | alastairrushworth.com/aiengjobs | AI Engineering | Mid-Senior | AI | Global | No | Low | RAG, agents, evals, inference. 3k+ roles. No ghost jobs |
+| caio.pro | caio.pro | CAIO/VP AI/Head AI | Director+ | AI | Global | No | Low | C-level AI only. Verifies reporting line, comp, AI maturity |
 
 ## Engineering Leadership / Executive
 
-| Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
+| Platform | URL | Role types | Seniority | Industries | Geography | Easy Apply | Anti-bot | Notes |
 |---|---|---|---|---|---|---|---|---|
-| RoleZar | rolezar.ai | Eng Manager | Manager+ | Tech | Global | No | Bajo | Solo eng leadership. Score contra tu perfil. MCP-compatible |
-| CTO Jobs HQ | ctojobshq.com | CTO/VP Eng | C-Level | Tech | Global | No | Bajo | CTO roles curados manualmente. Full-time, fractional, contract |
-| CTAIO | ctaio.dev | CTO/VP/Director | Director+ | Tech | Global | No | Bajo | 10k+ roles con salary data. Newsletter semanal |
-| Next Kahuna | nextkahuna.com | Director+ | Director+ | Varias | Global | No | N/A | Private network. Match silencioso. Solo 85%+ match. Invite-only |
-| ExecThread | execthread.org | Executive | VP+ | Varias | Global | No | N/A | Executive jobs confidenciales. Retained search firms |
-| jobj.net | jobj.net | Tech | Mid-Senior | Tech | Global | No | Bajo | Private network. AI matching. 70%+ skill match gate |
+| RoleZar | rolezar.ai | Eng Manager | Manager+ | Tech | Global | No | Low | Eng leadership only. Score against your profile. MCP-compatible |
+| CTO Jobs HQ | ctojobshq.com | CTO/VP Eng | C-Level | Tech | Global | No | Low | Curated CTO roles manually. Full-time, fractional, contract |
+| CTAIO | ctaio.dev | CTO/VP/Director | Director+ | Tech | Global | No | Low | 10k+ roles with salary data. Weekly newsletter |
+| Next Kahuna | nextkahuna.com | Director+ | Director+ | Various | Global | No | N/A | Private network. Silent match. 85%+ match only. Invite-only |
+| ExecThread | execthread.org | Executive | VP+ | Various | Global | No | N/A | Confidential executive jobs. Retained search firms |
+| jobj.net | jobj.net | Tech | Mid-Senior | Tech | Global | No | Low | Private network. AI matching. 70%+ skill match gate |
 
 ## Latam-focused
 
-| Plataforma | URL | Tipos de rol | Seniority | Industrias | Geografía | Easy Apply | Anti-bot | Notas |
+| Platform | URL | Role types | Seniority | Industries | Geography | Easy Apply | Anti-bot | Notes |
 |---|---|---|---|---|---|---|---|---|
-| Computrabajo | computrabajo.com | Generalistas | Junior-Mid | General | Latam | No | Bajo | Fuerte en AR/MX/CL. Dropdowns custom |
-| Bumeran | bumeran.com | Generalistas | Junior-Mid | General | Latam | No | Bajo | React-select dropdowns. Fuerte en AR |
-| Workana | workana.com | Freelance/Remoto | Todos | Varias | Latam | No | Bajo | Mayormente freelance. No ideal para full-time |
-| LatamCent | latamcent.com | Tech | Mid-Senior | Tech | Latam→US | No | Bajo | Staffing firm. Top 1% LATAM talent → US companies |
-| ConexionHR | conexion-hr.com | Tech | Mid-Senior | Tech | Latam | No | Bajo | Tech Lead, arquitectura, event-driven. Remoto AR |
+| Computrabajo | computrabajo.com | Generalist | Junior-Mid | General | Latam | No | Low | Strong in AR/MX/CL. Custom dropdowns |
+| Bumeran | bumeran.com | Generalist | Junior-Mid | General | Latam | No | Low | React-select dropdowns. Strong in AR |
+| Workana | workana.com | Freelance/Remote | All | Various | Latam | No | Low | Mostly freelance. Not ideal for full-time |
+| LatamCent | latamcent.com | Tech | Mid-Senior | Tech | Latam→US | No | Low | Staffing firm. Top 1% LATAM talent → US companies |
+| ConexionHR | conexion-hr.com | Tech | Mid-Senior | Tech | Latam | No | Low | Tech Lead, architecture, event-driven. Remote AR |

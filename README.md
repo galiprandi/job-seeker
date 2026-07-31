@@ -1,43 +1,46 @@
 # Job Seeker
 
-> Automatizá tu búsqueda laboral con tu agente coding favorito.
+> Automate your job search with your favorite coding agent.
 
-Job Seeker es un conjunto de **skills, guías y scripts** que cualquier agente coding (Devin, Claude, opencode, Cursor) consume para buscar, aplicar y hacer seguimiento de trabajos en tu nombre. No es un agente — es el conocimiento que le das a tu agente para que trabaje como vos lo harías.
+Job Seeker is a set of **skills, guides and scripts** that any coding agent (Devin, Claude, opencode, Cursor) consumes to search, apply and track jobs on your behalf. It's not an agent — it's the knowledge you give your agent so it works the way you would.
 
-## Cómo funciona
+## How it works
 
-1. Clonás el repo
-2. Le decís a tu agente: *"ejecutá la skill setup"*
-3. El agente abre un browser, te pide que loguees en Gmail y LinkedIn, crea tu DB, y perfila tu CV
-4. Le decís: *"aplica a 5 puestos"* y el agente busca, filtra, aplica y registra todo
+1. Clone the repo
+2. Tell your agent: *"run the onboarding skill"*
+3. The agent opens a browser, asks you to log into Gmail and LinkedIn, creates your DB, and profiles your CV
+4. You say: *"apply to 5 jobs"* and the agent searches, filters, applies and records everything
 
-Tu perfil, preferencias, estilo de redacción e historial viven en Postgres (Neon). Tu sesión de browser persiste en un perfil dedicado. Nada sensible se commitea al repo.
+Your profile, preferences, writing style and history live in Postgres (Neon). Your browser session persists in a dedicated profile. Nothing sensitive is committed to the repo.
 
-## Skills
+## Flows
 
-| Skill | Qué hace |
-|---|---|
-| `setup` | Onboarding: browser con perfil dedicado, login Gmail + LinkedIn, DB en Neon, datos del usuario |
-| `profiling` | Perfilado: CV + cuestionario (30 preferencias con pesos) + voz/estilo + selección de plataformas |
-| `review` | Revisa novedades en Gmail, LinkedIn y plataformas. Prepara borradores, resumen ejecutivo por prioridad, validación híbrida y auto-envío |
-| `playwright-cli` | Browser automation: comandos, headless por defecto, anti-ban, detección de automation |
+| Flow | Trigger | What it does |
+|---|---|---|
+| `onboarding` | `onboarding` | Bootstrap: browser with dedicated profile, Gmail + LinkedIn login, Neon DB, user data |
+| `profile` | `profile` | Profiling: CV + questionnaire (30 preferences with weights) + voice/style + platform selection |
+| `radar` | `radar` | Passive sourcing: register on job boards, configure alerts, Gmail filter to Job Alerts folder |
+| `news` | `news` | Review updates in Gmail, LinkedIn and platforms. Prepare drafts, executive summary by priority, hybrid validation and auto-send |
+| `apply` | `apply` | Search jobs on LinkedIn, filter by Must-haves, apply via Easy Apply, register in DB |
+| `daily` | `daily` | Periodic routine: runs `news` → inbox cleanup → applies if no recent activity |
+| `playwright-cli` | — | Browser automation: commands, headless by default, anti-ban, automation detection |
 
-## Plataformas
+## Platforms
 
-`PLATFORMS.md` es un catálogo de 35 plataformas en 5 categorías (generales, tech, AI, executive, latam), mantenido por la comunidad. El agente lo consulta para decidir dónde buscar según tu perfil — vos no elegís las plataformas, el agente las deduce.
+`PLATFORMS.md` is a catalog of 35 platforms in 5 categories (general, tech, AI, executive, latam), community-maintained. The agent consults it to decide where to search based on your profile — you don't choose platforms, the agent deduces them.
 
 ## Stack
 
-- **Browser:** `@playwright/cli` via npx. Perfil persistente, headless por defecto
-- **DB:** PostgreSQL via Neon (cloud). Portátil entre máquinas
-- **Node:** `pg` para acceso a DB
-- **Skills:** Markdown en `.agents/skills/`. Universales, no atadas a un agente
+- **Browser:** `@playwright/cli` via npx. Persistent profile, headless by default
+- **DB:** PostgreSQL via Neon (cloud). Portable across machines
+- **Node:** `pg` for DB access
+- **Skills:** Markdown in `.agents/skills/`. Universal, not tied to one agent
 
-## Prerrequisitos
+## Prerequisites
 
 - Node.js 18+
 - npx
-- Cuenta en Neon (gratis) o cualquier Postgres cloud
+- Neon account (free) or any Postgres cloud
 
 ## Bootstrap
 
@@ -47,51 +50,54 @@ cd job-seeker
 npm install
 ```
 
-Creá `.env` con tu connection string:
+Create `.env` with your connection string:
 
 ```
 DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/dbname?sslmode=require
 ```
 
-Abrí tu agente coding en el repo y decile: *"ejecutá la skill setup"*
+Open your coding agent in the repo and say: *"run the onboarding skill"*
 
-## Estructura
+## Structure
 
 ```
-.agents/skills/          # Skills consumidas por cualquier agente
-  setup/SKILL.md         # Onboarding
-  profiling/SKILL.md     # Perfilado
-  review/SKILL.md        # Revisión de novedades y seguimiento
+.agents/skills/          # Skills consumed by any agent
+  onboarding/SKILL.md    # Onboarding
+  profile/SKILL.md       # Profiling
+  radar/SKILL.md         # Passive sourcing (alerts)
+  news/SKILL.md          # Updates review and follow-up
+  apply/SKILL.md         # Job search and application
+  daily/SKILL.md         # Periodic routine
   playwright-cli/SKILL.md # Browser automation
 .playwright/
-  cli.config.json        # Config de playwright-cli (headless: true)
-.env                     # DATABASE_URL (no trackeado)
-.browser-profile/        # Perfil de Chrome con sesiones (no trackeado)
-.playwright-cli/         # Snapshots y logs (no trackeado)
-PLATFORMS.md             # Catálogo de plataformas (comunidad)
-ADR.md                   # Decisiones arquitectónicas
-AGENTS.md                # Reglas de operación + Gold Rules
-DESIGN.md                # Design tokens (placeholder, sin UI aún)
+  cli.config.json        # playwright-cli config (headless: true)
+.env                     # DATABASE_URL (not tracked)
+.browser-profile/        # Chrome profile with sessions (not tracked)
+.playwright-cli/         # Snapshots and logs (not tracked)
+PLATFORMS.md             # Platform catalog (community)
+ADR.md                   # Architecture decisions
+AGENTS.md                # Operational rules + Gold Rules
+DESIGN.md                # Design tokens (placeholder, no UI yet)
 LICENSE                  # MIT
 ```
 
-## Decisiones clave
+## Key decisions
 
-Ver `ADR.md` para el detalle. Resumen:
+See `ADR.md` for details. Summary:
 
-- **playwright-cli** sobre MCP: CLI nativo, sin JSON config, token-efficient
-- **Postgres** sobre Mongo: 70% de los datos son relacionales. JSONB para lo semi-estructurado
-- **Neon** para portabilidad: clonás en otra máquina, mismo `DATABASE_URL`, mismo perfil
-- **npx** sobre installs globales: cero fricción al clonar
-- **Headless** por defecto: headed solo para login manual y 2FA
-- **Skills en `.agents/skills/`**: formato universal, funciona con cualquier agente
+- **playwright-cli** over MCP: native CLI, no JSON config, token-efficient
+- **Postgres** over Mongo: 70% of data is relational. JSONB for semi-structured
+- **Neon** for portability: clone on another machine, same `DATABASE_URL`, same profile
+- **npx** over global installs: zero friction on clone
+- **Headless** by default: headed only for manual login and 2FA
+- **Skills in `.agents/skills/`**: universal format, works with any agent
 
-## Licencia
+## License
 
-MIT — usalo, forkealo, contribuí.
+MIT — use it, fork it, contribute.
 
-## Contribuir
+## Contributing
 
-- `PLATFORMS.md`: agregá plataformas con los campos de la tabla existente
-- Skills: mejorá los checklists y reglas existentes
-- ADR: append-only. Para revertir una decisión, agregá un nuevo ADR que la superseda
+- `PLATFORMS.md`: add platforms with the fields from the existing table
+- Skills: improve existing checklists and rules
+- ADR: append-only. To reverse a decision, add a new ADR that supersedes it
