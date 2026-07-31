@@ -17,21 +17,18 @@ trigger: onboarding
 8. If create: navigate to console.neon.tech, login with Google (reuse session), "New project", name `job-seeker`, nearest region, Create. Read connection string (Show password + eval to extract)
 9. Save connection string to `.env` as `DATABASE_URL`
 10. Ask for user's name
-11. Create `users` table and insert record:
-    ```sql
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      data JSONB DEFAULT '{}'
-    );
-    INSERT INTO users (name, email, data) VALUES (..., ..., '{}')
-    ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name;
+11. Create `users` table and insert record via the db CLI (`scripts/db.js`):
+    ```bash
+    node scripts/db.js "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, data JSONB DEFAULT '{}')" --write
+    node scripts/db.js "INSERT INTO users (name, email, data) VALUES ('<name>', '<email>', '{}'::jsonb) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name" --write
     ```
 12. Navigate to linkedin.com/login. Wait for manual auth + 2FA
 13. Validate session: navigate to linkedin.com/feed/
-14. Save LinkedIn profile URL to `users.data.linkedin_profile` (jsonb_set)
-15. Collect user info from all logged-in sites (LinkedIn, Gmail/Google): name, photo, phone, email. Save to `users.data` as JSONB. Useful for aligning profiles on other job platforms
+14. Save LinkedIn profile URL to `users.data.linkedin_profile` via db CLI:
+    ```bash
+    node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{linkedin_profile}', '\"<url>\"') WHERE id = 1" --write
+    ```
+15. Collect user info from all logged-in sites (LinkedIn, Gmail/Google): name, photo, phone, email. Save to `users.data` as JSONB via db CLI (`jsonb_set`). Useful for aligning profiles on other job platforms
 16. Check if profiles need updating (inconsistent data across sites). Report to user
 17. Close browser
 

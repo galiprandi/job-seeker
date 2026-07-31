@@ -160,40 +160,35 @@ Want me to prepare a reply draft?
 - [ ] Update application statuses based on responses received
 - [ ] Report to user: "Sent 5 replies, 2 automatic applications, 3 items ignored, 8 emails deleted"
 
-## DB schema
+## DB access
 
-```sql
-CREATE TABLE IF NOT EXISTS applications (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  platform TEXT,
-  company TEXT,
-  role TEXT,
-  url TEXT,
-  status TEXT DEFAULT 'applied', -- applied, interviewing, offered, rejected, withdrawn, follow_up_sent
-  applied_at TIMESTAMPTZ DEFAULT NOW(),
-  data JSONB DEFAULT '{}'
-);
+**All DB access via `scripts/db.js`** (see `db` skill). Read-only by default, `--write` for inserts/updates.
 
-CREATE TABLE IF NOT EXISTS messages (
-  id SERIAL PRIMARY KEY,
-  application_id INTEGER REFERENCES applications(id) NULL,
-  user_id INTEGER REFERENCES users(id),
-  channel TEXT, -- gmail, linkedin, platform
-  direction TEXT, -- inbound, outbound
-  sender TEXT,
-  subject TEXT,
-  body TEXT,
-  draft TEXT, -- draft prepared by the agent
-  status TEXT DEFAULT 'pending', -- pending, approved, sent, ignored, draft
-  received_at TIMESTAMPTZ,
-  sent_at TIMESTAMPTZ,
-  data JSONB DEFAULT '{}'
-);
+Schema (create on first run with `--write`):
 
--- Last review tracking
--- users.data.last_review_at (JSONB)
+```bash
+node scripts/db.js "CREATE TABLE IF NOT EXISTS applications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), platform TEXT, company TEXT, role TEXT, url TEXT, status TEXT DEFAULT 'applied', applied_at TIMESTAMPTZ DEFAULT NOW(), data JSONB DEFAULT '{}')" --write
+
+node scripts/db.js "CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, application_id INTEGER REFERENCES applications(id) NULL, user_id INTEGER REFERENCES users(id), channel TEXT, direction TEXT, sender TEXT, subject TEXT, body TEXT, draft TEXT, status TEXT DEFAULT 'pending', received_at TIMESTAMPTZ, sent_at TIMESTAMPTZ, data JSONB DEFAULT '{}')" --write
 ```
+
+Typical queries:
+
+```bash
+# Pending follow-ups
+node scripts/db.js "SELECT id, company, role, applied_at FROM applications WHERE user_id = 1 AND status = 'applied' AND applied_at < NOW() - INTERVAL '5 days'"
+
+# Save a draft
+node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at) VALUES (1, 'gmail', 'inbound', '<sender>', '<subject>', '<body>', '<draft>', 'draft', NOW())" --write
+
+# Mark sent
+node scripts/db.js "UPDATE messages SET status = 'sent', sent_at = NOW() WHERE id = <id>" --write
+
+# Update last_review_at
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{last_review_at}', '\"<iso>\"') WHERE id = 1" --write
+```
+
+`users.data.last_review_at` (JSONB) tracks the last review timestamp.
 
 ## Rules
 

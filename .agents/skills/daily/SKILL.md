@@ -42,10 +42,10 @@ Run the full `news` flow:
 
 ### 3. Decide whether to apply
 
-Query DB:
+Query DB via db CLI:
 
-```sql
-SELECT max(applied_at) as last_application FROM applications WHERE user_id = 1;
+```bash
+node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = 1"
 ```
 
 - If `last_application` is less than 2 days ago → done. Report: "Last application: X. No need to apply today."
