@@ -114,13 +114,19 @@ node scripts/db.js "SELECT category, key, value, confidence, source FROM prefere
 node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, '<category>', '<key>', '<value>', <confidence>, '<source>') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, confidence = EXCLUDED.confidence, source = EXCLUDED.source, updated_at = NOW()" --write
 ```
 
-Written by: `memory` (cross-cutting). Read by: every flow at pre-flight.
+Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`). Read by: every flow at pre-flight.
+
+#### Known preference keys
+
+| Category | Key | Values | Set by | Purpose |
+|---|---|---|---|---|
+| `tooling` | `browser_mode` | `headless`, `headed`, `headed_logins_only`, `ask_each_time` | `onboarding` (step 4), `memory` (if user changes it later) | Controls browser visibility across all flows. Default: `headed_logins_only`. Manual login/2FA is always headed (Gold Rule 5) |
 
 ## Data ownership by flow
 
 | Flow | Writes | Reads |
 |---|---|---|
-| `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info) | — |
+| `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info), `preferences` (`tooling.browser_mode`) | — |
 | `profile` | `users.data.profile`, `users.data.job_preferences`, `users.data.style_profile`, `users.data.platforms`, `users.data.target_companies` | `users.data` (validate before overwrite) |
 | `radar` | `users.data.platforms` (alert status), `PLATFORMS.md` | `users.data.platforms`, `PLATFORMS.md`, `preferences` |
 | `news` | `messages`, `applications` (status updates), `users.data.last_review_at` | `applications`, `users.data.style_profile`, `users.data.profile`, `preferences` |
@@ -135,3 +141,11 @@ Written by: `memory` (cross-cutting). Read by: every flow at pre-flight.
 | `PLATFORMS.md` | Platform catalog (35 platforms) + alert tracking table (which platforms have alerts configured) | `radar` (alert tracking section), manual | `radar`, `profile` (platform tiering), `apply` |
 | `AGENTS.md` | Operational rules, flow map, this data map reference | manual | agent (every session) |
 | `ADR.md` | Architecture decisions (append-only) | manual | agent (when needed) |
+| `.playwright/cli.config.json` | Playwright-cli config: `channel: chrome` only. Profile is NOT here (requires `launchPersistentContext`, passed via wrapper `--profile` flag) | `onboarding` (initial setup) | `playwright-cli` (auto-loaded from repo root) |
+
+## Scripts
+
+| Script | Purpose | Used by |
+|---|---|---|
+| `scripts/db.js` | Safe Postgres CLI. Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes) | All flows (see `db` skill) |
+| `scripts/browser.js` | Browser wrapper. Guarantees `--profile=.browser-profile` is always used. Reads `preferences.tooling.browser_mode` from DB to decide headed/headless. Reuses existing sessions automatically. All flows that need to open/navigate/close the browser must use this instead of `playwright-cli open` directly | All flows that use the browser (see AGENTS.md "Browser session") |
