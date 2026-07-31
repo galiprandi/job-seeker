@@ -10,11 +10,11 @@ Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gm
 |---|---|---|---|---|---|---|
 | HireIndex | hireindex.app | N/A (newsletter) | ✅ Weekly newsletter confirmed | ✅ | 2026-07-30 | AI/ML jobs aggregator. 1678 roles, 800 companies. Double opt-in confirmed |
 | Torre | torre.ai | ✅ Login (email+OTP) | ✅ Automatic AI matching | ✅ | 2026-07-30 | Genome pending completion. Automatic matching without keywords |
-| We Work Remotely | weworkremotely.com | — | — | ✅ | — | Cloudflare block. Pending headed login |
+| We Work Remotely | weworkremotely.com | ❌ Removed — paywalled | ❌ Removed — paywalled | ❌ Removed | 2026-07-31 | ⚠️ Paywall: $14.95/mo Basic. Account deleted. Do not subscribe without confirming value first. |
 | Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails enabled | ✅ | 2026-07-30 | Onboarding: EM, Argentina, remote, 11-1000+ emp, Senior/Expert |
 | Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Profile-based matching | ✅ | 2026-07-30 | Pre-existing profile. Automatic matching without keywords |
 
-> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR weworkremotely.com OR builtin.com OR workatastartup.com OR ycombinator.com)` → Skip Inbox → Apply label "Job Alerts"
+> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR builtin.com OR workatastartup.com OR ycombinator.com)` → Skip Inbox → Apply label "Job Alerts"
 
 ## General (high volume, all levels)
 
