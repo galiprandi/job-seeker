@@ -75,3 +75,45 @@ Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gm
 | Workana | workana.com | Freelance/Remote | All | Various | Latam | No | Low | Mostly freelance. Not ideal for full-time |
 | LatamCent | latamcent.com | Tech | Mid-Senior | Tech | Latam→US | No | Low | Staffing firm. Top 1% LATAM talent → US companies |
 | ConexionHR | conexion-hr.com | Tech | Mid-Senior | Tech | Latam | No | Low | Tech Lead, architecture, event-driven. Remote AR |
+
+## Target Companies
+
+Prioridad para monitoreo directo, alertas de carreras y outreach. Seleccionadas por buena cultura laboral (Great Place to Work 2025) y presencia en Latam.
+
+### Argentina
+
+| Company | Sector | Size | HQ | Why | Careers URL |
+|---|---|---|---|---|---|
+| Accenture | Consulting/Technology | 1000+ | Buenos Aires | #1 GPTW Argentina 2025. Strong AI/tech consulting. | accenture.com/careers |
+| Banco Macro | Banking | 1000+ | Buenos Aires | #2 GPTW Argentina 2025. Digital/IT transformation. | banco-macro.com.ar |
+| Konecta | BPO/Technology | 1000+ | Buenos Aires | #3 GPTW Argentina 2025. LATAM scale, tech centers. | konecta.com/careers |
+| PedidosYa | Delivery/Quick commerce | 1000+ | Buenos Aires | Top 3 GPTW LATAM 2025. Strong tech hub. | pedidosya.com/careers |
+| SAP Argentina | Enterprise Software | 1000+ | Buenos Aires | Enterprise AI/data roles. | sap.com/careers |
+| EY Argentina | Consulting | 1000+ | Buenos Aires | Advisory/AI transformation. | ey.com/careers |
+| Molinos Río de la Plata | Food/Consumer | 1000+ | Buenos Aires | Legacy company, digital ops. | molinos.com |
+| Cargill Argentina | Agribusiness | 1000+ | Buenos Aires | Global operations, tech roles. | cargill.com/careers |
+| Banco Ciudad | Banking | 1000+ | Buenos Aires | Public bank, IT modernization. | bancociudad.com.ar |
+| Verisure | Security/SaaS | 1000+ | Buenos Aires | Connected services, tech roles. | verisure.com/careers |
+| Globant | IT Services/Product | 1000+ | Buenos Aires | Global tech, AI, digital transformation. | globant.com/careers |
+| Mercado Libre | Marketplace/Fintech | 1000+ | Buenos Aires | Regional giant, AI/infrastructure roles. | mercadolibre.com/careers |
+| Ualá | Fintech | 251-1000 | Buenos Aires | High-growth fintech, strong engineering. | uala.com.ar/careers |
+| Despegar | Travel/OTA | 1000+ | Buenos Aires | Product/tech, regional. | despegar.com/careers |
+| Naranja X | Fintech | 251-1000 | Buenos Aires | Digital banking, tech culture. | naranjax.com/careers |
+
+### Latam
+
+| Company | Sector | Size | HQ | Why | Careers URL |
+|---|---|---|---|---|---|
+| Nubank | Fintech | 1000+ | Brazil/Regional | Largest fintech in Latam, strong engineering. | nubank.com.br/careers |
+| dLocal | Fintech/Payments | 1000+ | Uruguay | Global payments, tech-first. | dlocal.com/careers |
+| Rappi | Super app/Delivery | 1000+ | Colombia | Regional tech hub, AI/logistics. | rappi.com/careers |
+| Kavak | Auto/Fintech | 1000+ | Mexico | Unicorn, product/tech. | kavak.com/careers |
+| Creditas | Fintech | 1000+ | Brazil | Secured lending, tech culture. | creditas.com/careers |
+| Softtek | IT Services | 1000+ | Mexico | Nearshore tech, AI, enterprise. | softtek.com/careers |
+| Betterfly | Insurtech | 251-1000 | Chile | Social impact, tech. | betterfly.com/careers |
+| NotCo | FoodTech | 1000+ | Chile | AI/food science, high-growth. | notco.com/careers |
+| Wildlife Studios | Gaming | 1000+ | Brazil | Mobile games, AI/data. | wildlifestudios.com/careers |
+| Invex | Banking | 1000+ | Mexico | ECO Awards LATAM 2025. | invex.com/careers |
+| BBVA (Perú/Regional) | Banking | 1000+ | Spain/Regional | ECO Awards LATAM 2025. | bbva.com/careers |
+| Clara | Fintech/Expense | 251-1000 | Mexico | Startup, strong product/eng. | clara.com/careers |
+| Bitso | Crypto/Fintech | 1000+ | Mexico | Regional crypto exchange. | bitso.com/careers |
