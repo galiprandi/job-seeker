@@ -69,7 +69,7 @@ preferences (
 | `job_search` | avoid_industries, target_roles, location_preference, work_mode, visa_requirements |
 | `communication` | reply_language, reply_tone, reply_length, greeting_style, avoid_bullets |
 | `compensation` | salary_min, salary_max, currency, equity_expectation, required_benefits |
-| `tooling` | preferred_platforms, apply_method, browser_preference |
+| `tooling` | preferred_platforms, apply_method, browser_mode |
 | `workflow` | application_batch_size, follow_up_timing, auto_apply_threshold |
 
 ### Save a new preference
@@ -97,6 +97,7 @@ Inject the result into the flow's context. Treat preferences as constraints:
 - `communication.*` → shape drafts (language, tone, length)
 - `compensation.*` → filter by salary, negotiate
 - `tooling.*` → choose platforms and methods
+- `tooling.browser_mode` → controls browser visibility in all flows that use playwright-cli. Valid values: `headless` (always headless except manual login/2FA), `headed` (always headed), `headed_logins_only` (headed only for logins/2FA, headless otherwise), `ask_each_time` (agent asks before each browser session). Default if not set: `headed_logins_only`. Manual login/2FA is always headed regardless of this preference (Gold Rule 5)
 - `workflow.*` → tune batch sizes and timing
 
 **Confidence-aware**: preferences with `confidence < 1.0` (inferred) can be overridden by explicit user instructions in the current session. Preferences with `confidence = 1.0` (explicit) hold unless the user explicitly changes them.

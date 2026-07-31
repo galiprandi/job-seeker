@@ -13,8 +13,8 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 
 ## Pre-flight
 
-- [ ] Verify active LinkedIn session. If session closed → open headed browser (Gold Rule 5) → notify user → wait for confirmation
-- [ ] Always use Chrome profile `.browser-profile`
+- [ ] Verify active LinkedIn session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
+- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"

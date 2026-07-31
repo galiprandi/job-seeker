@@ -74,8 +74,27 @@ onboarding → profile → radar
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `.agents/skills/playwright-cli/SKILL.md` | Browser automation with Chrome profile `.browser-profile`. Anti-ban. All flows that touch LinkedIn or Gmail use it |
+| `playwright-cli` | `.agents/skills/playwright-cli/SKILL.md` | Browser automation. Open/close/goto via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB). All other commands (click, fill, snapshot) via `playwright-cli` directly |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
+
+### Browser session — wrapper script
+
+**Always use `node scripts/browser.js` for opening, navigating, and closing the browser.** Never call `playwright-cli open` directly, never `npx @playwright/cli`, never `npx playwright cli`, never open Chrome directly. The wrapper guarantees the profile is always used and reads `browser_mode` from the DB automatically.
+
+```bash
+node scripts/browser.js open <url> [--headed|--headless]   # Open (profile always injected, headed/headless from DB or flag)
+node scripts/browser.js goto <url>                         # Navigate current session
+node scripts/browser.js close                              # Close current session
+node scripts/browser.js close-all                          # Close all sessions
+node scripts/browser.js list                               # List active sessions
+node scripts/browser.js status                             # Show browser_mode pref + active sessions
+```
+
+**Key behaviors:**
+- `--profile=.browser-profile` is hardcoded in the wrapper. It cannot be omitted
+- If no `--headed`/`--headless` flag is passed to `open`, the wrapper reads `preferences.tooling.browser_mode` from the DB. `headed` → visible, everything else → headless. The caller passes `--headed` explicitly for manual logins (Gold Rule 5)
+- If a session is already running, `open` automatically does `goto` instead of failing
+- For all other playwright-cli commands (click, fill, snapshot, eval, etc.) use `playwright-cli` directly — the wrapper only wraps open/close/goto
 
 ### Documentation reference matrix
 
@@ -93,8 +112,8 @@ onboarding → profile → radar
 
 ## Operational constraints
 
-- Always `npx`, never global install
-- Headless by default. Headed only for manual login or 2FA
+- Always `npx`, never global install. **Exception:** `playwright-cli` is globally installed, but **always use `node scripts/browser.js`** for open/close/goto (see "Browser session" section above). Never call `playwright-cli open` directly
+- Browser visibility controlled by `preferences.tooling.browser_mode` (`headless`, `headed`, `headed_logins_only`, `ask_each_time`). Default: `headed_logins_only`. Set during onboarding, loaded at every pre-flight. Manual login/2FA is always headed (Gold Rule 5)
 - Custom DB schema: create tables as needed
 - JSONB for semi-structured data in `users.data`
 - Single user (repo owner)

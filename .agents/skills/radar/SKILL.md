@@ -19,8 +19,8 @@ Passive sourcing: platforms bring opportunities to the user without having to se
 
 ### 0. Pre-flight
 
-- [ ] Verify active Gmail session. If session closed → open headed browser (Gold Rule 5)
-- [ ] Always use Chrome profile `.browser-profile`
+- [ ] Verify active Gmail session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5)
+- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
 - [ ] Read `PLATFORMS.md` "Alert Tracking" section to see which platforms need configuration
 - [ ] Read `PROFILE.md` to get keywords, seniority, location, preferences
 - [ ] Load active preferences (see `memory` skill):
@@ -37,7 +37,7 @@ Passive sourcing: platforms bring opportunities to the user without having to se
 For each unconfigured platform (column "Profile" = "—"):
 
 - [ ] Navigate to the platform
-- [ ] **Login with Google** when possible (preferred). If no Google login → open headed browser and ask user to login manually (Gold Rule 5)
+- [ ] **Login with Google** when possible (preferred). If no Google login → open browser with wrapper (`node scripts/browser.js open <url> --headed`) and ask user to login manually (Gold Rule 5)
 - [ ] Complete minimum profile:
   - First name, last name
   - Title / headline (from PROFILE.md)
@@ -99,7 +99,7 @@ Once, when configuring the first platform:
 
 ## Rules
 
-- **Google login first**. If not available → headed browser + manual login (Gold Rule 5)
+- **Google login first**. If not available → wrapper with `--headed` + manual login (Gold Rule 5)
 - **Minimum profile**: name, title, location, seniority, CV, remote/full-time preferences
 - **Alert keywords** come from PROFILE.md `Search keywords`
 - **Gmail filter** is created once and updated when adding platforms
