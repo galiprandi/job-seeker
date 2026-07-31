@@ -23,6 +23,11 @@ Also runs in parallel when the user launches an application.
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
   ```
+- [ ] Load strategy (see AGENTS.md "Strategy levels"):
+  ```bash
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  ```
+  Respect: `follow_up_days` (days before sending follow-up), `cold_outreach` (whether to send cold messages to recruiters). If `news` not in `sources_active`, warn the user
 
 ### 1. Collect updates (in parallel)
 

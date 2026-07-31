@@ -19,6 +19,11 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
   ```
+- [ ] Load strategy (see AGENTS.md "Strategy levels"):
+  ```bash
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  ```
+  Respect: `apply_batch_size` (max jobs per session), `match_threshold` (must_only / must_strong / must_strong_nice), `relax_must_haves` (loosen Must-have filtering). If `apply_batch_size = 0`, don't auto-apply, only present matches for manual approval
 - [ ] Read profile and existing applications via db CLI:
   ```bash
   node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'personal_info' AS personal FROM users WHERE id = 1"

@@ -33,6 +33,7 @@ After every user message, scan for 3 signal types:
 - Tooling/workflow preferences (which platforms, how to apply)
 - Corrections to anything previously stored
 - Explicit requests: "recordá que..." / "remember that..."
+- **Strategy level changes.** When the user's situation changes (employment status, urgency), detect and propose a strategy level change. See AGENTS.md "Strategy levels"
 
 **Skip**:
 - Trivial/obvious info ("user asked about Python")
@@ -70,7 +71,7 @@ preferences (
 | `communication` | reply_language, reply_tone, reply_length, greeting_style, avoid_bullets |
 | `compensation` | salary_min, salary_max, currency, equity_expectation, required_benefits |
 | `tooling` | preferred_platforms, apply_method, browser_mode |
-| `workflow` | application_batch_size, follow_up_timing, auto_apply_threshold |
+| `workflow` | application_batch_size, follow_up_timing, auto_apply_threshold, strategy_level |
 
 ### Save a new preference
 
@@ -83,6 +84,27 @@ The `ON CONFLICT` clause handles updates: if the preference already exists, it r
 ### Correction handling
 
 When a correction is detected (user contradicts a stored preference), the same INSERT with `ON CONFLICT DO UPDATE` handles it. The old value is replaced, `source` becomes `correction`, and `updated_at` is bumped. The old value is not preserved (single user, no audit trail needed).
+
+### Strategy level detection
+
+The agent must detect signals that the user's job search situation has changed and propose a strategy level adjustment. This is Gold Rule 3 applied to urgency/aggressiveness.
+
+| Signal | Example | Proposed level |
+|---|---|---|
+| Lost job / fired | "me despidieron", "me quedé sin trabajo", "lost my job" | `active` |
+| About to lose job | "me van a despedir", "termina mi contrato en X", "my contract ends" | `active` |
+| Desperation | "necesito algo ya", "urgentísimo", "need a job now" | `aggressive` |
+| Found a job | "encontré trabajo", "acepté una oferta", "got the job" | `passive` |
+| Employed, casually looking | "estoy viendo opciones", "open to opportunities" | `selective` |
+| Wants more aggressive | "aplica más agresivo", "send more applications" | bump up one level |
+| Wants less aggressive | "frená un poco", "too many applications" | bump down one level |
+
+**When a strategy change is detected:**
+1. Propose the change to the user (never change without asking)
+2. Explain what will change (batch sizes, match threshold, relax rules)
+3. Wait for confirmation
+4. Save to `preferences` (`workflow.strategy_level`) and `users.data.strategy`
+5. Report: "Estrategia actualizada: <level>"
 
 ## Injection
 
