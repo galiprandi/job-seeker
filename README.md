@@ -75,6 +75,7 @@ Open your coding agent in the repo and say: *"run the onboarding skill"*
 .browser-profile/        # Chrome profile with sessions (not tracked)
 .playwright-cli/         # Snapshots and logs (not tracked)
 PLATFORMS.md             # Platform catalog (community)
+DATA.md                  # Data map: tables, JSONB keys, flow ownership
 ADR.md                   # Architecture decisions
 AGENTS.md                # Operational rules + Gold Rules
 DESIGN.md                # Design tokens (placeholder, no UI yet)
