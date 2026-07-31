@@ -13,8 +13,9 @@ Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gm
 | We Work Remotely | weworkremotely.com | ❌ Removed — paywalled | ❌ Removed — paywalled | ❌ Removed | 2026-07-31 | ⚠️ Paywall: $14.95/mo Basic. Account deleted. Do not subscribe without confirming value first. |
 | Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails enabled | ✅ | 2026-07-30 | Onboarding: EM, Argentina, remote, 11-1000+ emp, Senior/Expert |
 | Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Profile-based matching | ✅ | 2026-07-30 | Pre-existing profile. Automatic matching without keywords |
+| Rooftop | rooftop.dev | ✅ Connect profile | ✅ Per-vacancy alerts enabled | ✅ | 2026-07-31 | LATAM tech staffing. Notifications for all departments/puestos. Profile connected to galiprandi@gmail.com. |
 
-> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR builtin.com OR workatastartup.com OR ycombinator.com)` → Skip Inbox → Apply label "Job Alerts"
+> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR builtin.com OR workatastartup.com OR ycombinator.com OR teamtailor.com)` → Skip Inbox → Apply label "Job Alerts"
 
 ## General (high volume, all levels)
 
