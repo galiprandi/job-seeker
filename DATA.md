@@ -21,12 +21,14 @@ Single row. Structured columns + `data` JSONB for semi-structured profile info.
 
 | Key | Type | What it holds | Written by | Read by |
 |---|---|---|---|---|
-| `profile` | object | CV extraction: name, title, summary, skills, experience, education, languages, projects, github, blog, cv_url | `profile` | `apply`, `news`, `daily` |
-| `job_preferences` | object | 30 questionnaire answers with Must/Strong/Nice weights: role_types, seniority, location, modalities, salary, equity, stack, ai_focus, ai_role_type, deal_breakers, industries_preferred, industries_avoid, etc. | `profile` | `apply`, `news`, `daily` |
+| `profile` | object | CV extraction: name, title, summary, skills, experience, education, languages, projects, github, blog, cv_url | `profile` | `apply`, `targets`, `news`, `daily` |
+| `job_preferences` | object | 30 questionnaire answers with Must/Strong/Nice weights: role_types, seniority, location, modalities, salary, equity, stack, ai_focus, ai_role_type, deal_breakers, industries_preferred, industries_avoid, etc. | `profile` | `apply`, `targets`, `news`, `daily` |
 | `style_profile` | object | Communication style: tone, language, length, greeting, closing, emojis, bullet_lists, characteristics, samples, preferences_confirmed | `profile` | `news` (drafting replies), all flows (language) |
 | `platforms` | object | Platform tier assignment (output of analysis, not user input): `tier_1`, `tier_2`, `tier_3`, `discarded`. Each tier is an array of `{name, reason}` | `profile` | `radar`, `apply`, `news` |
-| `target_companies` | object | Curated target companies by region: `latam`, `argentina`, etc. Each is an array of `{name, url, sector}` | `profile` or manual | `apply` (priority targets) |
-| `linkedin_profile` | string | LinkedIn profile URL | `onboarding` | `apply`, `news` |
+| `target_companies` | object | Curated target companies by region: `latam`, `argentina`, etc. Each is an array of `{name, url, sector}` | `profile` or manual | `targets` (company list), `apply` (priority targets) |
+| `cv_path` | string | Absolute path to CV PDF on local machine | `onboarding` or manual | `targets` (upload to career sites) |
+| `photo_path` | string | Absolute path to profile photo on local machine | `onboarding` or manual | `targets` (upload to career sites) |
+| `linkedin_profile` | string | LinkedIn profile URL | `onboarding` | `apply`, `targets`, `news` |
 | `last_review_at` | string (ISO) | Timestamp of last `news` run. Used to filter emails since last review | `news` | `news`, `daily` |
 
 Access:
@@ -59,7 +61,43 @@ node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications
 node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, '<platform>', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
 ```
 
-Written by: `apply`. Read by: `apply` (dedup), `news` (status updates), `daily` (last application date).
+Written by: `apply`, `targets`. Read by: `apply` (dedup), `targets` (dedup), `news` (status updates), `daily` (last application date).
+
+### `company_registrations`
+
+Tracks registration and application status per target company. Enables resumability for the `targets` flow.
+
+| Column | Type | Purpose |
+|---|---|---|
+| `id` | SERIAL PK | |
+| `user_id` | INTEGER FK → users | Always 1 |
+| `company` | TEXT | Company name (unique per user) |
+| `region` | TEXT | `latam` or `argentina` |
+| `sector` | TEXT | Industry sector |
+| `careers_url` | TEXT | Direct URL to careers page |
+| `ats_platform` | TEXT | Detected ATS: `Greenhouse`, `Lever`, `Ashby`, `Workday`, `SmartRecruiters`, `Teamtailor`, `Eightfold`, `SuccessFactors`, `Workable`, `Phenom`, `Attrax`, `Gupy`, `Custom`, `Unknown` |
+| `registration_status` | TEXT | `pending`, `registered`, `no_fit`, `manual_login_needed`, `manual_apply_needed` |
+| `profile_completed` | BOOLEAN | Whether profile was fully filled |
+| `profile_url` | TEXT | URL to user's profile on the platform (if available) |
+| `login_method` | TEXT | `google`, `linkedin`, `email` |
+| `applied_jobs_count` | INTEGER | How many jobs applied to via this flow |
+| `last_visit_at` | TIMESTAMPTZ | Last time the careers page was visited |
+| `last_applied_at` | TIMESTAMPTZ | Last time an application was submitted |
+| `notes` | TEXT | Free-form notes (ATS details, role observations, no_fit reasons) |
+| `data` | JSONB | Credentials (if email login), extra metadata |
+| `created_at` | TIMESTAMPTZ | Default NOW() |
+| `updated_at` | TIMESTAMPTZ | Default NOW() |
+| | | UNIQUE(user_id, company) |
+
+Access:
+```bash
+node scripts/db.js "SELECT id, company, region, registration_status, ats_platform, profile_completed, applied_jobs_count, notes FROM company_registrations WHERE user_id = 1 ORDER BY registration_status, region, company"
+node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = 1 AND registration_status = 'pending' ORDER BY region, company"
+node scripts/db.js "UPDATE company_registrations SET registration_status = 'registered', profile_completed = true, ats_platform = '<ats>', login_method = '<method>', last_visit_at = NOW(), updated_at = NOW() WHERE id = <id>" --write
+node scripts/db.js "UPDATE company_registrations SET applied_jobs_count = applied_jobs_count + <N>, last_applied_at = NOW(), updated_at = NOW() WHERE id = <id>" --write
+```
+
+Written by: `targets`. Read by: `targets` (resumability), `daily` (can check if targets flow needs running).
 
 ### `messages`
 
@@ -129,9 +167,10 @@ Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`)
 | `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info), `preferences` (`tooling.browser_mode`) | — |
 | `profile` | `users.data.profile`, `users.data.job_preferences`, `users.data.style_profile`, `users.data.platforms`, `users.data.target_companies` | `users.data` (validate before overwrite) |
 | `radar` | `users.data.platforms` (alert status), `PLATFORMS.md` | `users.data.platforms`, `PLATFORMS.md`, `preferences` |
+| `targets` | `company_registrations`, `applications` | `users.data.profile`, `users.data.job_preferences`, `users.data.target_companies`, `users.data.cv_path`, `users.data.photo_path`, `company_registrations` (resumability), `applications` (dedup), `preferences` |
 | `news` | `messages`, `applications` (status updates), `users.data.last_review_at` | `applications`, `users.data.style_profile`, `users.data.profile`, `preferences` |
 | `apply` | `applications` | `users.data.profile`, `users.data.job_preferences`, `users.data.target_companies`, `applications` (dedup), `preferences` |
-| `daily` | (delegates to `news` + `apply`) | `applications` (max applied_at), `preferences` |
+| `daily` | (delegates to `news` + `apply`/`targets`) | `applications` (max applied_at), `company_registrations` (pending count), `preferences` |
 | `memory` | `preferences` | `preferences` (injection at every pre-flight) |
 
 ## File-based data (not in DB)
