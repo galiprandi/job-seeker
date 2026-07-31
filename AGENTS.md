@@ -38,7 +38,7 @@ The agent speaks to the user and to recruiters in **the user's language**. The u
 
 ## Flows
 
-The system has 6 flows + 1 cross-cutting behavior. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
+The system has 7 flows + 1 cross-cutting behavior. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
 
 ### Flow map
 
@@ -47,27 +47,39 @@ The system has 6 flows + 1 cross-cutting behavior. Each flow has a trigger (keyw
 | Onboarding | `.agents/skills/onboarding/` | `onboarding` | Environment bootstrap: node, .gitignore, npm install, headed Gmail + LinkedIn login, create Neon DB, create users table, save .env | Freshly cloned repo or first use. User says `onboarding` or agent detects missing `.env` or DB |
 | Profile | `.agents/skills/profile/` | `profile` | Extract user profile from CV + questionnaire with Must/Strong/Nice weights. Saves to `users.data.profile` | After onboarding. User says `profile`, "update profile", or uploads a CV |
 | Radar | `.agents/skills/radar/` | `radar` | Register user on job boards, configure alerts with profile keywords, create Gmail filter to route alerts to `Job Alerts` folder | After profile exists. User says `radar`, "set up alerts", "register on platforms" |
+| Targets | `.agents/skills/targets/` | `targets` | Active direct sourcing: register and create standout profiles on the 40 target companies' career sites, then apply to matching positions | After profile exists. User says `targets`, "register on companies", "apply to target companies" |
 | News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
-| Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied in the last 2 days, runs `apply` | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
+| Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied in the last 2 days, runs `apply` or `targets` | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
+
+### Sourcing pillars
+
+Three complementary sourcing strategies:
+
+| Pillar | Flow | Strategy | Reach |
+|---|---|---|---|
+| Passive | `radar` | Platforms send alerts to Gmail `Job Alerts` folder | Broad (Otta, Torre, Built In, etc.) |
+| Active (LinkedIn) | `apply` | Search and Easy Apply on LinkedIn | Broad (LinkedIn's entire job board) |
+| Active (direct) | `targets` | Go directly to 40 target companies' career sites | Deep (specific companies, tailored profiles) |
 
 ### Flow dependencies
 
 ```
 onboarding → profile → radar
                 ↓          ↓
-              apply      news ← (consumes radar alerts)
-                ↓          ↑
-                └── daily ─┘
+            apply, targets  news ← (consumes radar alerts)
+                ↓              ↑
+                └─── daily ────┘
 ```
 
 - `onboarding` must run before anything else. Without `.env` and DB nothing works.
 - `profile` depends on `onboarding`. Without a profile there's no quality matching.
 - `radar` depends on `profile`. Alerts use profile keywords.
+- `targets` depends on `profile` (Must-haves to filter, profile data to fill forms) and `onboarding` (browser profile with Gmail + LinkedIn sessions for login). Consumes `users.data.target_companies` for the company list.
 - `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages.
 - `apply` depends on `profile` (to filter by Must-haves) and `onboarding` (DB to register).
-- `daily` composes `news` + `apply` with decision logic based on `SELECT max(applied_at) FROM applications`.
+- `daily` composes `news` + `apply`/`targets` with decision logic based on `SELECT max(applied_at) FROM applications`.
 - `memory` is cross-cutting: runs during every flow (detection) and at every pre-flight (injection). Depends on `onboarding` (DB). Implements Gold Rule 3.
 
 ### Tools
