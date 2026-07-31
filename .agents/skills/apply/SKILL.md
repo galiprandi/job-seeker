@@ -15,6 +15,10 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 
 - [ ] Verify active LinkedIn session. If session closed → open headed browser (Gold Rule 5) → notify user → wait for confirmation
 - [ ] Always use Chrome profile `.browser-profile`
+- [ ] Load active preferences (see `memory` skill):
+  ```bash
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  ```
 - [ ] Read profile and existing applications via db CLI:
   ```bash
   node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs FROM users WHERE id = 1"

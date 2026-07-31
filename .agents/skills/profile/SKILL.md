@@ -5,6 +5,13 @@ trigger: profile
 ---
 # Profile
 
+## Pre-flight
+
+- [ ] Load active preferences (see `memory` skill):
+  ```bash
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  ```
+
 ## Phase 1: CV (online or PDF)
 
 Ask user for CV (URL or PDF). Extract:

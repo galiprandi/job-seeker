@@ -38,7 +38,7 @@ The agent speaks to the user and to recruiters in **the user's language**. The u
 
 ## Flows
 
-The system has 6 flows. Each has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
+The system has 6 flows + 1 cross-cutting behavior. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
 
 ### Flow map
 
@@ -50,6 +50,7 @@ The system has 6 flows. Each has a trigger (keyword the user says) and a skill f
 | News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
 | Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied in the last 2 days, runs `apply` | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
+| Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
 
 ### Flow dependencies
 
@@ -67,6 +68,7 @@ onboarding → profile → radar
 - `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages.
 - `apply` depends on `profile` (to filter by Must-haves) and `onboarding` (DB to register).
 - `daily` composes `news` + `apply` with decision logic based on `SELECT max(applied_at) FROM applications`.
+- `memory` is cross-cutting: runs during every flow (detection) and at every pre-flight (injection). Depends on `onboarding` (DB). Implements Gold Rule 3.
 
 ### Tools
 
@@ -85,6 +87,7 @@ onboarding → profile → radar
 | Job platforms | `PLATFORMS.md` |
 | Browser automation | `.agents/skills/playwright-cli/SKILL.md` |
 | DB access (CLI) | `.agents/skills/db/SKILL.md` |
+| Preference memory | `.agents/skills/memory/SKILL.md` |
 | Each flow's detail | `.agents/skills/<flow>/SKILL.md` |
 
 ## Operational constraints

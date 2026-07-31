@@ -23,6 +23,10 @@ Passive sourcing: platforms bring opportunities to the user without having to se
 - [ ] Always use Chrome profile `.browser-profile`
 - [ ] Read `PLATFORMS.md` "Alert Tracking" section to see which platforms need configuration
 - [ ] Read `PROFILE.md` to get keywords, seniority, location, preferences
+- [ ] Load active preferences (see `memory` skill):
+  ```bash
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  ```
 
 ### 1. Register on platforms
 
