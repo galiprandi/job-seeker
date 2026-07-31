@@ -19,6 +19,10 @@ Compose the `news` and `apply` flows with decision logic to keep the job search 
 
 - [ ] Verify active LinkedIn and Gmail sessions. If session closed → open headed browser (Gold Rule 5) → notify user → wait for confirmation
 - [ ] Always use Chrome profile `.browser-profile`
+- [ ] Load active preferences (see `memory` skill):
+  ```bash
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  ```
 
 ## Flow
 
