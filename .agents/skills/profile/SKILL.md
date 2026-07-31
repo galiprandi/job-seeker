@@ -112,7 +112,12 @@ Ask the user:
 ## Rules
 
 - CV is source of truth. Questionnaire covers what the CV doesn't say
-- Persist everything to `users.data` as JSONB
+- **All DB access via `scripts/db.js`** (see `db` skill). Read-only by default, `--write` for saves
+- Persist everything to `users.data` as JSONB via `jsonb_set`:
+  ```bash
+  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{profile}', '<json>'::jsonb) WHERE id = 1" --write
+  node scripts/db.js "SELECT data->'profile' AS profile FROM users WHERE id = 1"
+  ```
 - If user already has a profile in DB, validate changes before overwriting
 - Profile is updated when user changes CV or answers new questions
 - Questions in blocks of 4, multi-select where applicable

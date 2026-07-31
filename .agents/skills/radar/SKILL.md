@@ -68,7 +68,10 @@ Once, when configuring the first platform:
 
 - [ ] Update `PLATFORMS.md` "Alert Tracking" section with each platform's status
 - [ ] Update `PROFILE.md` "Configured alerts" section with keywords and platforms
-- [ ] Register in DB (if exists): `platforms` table with alert status
+- [ ] Register in DB via db CLI (if exists): save alert status to `users.data.platforms` JSONB:
+  ```bash
+  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{platforms}', '<json>'::jsonb) WHERE id = 1" --write
+  ```
 
 ### 5. Report
 

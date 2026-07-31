@@ -15,8 +15,11 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 
 - [ ] Verify active LinkedIn session. If session closed → open headed browser (Gold Rule 5) → notify user → wait for confirmation
 - [ ] Always use Chrome profile `.browser-profile`
-- [ ] Read `users.data.profile` from DB to get Must-haves, Strong, Nice
-- [ ] Read `SELECT url FROM applications` to avoid duplicates
+- [ ] Read profile and existing applications via db CLI:
+  ```bash
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs FROM users WHERE id = 1"
+  node scripts/db.js "SELECT url FROM applications WHERE user_id = 1"
+  ```
 
 ## Flow
 
@@ -59,11 +62,10 @@ For each selected job:
      - Availability: "2 weeks"
 4. Review → Submit
 5. Verify "Application submitted" on screen
-6. Register in DB:
+6. Register in DB via db CLI:
 
-```sql
-INSERT INTO applications (user_id, platform, company, role, url, status, data)
-VALUES (1, 'linkedin', $company, $role, $url, 'applied', $data);
+```bash
+node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, 'linkedin', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
 ```
 
 `data` should include: match reason, method (easy_apply), location, questions_answered count.

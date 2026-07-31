@@ -73,6 +73,7 @@ onboarding → profile → radar
 | Tool | Location | Usage |
 |---|---|---|
 | `playwright-cli` | `.agents/skills/playwright-cli/SKILL.md` | Browser automation with Chrome profile `.browser-profile`. Anti-ban. All flows that touch LinkedIn or Gmail use it |
+| `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 
 ### Documentation reference matrix
 
@@ -83,6 +84,7 @@ onboarding → profile → radar
 | Operational rules and flow map | `AGENTS.md` (this file) |
 | Job platforms | `PLATFORMS.md` |
 | Browser automation | `.agents/skills/playwright-cli/SKILL.md` |
+| DB access (CLI) | `.agents/skills/db/SKILL.md` |
 | Each flow's detail | `.agents/skills/<flow>/SKILL.md` |
 
 ## Operational constraints

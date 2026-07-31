@@ -4,7 +4,8 @@
   "description": "Automatizá tu búsqueda laboral con tu agente coding favorito. Skills, guías y scripts que cualquier agente (Devin, Claude, opencode) consume para buscar, aplicar y hacer seguimiento de trabajos en tu nombre.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db": "node scripts/db.js"
   },
   "repository": {
     "type": "git",
