@@ -22,6 +22,11 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
   ```
+- [ ] Load strategy (see AGENTS.md "Strategy levels"):
+  ```bash
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  ```
+  Respect: `targets_batch_size` (max companies per session, 0 = don't run, "all" = no limit), `match_threshold`, `relax_must_haves`. If `targets` is not in `sources_active`, skip this flow entirely
 - [ ] Load profile, job preferences, CV and photo paths:
   ```bash
   node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'cv_path' AS cv_path, data->'photo_path' AS photo_path, data->'style_profile' AS style_profile FROM users WHERE id = 1"

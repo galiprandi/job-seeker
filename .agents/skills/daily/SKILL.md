@@ -23,6 +23,11 @@ Compose the `news` and `apply` flows with decision logic to keep the job search 
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
   ```
+- [ ] Load strategy (see AGENTS.md "Strategy levels"):
+  ```bash
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  ```
+  Respect: `daily_frequency` (on-demand / 1x/day / 2x/day), `sources_active` (which pillars to activate), `apply_batch_size` and `targets_batch_size` (passed to sub-flows). If `daily` not in `sources_active`, warn the user
 
 ## Flow
 
@@ -52,8 +57,14 @@ Query DB via db CLI:
 node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = 1"
 ```
 
-- If `last_application` is less than 2 days ago → done. Report: "Last application: X. No need to apply today."
-- If `last_application` is 2 days or more ago → run `apply` flow with N=10-15 jobs
+Decision logic respects strategy:
+- If `strategy.daily_frequency = on-demand` → don't auto-run apply/targets, only run news
+- If `strategy.daily_frequency = 1x/day` → run apply/targets if last application > 2 days ago
+- If `strategy.daily_frequency = 2x/day` → run apply/targets if last application > 1 day ago
+- Which pillar to run depends on `strategy.sources_active`:
+  - If `apply` in sources_active and `apply_batch_size > 0` → run `apply` with N = `apply_batch_size`
+  - If `targets` in sources_active and `targets_batch_size > 0` → run `targets` with batch = `targets_batch_size`
+- If `last_application` is recent enough → done. Report: "Last application: X. No need to apply today."
 
 ### 4. Final summary
 

@@ -28,6 +28,7 @@ Single row. Structured columns + `data` JSONB for semi-structured profile info.
 | `target_companies` | object | Curated target companies by region: `latam`, `argentina`, etc. Each is an array of `{name, url, sector}` | `profile` or manual | `targets` (company list), `apply` (priority targets) |
 | `cv_path` | string | Absolute path to CV PDF on local machine | `onboarding` or manual | `targets` (upload to career sites) |
 | `photo_path` | string | Absolute path to profile photo on local machine | `onboarding` or manual | `targets` (upload to career sites) |
+| `strategy` | object | Job search strategy parameters: `level`, `apply_batch_size`, `targets_batch_size`, `daily_frequency`, `match_threshold`, `follow_up_days`, `relax_must_haves`, `cold_outreach`, `sources_active`. See AGENTS.md "Strategy levels" | `onboarding` (step 4b), `strategy` flow, `memory` (auto-update) | All flows (pre-flight) |
 | `linkedin_profile` | string | LinkedIn profile URL | `onboarding` | `apply`, `targets`, `news` |
 | `last_review_at` | string (ISO) | Timestamp of last `news` run. Used to filter emails since last review | `news` | `news`, `daily` |
 
@@ -159,13 +160,15 @@ Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`)
 | Category | Key | Values | Set by | Purpose |
 |---|---|---|---|---|
 | `tooling` | `browser_mode` | `headless`, `headed`, `headed_logins_only`, `ask_each_time` | `onboarding` (step 4), `memory` (if user changes it later) | Controls browser visibility across all flows. Default: `headed_logins_only`. Manual login/2FA is always headed (Gold Rule 5) |
+| `workflow` | `strategy_level` | `passive`, `selective`, `active`, `aggressive` | `onboarding` (step 4b), `strategy` flow, `memory` (auto-detect) | Controls job search aggressiveness. Detailed params in `users.data.strategy`. Default: `selective`. See AGENTS.md "Strategy levels" |
 
 ## Data ownership by flow
 
 | Flow | Writes | Reads |
 |---|---|---|
-| `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info), `preferences` (`tooling.browser_mode`) | — |
+| `onboarding` | `users` (row + `data.linkedin_profile` + `data` collected info), `preferences` (`tooling.browser_mode`, `workflow.strategy_level`), `users.data.strategy` | — |
 | `profile` | `users.data.profile`, `users.data.job_preferences`, `users.data.style_profile`, `users.data.platforms`, `users.data.target_companies` | `users.data` (validate before overwrite) |
+| `strategy` | `preferences` (`workflow.strategy_level`), `users.data.strategy` | `preferences` (current level), `users.data.strategy` (current params) |
 | `radar` | `users.data.platforms` (alert status), `PLATFORMS.md`, `company_registrations` (`alert_only` for big tech career sites) | `users.data.platforms`, `PLATFORMS.md`, `preferences` |
 | `targets` | `company_registrations`, `applications` | `users.data.profile`, `users.data.job_preferences`, `users.data.target_companies`, `users.data.cv_path`, `users.data.photo_path`, `company_registrations` (resumability), `applications` (dedup), `preferences` |
 | `news` | `messages`, `applications` (status updates), `users.data.last_review_at` | `applications`, `users.data.style_profile`, `users.data.profile`, `preferences` |

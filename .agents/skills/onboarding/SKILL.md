@@ -25,6 +25,28 @@ trigger: onboarding
    node scripts/db.js "SELECT value FROM preferences WHERE user_id = 1 AND category = 'tooling' AND key = 'browser_mode' AND status = 'active'"
    ```
    If no preference exists, default to `headed_logins_only`.
+4b. **Ask user about job search strategy level.** Present the situation and ask which fits (see AGENTS.md "Strategy levels"):
+   - `passive` — Empleado, abierto a oportunidades. No aplica automáticamente, solo monitorea alerts
+   - `selective` — Empleado, buscando algo mejor. Aplica a Must-matches, 5 por sesión
+   - `active` — Desempleado o a punto. Aplica a Must+Strong, 10 por sesión, follow-ups más rápidos
+   - `aggressive` — Necesita algo ya. Aplica a todo match, 15 por sesión, relaja Must-haves (remote, manager)
+
+   Ask these questions to help the user decide:
+   1. ¿Estás empleado actualmente?
+   2. ¿Qué tan urgente es tu búsqueda? (sin urgencia / en los próximos meses / ya / desesperado)
+   3. ¿Aceptarías roles IC o solo Manager?
+   4. ¿Aceptarías hybrid si el proyecto es muy bueno?
+   5. ¿Quieres que aplique automáticamente o solo te muestre opciones?
+
+   Based on answers, propose a level. Allow the user to confirm or adjust. Then save:
+   ```bash
+   # Save level to preferences
+   node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, 'workflow', 'strategy_level', '<level>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()" --write
+   # Save detailed parameters to users.data.strategy
+   node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{strategy}', '<json>'::jsonb) WHERE id = 1" --write
+   ```
+   The strategy JSON should contain all parameters (see AGENTS.md "Strategy levels" for the schema per level). If the user customizes any parameter, override the default for that level.
+   If no strategy is set, default to `selective`.
 5. Open browser respecting the preference from step 4. For manual login it's always headed (Gold Rule 5). Use the wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed`
 6. Ask for email. Navigate to provider login (Gmail → accounts.google.com, Outlook → outlook.live.com). Fill email with `fill`, click Next, wait for manual auth + 2FA
 7. Validate session: navigate to inbox, confirm URL doesn't redirect to login
