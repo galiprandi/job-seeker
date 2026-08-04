@@ -36,6 +36,20 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 
 ### 1. Search jobs
 
+**Preferred: use the automation script** (see AGENTS.md "Scripts de automatizacion"):
+
+```bash
+# Dry-run first to see what's available
+node scripts/linkedin-easy-apply.js --dry-run --max 15
+
+# Apply to top N jobs
+node scripts/linkedin-easy-apply.js --max 10
+```
+
+The script handles: search with Easy Apply filter, form filling with standard answers, radio/combobox/checkbox handling, DB registration, and captcha detection (stops on captcha).
+
+**Manual fallback** (when script fails or forms have complex open-ended questions):
+
 Search LinkedIn Jobs with filters:
 - Keywords derived from profile (primary role, seniority, AI-related terms)
 - Location: Worldwide or remote

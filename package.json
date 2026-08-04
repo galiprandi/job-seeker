@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/galiprandi/job-seeker.git"
+    "url": "git+https://github.com/your-username/job-seeker.git"
   },
   "keywords": [
     "job-search",
@@ -27,13 +27,13 @@
     "claude",
     "opencode"
   ],
-  "author": "Germán Aliprandi",
+  "author": "",
   "license": "MIT",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/galiprandi/job-seeker/issues"
+    "url": "https://github.com/your-username/job-seeker/issues"
   },
-  "homepage": "https://github.com/galiprandi/job-seeker#readme",
+  "homepage": "https://github.com/your-username/job-seeker#readme",
   "dependencies": {
     "pg": "^8.22.0"
   },

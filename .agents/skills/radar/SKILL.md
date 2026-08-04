@@ -56,10 +56,10 @@ For each unconfigured platform (column "Profile" = "—"):
 
 For each platform with complete profile but no alerts:
 
-- [ ] Create alert with profile keywords:
-  - `AI Architect`, `Engineering Manager`, `AI Strategy`, `AI Implementation`
-  - `LLM`, `Agent-First`, `AI Workflow`, `SDLC AI`
-  - `Technical Lead`, `Staff Engineer`, `Platform Engineer`
+- [ ] Create alert with profile keywords (derived from `profile.title`, `profile.skills`, and `job_preferences`):
+  - Use the user's primary role title, key skills, and seniority level
+  - Examples (if profile is AI-focused): `AI Architect`, `AI Strategy`, `LLM`, `Agent-First`, `AI Workflow`
+  - Examples (if profile is engineering leadership): `Engineering Manager`, `Staff Engineer`, `Platform Engineer`, `Technical Lead`
 - [ ] If the platform supports company-specific alerts or saved searches, configure alerts for target companies from the DB (40 companies: Nubank, dLocal, Mercado Libre, Globant, Ualá, BBVA, Santander Tecnología, Auth0, etc.). Group by sector if the platform allows it (Fintech, Banking, SaaS, IT Services)
 - [ ] Filters: remote only, full-time, senior/lead
 - [ ] Frequency: daily or weekly (depending on platform option)
@@ -67,30 +67,30 @@ For each platform with complete profile but no alerts:
 
 ### 3. Configure career site alerts (big tech + target companies)
 
-Beyond job board alerts, configure alerts directly on career sites of high-value companies. These are companies not in the 40 target companies (those are handled by `targets` flow) but worth monitoring for AI/Engineering Manager roles.
+Beyond job board alerts, configure alerts directly on career sites of high-value companies. These are companies not in the 40 target companies (those are handled by `targets` flow) but worth monitoring for roles matching the user's profile.
 
 **Big tech career sites with native alert features:**
 
 | Company | URL | Alert feature | Notes |
 |---|---|---|---|
-| Google | careers.google.com | "Save search" + email alerts | Search "AI" + "Engineering Manager" + location "Remote" or "Argentina" |
-| Meta | metacareers.com | "Job alerts" signup | Search "AI" + "Engineering Manager" |
-| Amazon | amazon.jobs | "Save search" + email alerts | Search "AI" + "SDM" (Software Development Manager) |
-| Microsoft | careers.microsoft.com | "Job alerts" signup | Search "AI" + "Engineering Manager" |
-| Apple | jobs.apple.com | "Save search" + alerts | Search "AI" + "Engineering Manager" |
-| Netflix | jobs.netflix.com | No native alerts. Monitor via Google Alerts | Search "AI" + "Engineering Manager" |
-| Stripe | stripe.com/jobs | "Job alerts" signup | Search "AI" + "Engineering Manager" |
+| Google | careers.google.com | "Save search" + email alerts | Search user's role + skills + location "Remote" or user's country |
+| Meta | metacareers.com | "Job alerts" signup | Search user's role + skills |
+| Amazon | amazon.jobs | "Save search" + email alerts | Search user's role + equivalent Amazon title (e.g: SDM for eng manager) |
+| Microsoft | careers.microsoft.com | "Job alerts" signup | Search user's role + skills |
+| Apple | jobs.apple.com | "Save search" + alerts | Search user's role + skills |
+| Netflix | jobs.netflix.com | No native alerts. Monitor via Google Alerts | Search user's role + skills |
+| Stripe | stripe.com/jobs | "Job alerts" signup | Search user's role + skills |
 | OpenAI | openai.com/careers | No native alerts. Monitor via Google Alerts | Search all roles |
 | Anthropic | anthropic.com/careers | No native alerts. Monitor via Google Alerts | Search all roles |
-| Vercel | vercel.com/careers | "Job alerts" via Ashby | Search "AI" + "Engineering" |
-| Cloudflare | cloudflare.com/careers | "Job alerts" signup | Search "AI" + "Engineering Manager" |
-| Datadog | careers.datadog.com | "Job alerts" via Greenhouse | Search "AI" + "Engineering Manager" |
-| Snowflake | careers.snowflake.com | "Job alerts" via Workday | Search "AI" + "Engineering Manager" |
+| Vercel | vercel.com/careers | "Job alerts" via Ashby | Search user's role + skills |
+| Cloudflare | cloudflare.com/careers | "Job alerts" signup | Search user's role + skills |
+| Datadog | careers.datadog.com | "Job alerts" via Greenhouse | Search user's role + skills |
+| Snowflake | careers.snowflake.com | "Job alerts" via Workday | Search user's role + skills |
 
 For each company with native alerts:
 - [ ] Navigate to the career site using `node scripts/browser.js goto <url>`
-- [ ] Search with keywords: `AI`, `AI Strategy`, `Engineering Manager`, `AI Architect`, `LLM`, `Agent`, `Platform Engineer`, `Staff Engineer`
-- [ ] Filter: Remote, Argentina, Global, LATAM
+- [ ] Search with keywords derived from `profile.title` and `profile.skills` (the user's primary role + key skills)
+- [ ] Filter: Remote, and locations from `job_preferences.location` / `job_preferences.timezones`
 - [ ] Look for "Save search", "Create alert", "Job alerts", "Notify me" button
 - [ ] Subscribe with user's Gmail (so alerts route through the Gmail filter)
 - [ ] Set frequency: daily if available, weekly otherwise

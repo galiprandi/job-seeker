@@ -42,15 +42,15 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
 
 ## Must-haves filter (from job_preferences)
 
-Before applying to any job, verify against Must-haves. Discard if:
-- Not remote (hybrid with mandatory office days = discard)
-- No AI focus (role must involve AI Strategy, AI Adoption, LLM, Agent-First, or similar)
-- Junior/Intern level
-- Gambling industry
-- Salary below 4500 USD (if mentioned)
-- Not Argentina-remote or Global remote
+Before applying to any job, verify against Must-haves from `users.data.job_preferences`. Discard if:
+- Not remote (hybrid with mandatory office days = discard, unless `relax_must_haves` includes `remote`)
+- Doesn't match `ai_focus` preference (if `ai_focus.weight = Must`, role must involve the user's AI role types)
+- Junior/Intern level (per `deal_breakers`)
+- In `industries_avoid` list (per `industries_avoid.weight`)
+- Salary below `job_preferences.salary.value.min` (if mentioned and `salary.weight = Must`)
+- Not in user's accepted locations (per `location` and `timezones` preferences)
 
-**Gold Rule 4:** Manager role is highly valued but sacrificable if the pay and project are interesting enough. Don't discard IC roles automatically if the AI focus and compensation are strong.
+**Gold Rule 4:** Manager role is highly valued but sacrificable if the pay and project are interesting enough. Don't discard IC roles automatically if the AI focus and compensation are strong. Check `relax_must_haves` for `manager`.
 
 ## Flow
 
@@ -80,17 +80,17 @@ For each company with `registration_status = 'pending'` (or `profile_completed =
    - Email + password (create account, save credentials to `company_registrations.data` as `{email, password}`)
    - If no account creation possible → mark `registration_status = 'manual_login_needed'`, notify user (Gold Rule 5)
 5. **Complete profile** to make it stand out:
-   - Full name (from `users.data.profile`)
-   - Title/headline: use profile title + AI focus (e.g: "Software Engineer | AI Strategy & Agent-First Workflows")
-   - Summary/bio: use profile summary, adapted to the platform's character limit
-   - Location: "San Miguel de Tucuman, Argentina" (or "Argentina - Remote")
-   - Upload CV: use `data->'cv_path'` (`/Users/cenco/Documents/Germán Aliprandi.pdf`)
-   - Upload photo: use `data->'photo_path'` (`/Users/cenco/Pictures/me.jpg`) if the platform accepts it
+   - Full name (from `users.data.profile.full_name`)
+   - Title/headline: use `profile.title` + top skills (e.g: "Software Engineer | AI Strategy & Agent-First Workflows")
+   - Summary/bio: use `profile.summary`, adapted to the platform's character limit
+   - Location: from `users.data.personal_info` (city, country) or `form_answers.location`
+   - Upload CV: use `profile.cv_path` or `personal_info.cv_pdf_path` (from DB, never hardcoded)
+   - Upload photo: use `users.data.photo_path` if the platform accepts it
    - Skills: add all from `profile.skills`
    - Experience: fill from `profile.experience` if the platform has structured fields
-   - Languages: Spanish (Native), English (B2+)
-   - Work preferences: Remote, Full-time
-   - Salary expectation: 4500-5500 USD/month (only if field is required)
+   - Languages: from `profile.languages`
+   - Work preferences: from `job_preferences.modalities`, `job_preferences.role_types`
+   - Salary expectation: from `job_preferences.salary.value` (only if field is required)
 6. **Update DB after each company:**
    ```bash
    node scripts/db.js "UPDATE company_registrations SET registration_status = 'registered', profile_completed = true, ats_platform = '<ats>', login_method = '<google|linkedin|email>', profile_url = '<url if available>', last_visit_at = NOW(), updated_at = NOW(), data = '<json with credentials if email login>'::jsonb WHERE id = <id>" --write
@@ -105,9 +105,9 @@ For each company with `registration_status = 'pending'` (or `profile_completed =
    - **Eightfold**: AI matching may auto-suggest relevant jobs. Look for "Save search" or "Alerts" option
    - **Workday**: often has " Save Search" or "Job Alerts" after searching. Set up with filters
    - **Custom ATS**: look for any "Subscribe", "Alerts", "Notify me", or RSS feed icon. If none exists, skip this step and note it in `company_registrations.notes`
-   - **Keywords for alerts**: `AI`, `AI Strategy`, `Engineering Manager`, `AI Architect`, `LLM`, `Agent`, `Platform Engineer`, `Staff Engineer`, `Remote`
+   - **Keywords for alerts**: derived from `profile.skills`, `profile.title`, and `job_preferences` (e.g: AI, the user's primary role, seniority level, key tech skills)
    - **Frequency**: daily if available, weekly otherwise
-   - **Email**: use the user's Gmail (from `users.email`) so alerts route through the Gmail filter
+   - **Email**: use the user's email (from `users.data.profile.email`) so alerts route through the Gmail filter
    - Update DB with alert status:
      ```bash
      node scripts/db.js "UPDATE company_registrations SET data = jsonb_set(COALESCE(data, '{}'::jsonb), '{alerts_subscribed}', 'true'::jsonb), notes = COALESCE(notes, '') || ' | Alerts subscribed' WHERE id = <id>" --write
@@ -131,9 +131,9 @@ For each company with `registration_status = 'registered'` and `applied_jobs_cou
 
 1. **Navigate to the company's job board**
 2. **Search with filters:**
-   - Keywords: "AI", "AI Strategy", "Engineering Manager", "AI Architect", "LLM", "Agent", "Platform Engineer", "Staff Engineer"
-   - Location: Remote, Argentina, Global, LATAM
-   - Seniority: Senior, Lead, Staff, Manager, Director
+   - Keywords: derived from `profile.title`, `profile.skills`, and `job_preferences` (the user's primary role + key skills + seniority level)
+   - Location: from `job_preferences.location` and `job_preferences.timezones`
+   - Seniority: from `job_preferences.seniority`
 3. **Filter by Must-haves** (see above). For each matching job:
    - Check dedup against `applications` table
    - If already applied → skip
@@ -301,7 +301,7 @@ node scripts/db.js "UPDATE company_registrations SET applied_jobs_count = applie
 
 - **Browser:** always use `node scripts/browser.js` for open/close/goto. Never `playwright-cli open` directly
 - **Resumable.** Every action updates `company_registrations`. If interrupted, next run continues from where it left off
-- **Must-haves are non-negotiable.** Don't register or apply to companies that don't offer remote work for Argentina or roles without AI focus
+- **Must-haves are non-negotiable.** Don't register or apply to companies that don't match the user's `job_preferences` (remote, location, AI focus, salary, industries_avoid)
 - **Gold Rule 4.** Manager is preferred but sacrificable for interesting IC roles with AI focus and good compensation
 - **Gold Rule 5.** If manual login needed → open headed browser, notify user, wait
 - **Gold Rule 6.** If applying via email (not ATS form) → show draft to user before sending
