@@ -206,6 +206,7 @@ node scripts/browser.js status                             # Show browser_mode p
 | Operational rules and flow map | `AGENTS.md` (this file) |
 | **What data lives where (tables, JSONB keys, ownership)** | **`DATA.md`** |
 | Job platforms | `PLATFORMS.md` |
+| **Job search & networking strategies (ordered by effectiveness)** | **`STRATEGIES.md`** |
 | Browser automation | `.agents/skills/playwright-cli/SKILL.md` |
 | DB access (CLI) | `.agents/skills/db/SKILL.md` |
 | Preference memory | `.agents/skills/memory/SKILL.md` |
