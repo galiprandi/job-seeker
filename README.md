@@ -11,7 +11,7 @@ Job Seeker is a set of **skills, guides and scripts** that any coding agent (Dev
 3. The agent opens a browser, asks you to log into Gmail and LinkedIn, creates your DB, and profiles your CV
 4. You say: *"apply to 5 jobs"* and the agent searches, filters, applies and records everything
 
-Your profile, preferences, writing style and history live in Postgres (Neon). Your browser session persists in a dedicated profile. Nothing sensitive is committed to the repo.
+Your profile, preferences, writing style and history live in Postgres (Neon). Your browser session persists in a dedicated profile. Nothing sensitive is committed to the repo. The repo is **candidate-agnostic**: clone it, run onboarding, and everything you need is stored in your DB. No file in the repo contains personal data.
 
 ## Flows
 
@@ -45,7 +45,7 @@ Your profile, preferences, writing style and history live in Postgres (Neon). Yo
 ## Bootstrap
 
 ```bash
-git clone https://github.com/galiprandi/job-seeker.git
+git clone https://github.com/<your-username>/job-seeker.git
 cd job-seeker
 npm install
 ```
