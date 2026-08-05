@@ -132,7 +132,7 @@ The system has 8 flows + 1 cross-cutting behavior. Each flow has a trigger (keyw
 | Strategy | `.agents/skills/strategy/` | `strategy` | Configure job search aggressiveness level. Interrogates user, proposes level, saves to DB. All flows respect it | After onboarding. User says `strategy`, "cambiar estrategia", "more aggressive". Also set during onboarding |
 | Radar | `.agents/skills/radar/` | `radar` | Register user on job boards, configure alerts with profile keywords, set up career site alerts, create Gmail filter to route alerts to `Job Alerts` folder | After profile exists. User says `radar`, "set up alerts", "register on platforms" |
 | Targets | `.agents/skills/targets/` | `targets` | Active direct sourcing: register and create standout profiles on the 40 target companies' career sites, then apply to matching positions | After profile exists. User says `targets`, "register on companies", "apply to target companies" |
-| News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
+| News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications + LinkedIn Saved Jobs. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
 | Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
@@ -177,6 +177,7 @@ onboarding → profile → strategy
 | `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command |
 | `linkedin-easy-apply` | `scripts/linkedin-easy-apply.js` | Search + apply to Easy Apply jobs automatically. Fills forms with standard answers, handles radios/comboboxes/checkboxes, registers in DB. `--dry-run` to preview, `--max <n>` to limit |
 | `gmail-send` | `scripts/gmail-send.js` | Send emails via Gmail web UI with CV attached. `--to`, `--subject`, `--body`/`--body-file`, `--cv`, `--no-cv`, `--cc`, `--bcc`. Supports ES/EN UI |
+| `pipeline` | `scripts/pipeline.js` | Kanban board CLI. Prints pipeline grouped by stage. `--move <id> <stage>`, `--funnel`, `--card <id>`, `--stage <stage>`, `--company <name>`, `--closed`. No dependencies beyond `pg` |
 
 ### Browser session — wrapper script
 
@@ -222,6 +223,16 @@ node scripts/browser.js status                             # Show browser_mode p
 - `.env`, `.browser-profile/`, `.playwright-cli/` not tracked
 - Job platforms = output of analysis, never user input
 - **Consult `DATA.md` before assuming where data lives.** Never guess or discover by querying blindly. The data map is the source of truth for tables, JSONB keys, and flow ownership
+
+### User job input mechanisms
+
+The user can flag a job they're interested in via these channels. The agent detects and processes them during `news`:
+
+| Mechanism | How it works | When it's detected |
+|---|---|---|
+| **Self-email** | User sends an email to themselves with the LinkedIn job URL in the body (no subject needed) | `news` Gmail inbox scan. Agent opens the URL, evaluates fit, checks if already applied, presents in summary |
+| **LinkedIn Saved Jobs** | User clicks "Save" on a LinkedIn job posting | `news` navigates to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: checks if open, evaluates fit, checks DB for existing application, presents Must/Strong matches |
+| **Direct chat** | User pastes a job URL in the chat | Immediate. Agent opens, evaluates, and proposes action without waiting for `news` |
 
 ## Playbook de LinkedIn (validado en sesiones reales)
 
@@ -372,15 +383,24 @@ Todos los datos personales viven en la DB, no en este archivo. El agente y los s
 - `email` = emails directos a reclutadores
 - `kavak_career_site`, `clarika`, `homie`, etc. = career sites específicos
 
-**Status values:**
+**Status values (pipeline stages, canonical):**
+
+Active stages (left to right in the kanban):
+- `discovered` = encontrado pero sin acción
+- `contacted` = invite/email enviado, sin aplicación formal
 - `applied` = aplicación enviada
-- `contacted` = connection request enviado
-- `interview` = entrevista agendada
-- `interview_scheduled` = entrevista confirmada
-- `rejected` = rechazado
-- `skipped` = saltado (no aplica)
-- `failed` = error técnico
-- `viewed` = visto pero no aplicado
+- `in_review` = empresa revisando, sin respuesta
+- `screening` = screening call agendada/done
+- `interview` = entrevista técnica en curso
+- `offer` = oferta recibida, negociando
+- `hired` = aceptado, empezando
+
+Closed stages (shown with `--closed`):
+- `rejected` = empresa rechazó
+- `withdrawn` = usuario retiró
+- `skipped` = decidido no aplicar / no fit
+
+**Pipeline kanban:** `node scripts/pipeline.js` prints the board. See "Pipeline kanban" section below.
 
 **data JSONB:** incluir `source`, `match` (high/medium/low), `location`, `tech` array, y cualquier metadata relevante
 
@@ -507,3 +527,34 @@ node scripts/linkedin-search.js '"<Role>" "hiring" LATAM' --json | \
 - Emails a reclutadores que ya respondieron (usar Gold Rule 6: draft + approval)
 - Career sites custom (Lever, Greenhouse, Workday) que no son LinkedIn Easy Apply
 - Situaciones que requieren captcha (Gold Rule 5b: detener y pedir al usuario)
+
+### Pipeline kanban
+
+`scripts/pipeline.js` es el tablero kanban para tracking de aplicaciones y contactos. Unifica LinkedIn invites, emails directos y aplicaciones formales en un solo pipeline con stages canonicos.
+
+```bash
+# Tablero completo (active cards)
+node scripts/pipeline.js
+
+# Incluir closed (rejected, withdrawn, skipped)
+node scripts/pipeline.js --closed
+
+# Funnel summary (counts por stage)
+node scripts/pipeline.js --funnel
+
+# Filtrar por stage
+node scripts/pipeline.js --stage interview
+
+# Filtrar por company
+node scripts/pipeline.js --company Ionix
+
+# Mover una card a otro stage (actualiza status + agrega a stage_history)
+node scripts/pipeline.js --move 82 interview
+
+# Ver detalle de una card (con messages vinculados via application_id)
+node scripts/pipeline.js --card 82
+```
+
+**Stages canonicos (ordenados):** `discovered` -> `contacted` -> `applied` -> `in_review` -> `screening` -> `interview` -> `offer` -> `hired`. Closed: `rejected`, `withdrawn`, `skipped`.
+
+**Cuando el agente mueve cards:** cuando detecta un cambio de estado (recruiter responde, entrevista agendada, rechazo), usa `pipeline.js --move <id> <stage>` en lugar de un UPDATE directo. Esto mantiene el audit trail en `data.stage_history`.
