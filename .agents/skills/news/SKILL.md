@@ -37,6 +37,7 @@ Run all sources in parallel:
 - [ ] **Gmail `Job Alerts` folder:** check `Job Alerts` label (alerts from platforms configured via `radar` skill). Classify each alert by fit: Must/Strong/Nice per PROFILE.md. Only present Must and Strong in the summary. Ignore Nice unless user asks to see all
 - [ ] **LinkedIn messages:** unread messages in inbox. Filter recruiters, HR, application responses
 - [ ] **LinkedIn notifications:** application notifications (status changes, recruiter messages)
+- [ ] **LinkedIn Saved Jobs:** navigate to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: check if still open, evaluate fit against profile (Must/Strong/Nice), check if already applied (query DB by URL or company+role). Present Must/Strong matches in summary as `new_job_must`/`new_job_strong`. If user already applied, skip. If job is closed, mark as `closed` and remove from saved
 - [ ] **Platforms:** only if there are pending applications in DB. Navigate to each platform, check status of existing applications
 - [ ] **Pending follow-ups:** query DB for applications without response after X days (contextual: 3 days for urgent, 5 for normal, 7 for cold)
 
@@ -166,7 +167,7 @@ Want me to prepare a reply draft?
 ### 8. Close
 
 - [ ] Update `last_review_at` in DB
-- [ ] Update application statuses based on responses received
+- [ ] Update application stages based on responses received. **Use `pipeline.js --move <id> <stage>`** instead of direct UPDATE to keep the audit trail in `data.stage_history`. Canonical stages: `discovered`, `contacted`, `applied`, `in_review`, `screening`, `interview`, `offer`, `hired`, `rejected`, `withdrawn`, `skipped`. See AGENTS.md "Pipeline kanban"
 - [ ] Report to user: "Sent 5 replies, 2 automatic applications, 3 items ignored, 8 emails deleted"
 
 ## DB access

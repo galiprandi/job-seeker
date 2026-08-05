@@ -74,6 +74,7 @@ Present the user with a consolidated session summary:
 - Inbox cleanup: how many emails archived
 - Applications: how many new applications, table with company/role/URL
 - If no applications: reason (recent activity)
+- Pipeline overview: run `node scripts/pipeline.js --funnel` and include the funnel summary so the user sees the current state of all applications/contacts at a glance
 
 ## Dependencies
 
