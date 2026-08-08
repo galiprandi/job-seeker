@@ -84,7 +84,7 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 3. Session management (prevent multiple instances, proper cleanup)
 4. Cookie/state isolation between work and personal browsing
 
-**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `npx @playwright/cli` directly AFTER opening via the wrapper. The wrapper only wraps open/goto/close.
+**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `node scripts/browser.js exec <cmd>` (which resolves session + tab automatically) or call `playwright-cli` directly AFTER opening via the wrapper. The wrapper wraps open/goto/close/tabs/sessions/state/debug.
 
 **Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
 
@@ -195,7 +195,7 @@ onboarding → profile → strategy
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `.agents/skills/playwright-cli/SKILL.md` | Browser automation. Open/close/goto via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB). All other commands (click, fill, snapshot) via `playwright-cli` directly |
+| `playwright-cli` | `.agents/skills/playwright-cli/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 | `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results |
 | `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command |
@@ -208,19 +208,124 @@ onboarding → profile → strategy
 **Always use `node scripts/browser.js` for opening, navigating, and closing the browser.** Never call `playwright-cli open` directly, never `npx @playwright/cli`, never `npx playwright cli`, never open Chrome directly. The wrapper guarantees the profile is always used and reads `browser_mode` from the DB automatically.
 
 ```bash
-node scripts/browser.js open <url> [--headed|--headless]   # Open (profile always injected, headed/headless from DB or flag)
-node scripts/browser.js goto <url>                         # Navigate current session
-node scripts/browser.js close                              # Close current session
-node scripts/browser.js close-all                          # Close all sessions
+# Core
+node scripts/browser.js open <url> [--headed|--headless] [--session <name>]  # Open browser
+node scripts/browser.js goto <url> [--tab <name>] [--session <name>]         # Navigate
+node scripts/browser.js close [--session <name>]                             # Close session
+node scripts/browser.js close-all                                            # Close all sessions
+node scripts/browser.js ensure [--session <name>]                            # Idempotent check (no-op if healthy)
+node scripts/browser.js exec <cmd> [args...] [--tab <name>] [--session <name>]  # Passthrough to playwright-cli
+
+# Sessions for parallel subagents
+node scripts/browser.js attach --session <name>     # Attach to running browser (independent tab context)
+node scripts/browser.js detach --session <name>     # Detach session
+
+# Tab management
+node scripts/browser.js tab-new <url> --name <name> [--session <name>]   # Create named tab
+node scripts/browser.js tab-select <name> [--session <name>]             # Select tab by name
+node scripts/browser.js tab-close <name> [--session <name>]              # Close tab by name
+node scripts/browser.js tab-close-all [--session <name>]                 # Close all extra tabs
+node scripts/browser.js tab-list [--session <name>] [--json]             # List tabs
+
+# Auth state persistence (avoid re-login)
+node scripts/browser.js save-state [--filename <path>] [--session <name>]  # Save cookies + localStorage
+node scripts/browser.js load-state [--filename <path>] [--session <name>]  # Restore cookies + localStorage
+
+# Debugging
+node scripts/browser.js dashboard                          # Visual dashboard (monitor all sessions)
+node scripts/browser.js trace-start [--session <name>]     # Start trace recording
+node scripts/browser.js trace-stop [--session <name>]      # Stop trace recording
+node scripts/browser.js video-start [--filename <path>] [--session <name>]  # Start video recording
+node scripts/browser.js video-stop [--session <name>]      # Stop video recording
+node scripts/browser.js console [level] [--session <name>] # Console messages (error/warning/info/debug)
+node scripts/browser.js requests [--session <name>]        # List network requests
+node scripts/browser.js request <index> [--session <name>] # Show request details
+
+# Info
 node scripts/browser.js list                               # List active sessions
-node scripts/browser.js status                             # Show browser_mode pref + active sessions
+node scripts/browser.js status                             # Full status (mode, sessions, tabs)
 ```
 
 **Key behaviors:**
 - `--profile=.browser-profile` is hardcoded in the wrapper. It cannot be omitted
 - If no `--headed`/`--headless` flag is passed to `open`, the wrapper reads `preferences.tooling.browser_mode` from the DB. `headed` → visible, everything else → headless. The caller passes `--headed` explicitly for manual logins (Gold Rule 5)
 - If a session is already running, `open` automatically does `goto` instead of failing
-- For all other playwright-cli commands (click, fill, snapshot, eval, etc.) use `playwright-cli` directly — the wrapper only wraps open/close/goto
+- **Lockfile**: the wrapper uses `.browser-profile/.lock` to prevent race conditions when multiple processes try to open the browser simultaneously. Stale locks (dead PID) are detected and cleaned automatically
+- **Health check**: before reusing a session, the wrapper runs a quick `eval 1+1` to detect zombie sessions. If unresponsive, it cleans up and fails fast
+- **Config file**: `.playwright/cli.config.json` sets default timeouts (action: 10s, navigation: 30s), blocks tracking/analytics domains, and captures console warnings. These apply to all sessions automatically
+- For all other playwright-cli commands (click, fill, snapshot, eval, etc.) use `exec` or call `playwright-cli` directly
+
+### Parallel subagent browser pattern
+
+When dispatching multiple subagents that need browser access (e.g: `news` flow checking Gmail + LinkedIn + DB simultaneously):
+
+```bash
+# 1. Coordinator opens browser and creates named tabs
+node scripts/browser.js open "https://gmail.com" --headless
+node scripts/browser.js tab-new "https://linkedin.com" --name linkedin
+node scripts/browser.js tab-new "https://example.com" --name db
+
+# 2. Attach a session per subagent (each gets independent active tab)
+node scripts/browser.js attach --session gmail-worker
+node scripts/browser.js attach --session linkedin-worker
+
+# 3. Subagents work in parallel without locks
+# Subagent A: node scripts/browser.js exec snapshot --tab linkedin --session linkedin-worker
+# Subagent B: node scripts/browser.js exec snapshot --tab gmail --session gmail-worker
+
+# 4. Cleanup
+node scripts/browser.js detach --session gmail-worker
+node scripts/browser.js detach --session linkedin-worker
+node scripts/browser.js close-all
+```
+
+**Why attached sessions work:** `playwright-cli attach` creates a new session connected to the same browser, but with its own active tab context. Two sessions can have different active tabs simultaneously without interference. No locks needed.
+
+**Alternative: `PLAYWRIGHT_CLI_SESSION` env var.** Subagents can set `PLAYWRIGHT_CLI_SESSION=gmail-worker` once and then call `playwright-cli` directly without `-s=` on every command:
+
+```bash
+PLAYWRIGHT_CLI_SESSION=gmail-worker playwright-cli snapshot
+PLAYWRIGHT_CLI_SESSION=gmail-worker playwright-cli eval "document.title"
+```
+
+### Browser efficiency patterns
+
+**Token-efficient snapshots:** LinkedIn and Gmail pages have thousands of DOM nodes. Full snapshots consume excessive tokens. Use these patterns:
+
+```bash
+# Shallow snapshot first (depth-limited)
+playwright-cli snapshot --depth=4
+
+# Search for specific text instead of full snapshot
+playwright-cli find "Apply"
+playwright-cli find --regex "/sign (in|up)/i"
+playwright-cli find "Easy Apply"
+
+# Snapshot a specific element only
+playwright-cli snapshot "#main"
+playwright-cli snapshot e34   # ref from a previous shallow snapshot
+```
+
+**Fill + submit in one command:**
+```bash
+playwright-cli fill e15 "search term" --submit   # fill + press Enter atomically
+```
+
+**Detect errors without snapshots:**
+```bash
+node scripts/browser.js console error    # check for JS errors
+node scripts/browser.js requests        # check for failed network requests
+```
+
+**Persist auth between browser restarts:**
+```bash
+# After manual login (onboarding or re-login)
+node scripts/browser.js save-state
+
+# After opening browser in a new session (daily flow)
+node scripts/browser.js load-state
+# If load-state fails (no file), proceed to headed login (Gold Rule 5)
+```
 
 ### Documentation reference matrix
 
@@ -239,7 +344,7 @@ node scripts/browser.js status                             # Show browser_mode p
 
 ## Operational constraints
 
-- Always `npx`, never global install. **Exception:** `playwright-cli` is globally installed, but **always use `node scripts/browser.js`** for open/close/goto (see "Browser session" section above). Never call `playwright-cli open` directly
+- Always `npx`, never global install. **Exception:** `playwright-cli` is globally installed, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see "Browser session" section above). Never call `playwright-cli open` directly
 - Browser visibility controlled by `preferences.tooling.browser_mode` (`headless`, `headed`, `headed_logins_only`, `ask_each_time`). Default: `headed_logins_only`. Set during onboarding, loaded at every pre-flight. Manual login/2FA is always headed (Gold Rule 5)
 - Custom DB schema: create tables as needed
 - JSONB for semi-structured data in `users.data`
