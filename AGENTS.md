@@ -127,7 +127,7 @@ The system has 8 flows + 1 cross-cutting behavior. Each flow has a trigger (keyw
 
 | Flow | Skill | Trigger | What it does | When it triggers |
 |---|---|---|---|---|
-| Onboarding | `.agents/skills/onboarding/` | `onboarding` | Environment bootstrap: node, .gitignore, npm install, headed Gmail + LinkedIn login, create Neon DB, create users table, save .env, ask browser_mode + strategy | Freshly cloned repo or first use. User says `onboarding` or agent detects missing `.env` or DB |
+| Onboarding | `.agents/skills/onboarding/` | `onboarding` | Environment bootstrap: node, .gitignore, npm install, headed Gmail + LinkedIn login, create Neon DB, create users table, save .env, ask browser_mode + strategy + interview availability | Freshly cloned repo or first use. User says `onboarding` or agent detects missing `.env` or DB |
 | Profile | `.agents/skills/profile/` | `profile` | Extract user profile from CV + questionnaire with Must/Strong/Nice weights. Saves to `users.data.profile` | After onboarding. User says `profile`, "update profile", or uploads a CV |
 | Strategy | `.agents/skills/strategy/` | `strategy` | Configure job search aggressiveness level. Interrogates user, proposes level, saves to DB. All flows respect it | After onboarding. User says `strategy`, "cambiar estrategia", "more aggressive". Also set during onboarding |
 | Radar | `.agents/skills/radar/` | `radar` | Register user on job boards, configure alerts with profile keywords, set up career site alerts, create Gmail filter to route alerts to `Job Alerts` folder | After profile exists. User says `radar`, "set up alerts", "register on platforms" |
@@ -157,7 +157,7 @@ onboarding → profile → strategy
                 └─────── daily ─────────┘
 ```
 
-- `onboarding` must run before anything else. Without `.env` and DB nothing works. Also sets `browser_mode` and `strategy_level`.
+- `onboarding` must run before anything else. Without `.env` and DB nothing works. Also sets `browser_mode`, `strategy_level`, and `availability` (interview time preferences).
 - `profile` depends on `onboarding`. Without a profile there's no quality matching.
 - `strategy` depends on `onboarding` (DB). Sets the aggressiveness level that all flows respect.
 - `radar` depends on `profile`. Alerts use profile keywords.
