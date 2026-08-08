@@ -11,10 +11,10 @@ trigger: onboarding
 2. `.gitignore`: `.browser-profile/`, `.playwright-cli/`, `.env`, `node_modules/`
 3. `npm init -y && npm install pg && npm install --save-dev @types/pg`
 4. **Ask user about browser visibility preference**. Present these options and save the answer to `preferences` before opening any browser:
-   - `headless` — Headless siempre. El agente trabaja sin mostrar el navegador. Login/2FA manual sigue siendo headed (Gold Rule 5)
-   - `headed` — Headed siempre. El usuario ve todo lo que hace el agente en pantalla
-   - `headed_logins_only` — Headed solo para logins/2FA, headless para todo lo demás (default)
-   - `ask_each_time` — El agente pregunta antes de cada sesión de browser si quiere verlo o no
+   - `headless` — Headless always. The agent works without showing the browser. Manual login/2FA remains headed (Gold Rule 5)
+   - `headed` — Headed always. The user sees everything the agent does on screen
+   - `headed_logins_only` — Headed only for logins/2FA, headless for everything else (default)
+   - `ask_each_time` — The agent asks before each browser session whether the user wants to see it or not
 
    Save the preference:
    ```bash
@@ -26,17 +26,17 @@ trigger: onboarding
    ```
    If no preference exists, default to `headed_logins_only`.
 4b. **Ask user about job search strategy level.** Present the situation and ask which fits (see AGENTS.md "Strategy levels"):
-   - `passive` — Empleado, abierto a oportunidades. No aplica automáticamente, solo monitorea alerts
-   - `selective` — Empleado, buscando algo mejor. Aplica a Must-matches, 5 por sesión
-   - `active` — Desempleado o a punto. Aplica a Must+Strong, 10 por sesión, follow-ups más rápidos
-   - `aggressive` — Necesita algo ya. Aplica a todo match, 15 por sesión, relaja Must-haves (remote, manager)
+   - `passive` — Employed, open to opportunities. No auto-apply, only monitors alerts
+   - `selective` — Employed, looking for something better. Applies to Must-matches, 5 per session
+   - `active` — Unemployed or about to be. Applies to Must+Strong, 10 per session, faster follow-ups
+   - `aggressive` — Needs a job now. Applies to all matches, 15 per session, relaxes Must-haves (remote, manager)
 
    Ask these questions to help the user decide:
-   1. ¿Estás empleado actualmente?
-   2. ¿Qué tan urgente es tu búsqueda? (sin urgencia / en los próximos meses / ya / desesperado)
-   3. ¿Aceptarías roles IC o solo Manager?
-   4. ¿Aceptarías hybrid si el proyecto es muy bueno?
-   5. ¿Quieres que aplique automáticamente o solo te muestre opciones?
+   1. Are you currently employed?
+   2. How urgent is your search? (no urgency / in the coming months / now / desperate)
+   3. Would you accept IC roles or only Manager?
+   4. Would you accept hybrid if the project is really good?
+   5. Do you want me to apply automatically or just show you options?
 
    Based on answers, propose a level. Allow the user to confirm or adjust. Then save:
    ```bash
@@ -48,9 +48,9 @@ trigger: onboarding
    The strategy JSON should contain all parameters (see AGENTS.md "Strategy levels" for the schema per level). If the user customizes any parameter, override the default for that level.
    If no strategy is set, default to `selective`.
 4c. **Ask user about interview availability preferences.** This saves time later when scheduling links arrive in emails or LinkedIn messages. Ask:
-   1. ¿En qué franja horaria preferís que te agenden entrevistas? (e.g: "13:00 a 16:00 AR")
-   2. ¿Hay algún día/horario bloqueado de forma fija? (e.g: "Martes 14:00 a 15:00, clase de inglés")
-   3. ¿Cuál es tu timezone? (default: America/Argentina/Buenos_Aires)
+   1. What time slot do you prefer for interviews? (e.g: "13:00 to 16:00 AR")
+   2. Are there any fixed blocked days/times? (e.g: "Tuesday 14:00 to 15:00, English class")
+   3. What is your timezone? (default: America/Argentina/Buenos_Aires)
 
    Save to `users.data.availability`:
    ```bash
