@@ -1,5 +1,35 @@
 {
   "browser": {
     "channel": "chrome"
+  },
+  "timeouts": {
+    "action": 10000,
+    "navigation": 30000
+  },
+  "network": {
+    "blockedOrigins": [
+      "doubleclick.net",
+      "google-analytics.com",
+      "googletagmanager.com",
+      "facebook.com",
+      "connect.facebook.net",
+      "ads.linkedin.com",
+      "px.ads.linkedin.com",
+      "snap.licdn.com",
+      "googleads.g.doubleclick.net",
+      "amazon-adsystem.com",
+      "criteo.com",
+      "taboola.com",
+      "outbrain.com",
+      "scorecardresearch.com",
+      "quantserve.com",
+      "hotjar.com",
+      "mixpanel.com",
+      "segment.io",
+      "amplitude.com"
+    ]
+  },
+  "console": {
+    "level": "warning"
   }
 }

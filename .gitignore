@@ -1,4 +1,6 @@
 .browser-profile/
+.browser-profile-temp/
 .playwright-cli/
+.playwright-mcp/
 .env
 node_modules/
