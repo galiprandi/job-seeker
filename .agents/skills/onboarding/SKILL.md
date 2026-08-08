@@ -47,6 +47,17 @@ trigger: onboarding
    ```
    The strategy JSON should contain all parameters (see AGENTS.md "Strategy levels" for the schema per level). If the user customizes any parameter, override the default for that level.
    If no strategy is set, default to `selective`.
+4c. **Ask user about interview availability preferences.** This saves time later when scheduling links arrive in emails or LinkedIn messages. Ask:
+   1. ¿En qué franja horaria preferís que te agenden entrevistas? (e.g: "13:00 a 16:00 AR")
+   2. ¿Hay algún día/horario bloqueado de forma fija? (e.g: "Martes 14:00 a 15:00, clase de inglés")
+   3. ¿Cuál es tu timezone? (default: America/Argentina/Buenos_Aires)
+
+   Save to `users.data.availability`:
+   ```bash
+   node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{availability}', '{\"preferred_hours\":\"<start>-<end> AR\",\"timezone\":\"<tz>\",\"blocked\":{\"<day>\":\"<start>-<end> (<reason>)\"}}') WHERE id = 1" --write
+   ```
+
+   The `news` flow uses this to filter available slots from scheduling links (Calendly, SmartRecruiters, etc.) without asking the user each time.
 5. Open browser respecting the preference from step 4. For manual login it's always headed (Gold Rule 5). Use the wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed`
 6. Ask for email. Navigate to provider login (Gmail → accounts.google.com, Outlook → outlook.live.com). Fill email with `fill`, click Next, wait for manual auth + 2FA
 7. Validate session: navigate to inbox, confirm URL doesn't redirect to login

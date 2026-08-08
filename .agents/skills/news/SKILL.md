@@ -31,7 +31,60 @@ Also runs in parallel when the user launches an application.
 
 ### 1. Collect updates (in parallel)
 
-Run all sources in parallel:
+**Parallelization strategy:** when subagents are available, dispatch background subagents (`subagent_general`) per source to collect updates simultaneously. Each subagent returns a structured list of items (sender, subject, snippet, category guess, action items, scheduling links if any). The main agent then merges and classifies. If subagents are not available (e.g: single-session constraint), fall back to sequential collection.
+
+**Subagent dispatch pattern:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Main agent (orchestrator)                          │
+│  - Loads preferences, strategy, availability        │
+│  - Dispatches subagents in parallel                 │
+│  - Merges results, classifies, presents summary     │
+├─────────────────────────────────────────────────────┤
+│  Subagent A (Gmail)     Subagent B (LinkedIn)       │
+│  - Inbox unread         - Messages unread           │
+│  - Job Alerts folder    - Notifications             │
+│  - Extract sched links  - Saved Jobs                │
+│  - Returns JSON list    - Returns JSON list         │
+├─────────────────────────────────────────────────────┤
+│  Subagent C (DB)        Subagent D (Sched links)    │
+│  - Pending follow-ups   - Opens each Calendly/SR   │
+│  - Pipeline stages      - Filters by availability   │
+│  - Returns JSON list    - Returns slot table        │
+└─────────────────────────────────────────────────────┘
+```
+
+**Important:** subagents share the same browser session. To avoid conflicts:
+- Gmail subagent and LinkedIn subagent use **separate tabs** (`tab-new`) or the orchestrator opens Gmail in one tab and LinkedIn in another before dispatching
+- Alternatively, the orchestrator collects Gmail first (tab 0), then dispatches the LinkedIn subagent with instructions to open a new tab
+- DB subagent doesn't need browser, only `scripts/db.js`
+- Scheduling link subagent opens each link in a new tab
+
+**If subagents are NOT available** (e.g: tool not supported, single foreground agent constraint), fall back to sequential collection as before. The flow must work in both modes.
+
+**Subagent prompt template** (adapt per source):
+
+```
+You are a job search assistant. Collect updates from <source> and return a structured list.
+
+Context:
+- Last review: <last_review_at>
+- User profile: <profile summary from DB>
+- Strategy: <strategy level and params>
+
+Instructions:
+1. Open <url> using: node scripts/browser.js open <url> (from /Users/cenco/Github/Personal/job-seeker)
+2. <source-specific steps: read unread messages, extract sender/subject/snippet/date>
+3. For each item, identify: sender, subject, date, snippet (first 200 chars), category guess (interview/offer/recruiter_new/recruiter_reply/rejected/newsletter/new_job), action items (calendar link? CV requested? form to fill?), and any scheduling URLs
+4. Return a markdown table with all items found. Do NOT reply to anything, do NOT archive, do NOT click scheduling links (just extract the URL)
+5. Close the tab when done
+
+Return format:
+| # | Sender | Subject | Date | Category | Action items | Scheduling URL |
+```
+
+Sources to collect (dispatch as parallel subagents when possible, sequential otherwise):
 
 - [ ] **Gmail inbox:** search for unread emails since last review. Filter: everything related to job search and job sites (recruiters, HR, platforms, newsletters with jobs, application responses). Ignore obvious spam. Save `last_review_at` to DB to know since when to search
 - [ ] **Gmail `Job Alerts` folder:** check `Job Alerts` label (alerts from platforms configured via `radar` skill). Classify each alert by fit: Must/Strong/Nice per PROFILE.md. Only present Must and Strong in the summary. Ignore Nice unless user asks to see all
@@ -40,6 +93,11 @@ Run all sources in parallel:
 - [ ] **LinkedIn Saved Jobs:** navigate to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: check if still open, evaluate fit against profile (Must/Strong/Nice), check if already applied (query DB by URL or company+role). Present Must/Strong matches in summary as `new_job_must`/`new_job_strong`. If user already applied, skip. If job is closed, mark as `closed` and remove from saved
 - [ ] **Platforms:** only if there are pending applications in DB. Navigate to each platform, check status of existing applications
 - [ ] **Pending follow-ups:** query DB for applications without response after X days (contextual: 3 days for urgent, 5 for normal, 7 for cold)
+- [ ] **Scheduling links (parallel subagent):** if any email or message contains a scheduling link (Calendly, SmartRecruiters self-schedule, Workable, HubSpot meetings, etc.), dispatch a background subagent (`subagent_general`) to open each link, read available slots, and filter them against `users.data.availability` (preferred_hours, timezone, blocked days). The subagent returns a filtered list of slots that match the user's preferences. This runs in parallel with the rest of the news flow so the user doesn't wait. The subagent prompt must include:
+  - The scheduling URL(s) found
+  - The user's availability preferences from DB (load before dispatching)
+  - Instructions: open each link with `node scripts/browser.js open <url>`, take snapshot, extract all available time slots, filter by preferred_hours and blocked days, return a markdown table of matching slots sorted by day then time
+  - The browser wrapper must be used (Gold Rule). The subagent should NOT book a slot, only list filtered options
 
 ### 2. Classify and prioritize
 
