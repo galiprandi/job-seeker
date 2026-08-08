@@ -2,6 +2,8 @@
 
 > Automate your job search with your favorite coding agent.
 
+[![CI](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml)
+
 Stop spending hours scrolling job boards. Job Seeker gives your AI agent the skills to search, filter, apply, and track jobs the way you would, but in minutes. Your agent reads your CV, learns your preferences, and handles the repetitive work, while you approve what matters.
 
 It's not an agent. It's a set of skills, guides, and scripts that any coding agent (Devin, Claude, Cursor, opencode) consumes to work on your behalf.
@@ -57,6 +59,8 @@ Works best for tech professionals who use LinkedIn as their primary job platform
 - A Gmail account
 - A Postgres database (Neon recommended, free tier works)
 
+`npm install` handles all dependencies, including `playwright-cli` and `pg`.
+
 ## Quick Start
 
 ```bash
@@ -86,9 +90,9 @@ After onboarding, try:
 
 ## Stack
 
-- **Browser:** `@playwright/cli` via npx. Persistent profile, headless by default
+- **Browser:** `playwright-cli` (installed via `npm install`). Persistent profile, headless by default
 - **DB:** PostgreSQL via Neon (cloud). Portable across machines
-- **Node:** `pg` for DB access
+- **Node:** `pg` for DB access, `playwright-cli` for browser automation
 - **Skills:** Markdown in `.agents/skills/`. Universal, not tied to one agent
 - **Tests:** Vitest for browser wrapper and script tests
 

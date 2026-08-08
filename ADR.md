@@ -12,7 +12,7 @@ Repo of skills + guides + scripts to automate job search. Not an agent; consumed
 
 ### Browser
 
-- **playwright-cli** with `--profile=<path>` for persistent session. Reason: native CLI, no MCP or JSON config, token-efficient.
+- **playwright-cli** with `--profile=<path>` for persistent session. Installed as devDependency via `npm install`. Reason: native CLI, no MCP or JSON config, token-efficient.
 - **Headless by default.** Headed only when user intervention is required (manual login, 2FA). Config in `.playwright/cli.config.json` with `headless: true`. Override with `--headed` when needed. Reason: speed and fewer resources when no human intervention.
 - **Initial login headed**, rest headless. If block/captcha detected → switch to headed and remember. Reason: speed when safe, safety when banned.
 - **Anti-ban rules** don't live here. They go in the navigation skill when built.

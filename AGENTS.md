@@ -347,7 +347,7 @@ node scripts/browser.js load-state
 
 ## Operational constraints
 
-- Always `npx`, never global install. **Exception:** `playwright-cli` is globally installed, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see "Browser session" section above). Never call `playwright-cli open` directly
+- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see "Browser session" section above). Never call `playwright-cli open` directly
 - Browser visibility controlled by `preferences.tooling.browser_mode` (`headless`, `headed`, `headed_logins_only`, `ask_each_time`). Default: `headed_logins_only`. Set during onboarding, loaded at every pre-flight. Manual login/2FA is always headed (Gold Rule 5)
 - Custom DB schema: create tables as needed
 - JSONB for semi-structured data in `users.data`
