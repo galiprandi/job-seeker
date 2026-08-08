@@ -20,6 +20,9 @@ When a session expires or re-login is needed on any platform (LinkedIn, Gmail, e
 ### Gold Rule 5b — Captchas are human-only
 When a captcha (hCaptcha, reCAPTCHA, image challenge, etc.) appears, the agent must **never attempt to solve it programmatically**. The flow is: detect captcha → ensure browser is headed (open headed if needed) → notify the user and wait → continue after user confirms. The agent fills the entire form, triggers submit, and when the captcha appears, it stops and asks the user. Never retry captchas in a loop.
 
+### Gold Rule 5d — Human-intervention barriers: continue, ask at the end, resume
+When the agent hits a platform barrier that requires human intervention and cannot be resolved autonomously (manual login, captcha, 2FA, complex profile setup, identity verification, etc.), it must **not stop and wait in the middle of a session**. The flow is: detect barrier → clearly note the exact step and URL where it was blocked → continue with the remaining applications/search tasks → at the end of the round, ask the user for help with that specific barrier → resume from the exact saved step/URL once the user completes it.
+
 ### Gold Rule 5c — Never invent form data
 Before filling any form field, the agent must **check the DB first** (`users.data.profile`, `users.data.personal_info`, `users.data.job_preferences`, `preferences`). If a value is not in the DB, the agent must **stop, ask the user, save the answer to DB, then continue**. Never guess or invent values like salary, company name, phone, or any personal data.
 
