@@ -2,5 +2,7 @@
 .browser-profile-temp/
 .playwright-cli/
 .playwright-mcp/
+.devin/
 .env
 node_modules/
+orca/

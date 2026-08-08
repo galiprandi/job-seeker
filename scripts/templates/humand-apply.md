@@ -37,7 +37,7 @@ Content-Type: application/json
 ```
 200 OK with { success: true, message: "Application received" }
 ```
-Redirects to `/disbyte/jobs/<job_id>/apply?success=true`
+Redirects to `/<company>/jobs/<job_id>/apply?success=true`
 
 ## Required fields
 

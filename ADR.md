@@ -7,7 +7,7 @@ Repo of skills + guides + scripts to automate job search. Not an agent; consumed
 ### Architecture
 
 - **Skills in `.agents/skills/`** — one per task (navigate, write, DB, manage, profile). Universal format, not tied to one agent. Reason: portability.
-- **V0 reference** — `job-search` skill in `/me` is historical reference. Skills are built one at a time per user instruction.
+- **V0 reference** — the original `job-search` skill is a historical reference. Skills are built one at a time per user instruction.
 - **Multi-user** — generic onboarding from scratch. Anyone clones, runs onboarding, it works.
 
 ### Browser

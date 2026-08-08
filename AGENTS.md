@@ -366,122 +366,122 @@ The user can flag a job they're interested in via these channels. The agent dete
 | **LinkedIn Saved Jobs** | User clicks "Save" on a LinkedIn job posting | `news` navigates to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: checks if open, evaluates fit, checks DB for existing application, presents Must/Strong matches |
 | **Direct chat** | User pastes a job URL in the chat | Immediate. Agent opens, evaluates, and proposes action without waiting for `news` |
 
-## Playbook de LinkedIn (validado en sesiones reales)
+## LinkedIn Playbook (validated in real sessions)
 
-### Búsqueda de posts con vacantes (content search)
+### Post search for job openings (content search)
 
-**Queries que funcionan (ordenadas por efectividad):**
+**Queries that work (ordered by effectiveness):**
 
-Reemplazar `<Role>` con el título del perfil del usuario (ej: "AI Engineer", "Engineering Manager", "Full Stack Developer") y `<City>` con su ciudad o país.
+Replace `<Role>` with the user's profile title (e.g: "AI Engineer", "Engineering Manager", "Full Stack Developer") and `<City>` with their city or country.
 
-1. `"<Role>" "hiring" LATAM` en `search/results/content/` con `sortBy="date_posted"` y filtro Posts. Es la query más productiva. Devuelve posts de reclutadores y hiring managers con emails de contacto visibles.
-2. `"<Role>" "<City>" "hiring"` para búsquedas geo-específicas. Devuelve posts locales con emails directos.
-3. `"<Role in user's language>" "buscamos"` (o equivalente en el idioma del usuario) para búsquedas en el idioma local. Menos volumen pero encuentra posts que no aparecen en inglés.
-4. `#hiring + <Role> keywords` (hashtags). LinkedIn no soporta OR entre hashtags ni combinaciones complejas. Simplificar a un hashtag + keywords. El más productivo: `#hiring` + `"<Role>"`.
+1. `"<Role>" "hiring" LATAM` in `search/results/content/` with `sortBy="date_posted"` and Posts filter. Most productive query. Returns posts from recruiters and hiring managers with visible contact emails.
+2. `"<Role>" "<City>" "hiring"` for geo-specific searches. Returns local posts with direct emails.
+3. `"<Role in user's language>" "buscamos"` (or equivalent in the user's language) for searches in the local language. Less volume but finds posts that don't appear in English.
+4. `#hiring + <Role> keywords` (hashtags). LinkedIn doesn't support OR between hashtags or complex combinations. Simplify to one hashtag + keywords. Most productive: `#hiring` + `"<Role>"`.
 
-**Queries que NO funcionan:**
-- Múltiples hashtags con OR (`#hiring OR #<Role>Jobs`): LinkedIn los trata como texto literal
-- Combinaciones muy largas con muchos AND: devuelve 0 resultados o resultados irrelevantes
-- Hashtags de nicho (`#latamjobs`, `#busquedasIT`, `#ofertasIT`): bajo volumen, casi sin resultados
+**Queries that don't work:**
+- Multiple hashtags with OR (`#hiring OR #<Role>Jobs`): LinkedIn treats them as literal text
+- Very long combinations with many ANDs: returns 0 results or irrelevant results
+- Niche hashtags (`#latamjobs`, `#busquedasIT`, `#ofertasIT`): low volume, almost no results
 
-**Patrón de extracción de posts:**
-1. Ir a `search/results/content/?keywords=...&sortBy="date_posted"`
-2. Snapshot → grep `button.*post by` para autores
-3. grep `url.*in/` para profile URLs (3 URLs repetidas por autor)
-4. grep `text:.*<Role keywords>|text:.*hiring` para contenido del post
-5. grep `mailto:` para extraer emails de contacto directo
-6. Scroll con `window.scrollBy(0, 5000)` + snapshot para más resultados
-7. Por cada post relevante: enviar connection request + email si hay email visible
+**Post extraction pattern:**
+1. Go to `search/results/content/?keywords=...&sortBy="date_posted"`
+2. Snapshot → grep `button.*post by` for authors
+3. grep `url.*in/` for profile URLs (3 repeated URLs per author)
+4. grep `text:.*<Role keywords>|text:.*hiring` for post content
+5. grep `mailto:` to extract direct contact emails
+6. Scroll with `window.scrollBy(0, 5000)` + snapshot for more results
+7. For each relevant post: send connection request + email if email is visible
 
 ### Connection requests (invites)
 
-**URL pattern para invites sin nota:**
+**URL pattern for invites without note:**
 ```
 https://www.linkedin.com/preload/custom-invite/?vanityName=<vanity>
 ```
-- El vanity es el slug del profile URL (`/in/<vanity>/`)
-- Para caracteres especiales (á, é, ç, ñ) usar URL encoding (`%C3%A1`, `%C3%A9`, `%C3%A7`, `%C3%B1`)
-- El dialog "Add a note to your invitation" aparece automáticamente
-- Buscar botón "Send without a note" con grep y click
-- Si no aparece el dialog, el usuario ya es connection o el profile es 3rd+ (no se puede invitar)
+- The vanity is the slug from the profile URL (`/in/<vanity>/`)
+- For special characters (á, é, ç, ñ) use URL encoding (`%C3%A1`, `%C3%A9`, `%C3%A7`, `%C3%B1`)
+- The "Add a note to your invitation" dialog appears automatically
+- Search for the "Send without a note" button with grep and click
+- If the dialog doesn't appear, the user is already a connection or the profile is 3rd+ (can't invite)
 
-**Límite de notas personalizadas:** LinkedIn tiene un límite de notas personalizadas por semana. Cuando se agota, enviar invites sin nota. No reintentar con nota.
+**Custom note limit:** LinkedIn has a weekly limit for custom notes. When exhausted, send invites without a note. Don't retry with a note.
 
-**3rd+ connections:** No se puede enviar invite. Marcar como "no invite posible" y pasar al siguiente. No perder tiempo intentando workarounds.
+**3rd+ connections:** Can't send invite. Mark as "no invite possible" and move to the next. Don't waste time trying workarounds.
 
 ### Easy Apply (LinkedIn Jobs)
 
-**URL pattern para búsqueda con Easy Apply:**
+**URL pattern for Easy Apply search:**
 ```
 https://www.linkedin.com/jobs/search/?keywords=<keywords>&location=Latin%20America&f_AL=true&f_WT=2&sortBy=DD
 ```
-- `f_AL=true` = solo Easy Apply
-- `f_WT=2` = solo Remote
-- `sortBy=DD` = ordenado por fecha (más recientes primero)
-- Keywords con OR (URL encoded): `%22<Role1>%22%20OR%20%22<Role2>%22%20OR%20%22<Skill1>%22`
+- `f_AL=true` = Easy Apply only
+- `f_WT=2` = Remote only
+- `sortBy=DD` = sorted by date (most recent first)
+- Keywords with OR (URL encoded): `%22<Role1>%22%20OR%20%22<Role2>%22%20OR%20%22<Skill1>%22`
 
-**Flujo de Easy Apply (patrón repetible):**
-1. Snapshot de la lista de jobs → grep `strong.*:` para títulos
-2. Click en el job title (ref del `strong`)
-3. Snapshot → grep `Easy Apply to` para el botón
-4. Click Easy Apply → dialog se abre
-5. Loop: buscar `Continue to next step` | `Review your application` | `Submit application` con grep, click, sleep 3
-6. Si hay `textbox` con `*` (required), llenar y continuar
-7. Si hay `combobox` con `Select an option`, seleccionar opción apropiada
-8. Si hay `radio` groups con `Required`, click en el label generic (no el radio input)
-9. Si hay `Please make a selection` (alert), falta un radio por seleccionar
-10. Progress bar: 0% → 25% → 33% → 50% → 67% → 75% → 100% (varía por form)
-11. En 100%: `Submit application` → click → `Your application was sent to <company>!`
+**Easy Apply flow (repeatable pattern):**
+1. Snapshot of the job list → grep `strong.*:` for titles
+2. Click the job title (ref from the `strong`)
+3. Snapshot → grep `Easy Apply to` for the button
+4. Click Easy Apply → dialog opens
+5. Loop: search for `Continue to next step` | `Review your application` | `Submit application` with grep, click, sleep 3
+6. If there's a `textbox` with `*` (required), fill and continue
+7. If there's a `combobox` with `Select an option`, select the appropriate option
+8. If there are `radio` groups with `Required`, click the generic label (not the radio input)
+9. If there's `Please make a selection` (alert), a radio is missing selection
+10. Progress bar: 0% → 25% → 33% → 50% → 67% → 75% → 100% (varies per form)
+11. At 100%: `Submit application` → click → `Your application was sent to <company>!`
 
-**Tipos de preguntas frecuentes y dónde obtener las respuestas:**
-- Años de experiencia con [tech]: `users.data.form_answers.<tech>_experience`
-- Nivel de idiomas: `users.data.form_answers.english_level` / `spanish_level`
-- Ubicación actual: `users.data.form_answers.location`
-- Empresa actual: `users.data.form_answers.current_company`
+**Common question types and where to get the answers:**
+- Years of experience with [tech]: `users.data.form_answers.<tech>_experience`
+- Language level: `users.data.form_answers.english_level` / `spanish_level`
+- Current location: `users.data.form_answers.location`
+- Current company: `users.data.form_answers.current_company`
 - LinkedIn URL: `users.data.form_answers.linkedin_url`
 - Salary expectation: `users.data.form_answers.salary_usd` / `salary_cop` / `salary_usd_max`
 - Availability: `users.data.form_answers.notice_period` / `availability_date`
-- Consent/privacy: siempre aceptar
-- Diversidad/accesibilidad: `users.data.form_answers.diversity_*` (accessibility, gender, ethnicity)
-- Discapacidad: `users.data.form_answers.disability`
+- Consent/privacy: always accept
+- Diversity/accessibility: `users.data.form_answers.diversity_*` (accessibility, gender, ethnicity)
+- Disability: `users.data.form_answers.disability`
 - GenAI tools experience: `users.data.form_answers.genai_tools`
 - AWS experience: `users.data.form_answers.aws_experience`
 - English comfort (open text): `users.data.form_answers.english_comfort`
 
-**Si una key no existe en `form_answers`:** el script saltea el campo (no lo inventa). El agente debe detenerse, preguntar al usuario, guardar la respuesta en DB (`jsonb_set` en `users.data.form_answers`), y luego continuar. Gold Rule 5c.
+**If a key doesn't exist in `form_answers`:** the script skips the field (doesn't invent it). The agent must stop, ask the user, save the answer to DB (`jsonb_set` on `users.data.form_answers`), then continue. Gold Rule 5c.
 
-**Trampas comunes en Easy Apply:**
-- Algunas empresas tienen forms extremadamente largos (8+ pasos, preguntas de diversidad específicas del país). Paciencia, llenar todo.
-- Algunos forms tienen radios sin ref directo. Click en el `generic` label que envuelve el texto ("Yes", "No").
-- Algunos forms tienen `combobox` que parecen seleccionados pero no lo están. Verificar con `option.*selected`.
-- El botón "Continue" puede no avanzar si hay errores. Siempre grep `Please make a selection` | `Please enter a valid answer` | `Required` después de cada click.
-- Algunos forms abren un file chooser al click "Adjuntar". Usar `playwright-cli upload <path>` inmediatamente.
+**Common Easy Apply pitfalls:**
+- Some companies have extremely long forms (8+ steps, country-specific diversity questions). Patience, fill everything.
+- Some forms have radios without a direct ref. Click the `generic` label that wraps the text ("Yes", "No").
+- Some forms have `combobox` that appear selected but aren't. Verify with `option.*selected`.
+- The "Continue" button may not advance if there are errors. Always grep `Please make a selection` | `Please enter a valid answer` | `Required` after each click.
+- Some forms open a file chooser when clicking "Attach". Use `playwright-cli upload <path>` immediately.
 
-### Emails directos a reclutadores
+### Direct emails to recruiters
 
-**Cuándo enviar email vs solo invite:**
-- Si el post tiene `mailto:` link visible → enviar email con CV adjunto SIEMPRE
-- Si no hay email → solo connection request
-- Email + invite es la combinación más efectiva
+**When to send email vs invite only:**
+- If the post has a visible `mailto:` link → send email with CV attached ALWAYS
+- If no email → connection request only
+- Email + invite is the most effective combination
 
 **Gmail compose via browser:**
 1. `goto "https://mail.google.com/mail/u/0/#inbox"`
-2. Click "Redactar" button
-3. Dialog aparece con: combobox "Destinatarios" (Para), textbox "Asunto", textbox "Cuerpo del mensaje"
-4. Fill Para → Fill Asunto → Fill Cuerpo
-5. Click "Adjuntar archivos" → `playwright-cli upload <cv_path>` (file chooser modal)
-6. Click "Enviar" → verificar "Mensaje enviado"
+2. Click "Compose" button
+3. Dialog appears with: combobox "Recipients" (To), textbox "Subject", textbox "Message body"
+4. Fill To → Fill Subject → Fill Body
+5. Click "Attach files" → `playwright-cli upload <cv_path>` (file chooser modal)
+6. Click "Send" → verify "Message sent"
 
-**CV path:** se obtiene de `users.data.profile.cv_path` o `users.data.personal_info.cv_pdf_path`. El script `gmail-send.js` lo lee automáticamente de DB.
+**CV path:** obtained from `users.data.profile.cv_path` or `users.data.personal_info.cv_pdf_path`. The `gmail-send.js` script reads it automatically from DB.
 
 ### External ATS playbooks (discovered)
 
-**Teamtailor (Rooftop, etc.):**
-- Flow: GET job → `Solicitar con LinkedIn` auto-fills name/email/photo/CV → fill custom questions → submit → email verification → click verification link → done
+**Teamtailor (<company>, etc.):**
+- Flow: GET job → `Apply with LinkedIn` auto-fills name/email/photo/CV → fill custom questions → submit → email verification → click verification link → done
 - `scripts/templates/teamtailor-apply.md` has the POST `/applications` structure for replay if needed
 - After first successful application, create a Connect profile. Future applications at the same company auto-fill.
 
-**Humand.co (Grupo Disbyte, etc.):**
+**Humand.co (<company>, etc.):**
 - Flow: GET `/jobs/<id>/apply` → guest session → upload CV to S3 → POST `/api/jobs/apply` → thank you page
 - `scripts/templates/humand-apply.md` has the JSON API structure
 - Fields: first_name, last_name, phone, email, birth_date, resume, LinkedIn URL, consent
@@ -491,132 +491,132 @@ https://www.linkedin.com/jobs/search/?keywords=<keywords>&location=Latin%20Ameri
 - If direct upload fails, click the file chooser button first, then `exec upload <cv_path>`
 - If that still fails, the input may be generated by JS; take a snapshot and look for `input[type=file]` or drag-and-drop areas
 
-**Estructura de email efectiva (validada):**
-- Asunto: `Aplicación - <Rol> - <Nombre>` (o `Application - <Role> - <Name>` si el post está en inglés)
-- Body: 3-4 párrafos cortos, conversacional, no formal
-- Mencionar: experiencia relevante específica del JD, logros concretos con números (ej: métricas de impacto de proyectos anteriores del usuario)
-- Incluir: LinkedIn URL (`users.data.form_answers.linkedin_url`), blog URL (`users.data.form_answers.blog_url`) si es relevante al JD
-- Adjuntar CV siempre
-- No usar bullet points, no usar em-dashes, no repetir keywords del JD obviamente
-- Pasar por Gold Rule 7 (anti-LLM checklist) antes de enviar
+**Effective email structure (validated):**
+- Subject: `Application - <Role> - <Name>` (use the language of the post)
+- Body: 3-4 short paragraphs, conversational, not formal
+- Mention: specific relevant experience from the JD, concrete achievements with numbers (e.g: impact metrics from the user's previous projects)
+- Include: LinkedIn URL (`users.data.form_answers.linkedin_url`), blog URL (`users.data.form_answers.blog_url`) if relevant to the JD
+- Always attach CV
+- No bullet points, no em-dashes, don't repeat JD keywords obviously
+- Pass through Gold Rule 7 (anti-LLM checklist) before sending
 
-### Estrategia de outreach en orden de efectividad
+### Outreach strategy by effectiveness order
 
-1. **Easy Apply + email directo** (más efectivo): Easy Apply en LinkedIn Jobs + email al reclutador si el post tiene contacto
-2. **Email directo con CV** (alto): cuando hay email visible en un post de LinkedIn
-3. **Connection request sin nota** (medio): cuando no hay email, pero se puede conectar
-4. **Connection request con nota** (alto pero limitado): mencionando un proyecto o blog post relevante del usuario. LinkedIn limita notas personalizadas por semana
-5. **Easy Apply solo** (medio): rápido pero menos personalizado
+1. **Easy Apply + direct email** (most effective): Easy Apply on LinkedIn Jobs + email to recruiter if the post has contact
+2. **Direct email with CV** (high): when there's a visible email in a LinkedIn post
+3. **Connection request without note** (medium): when there's no email, but can connect
+4. **Connection request with note** (high but limited): mentioning a relevant project or blog post from the user. LinkedIn limits custom notes per week
+5. **Easy Apply only** (medium): fast but less personalized
 
-### Datos del usuario para forms
+### User data for forms
 
-Todos los datos personales viven en la DB, no en este archivo. El agente y los scripts los leen de:
+All personal data lives in the DB, not in this file. The agent and scripts read it from:
 
-| Dato | Ubicacion en DB |
+| Data | DB location |
 |---|---|
-| Nombre, email, telefono, CV path | `users.data.profile` (full_name, email, phone, cv_path) |
-| Direccion, ciudad, pais | `users.data.personal_info` (address, city, state, country, postal_code) |
-| Salario, disponibilidad, preferencias | `users.data.job_preferences` (salary, availability, modalities, etc.) |
-| Respuestas a forms de Easy Apply | `users.data.form_answers` (ver claves arriba) |
+| Name, email, phone, CV path | `users.data.profile` (full_name, email, phone, cv_path) |
+| Address, city, country | `users.data.personal_info` (address, city, state, country, postal_code) |
+| Salary, availability, preferences | `users.data.job_preferences` (salary, availability, modalities, etc.) |
+| Easy Apply form answers | `users.data.form_answers` (see keys above) |
 | LinkedIn URL, blog URL | `users.data.form_answers.linkedin_url`, `form_answers.blog_url` |
 
-**Nunca hardcodear datos personales en scripts, AGENTS.md, o cualquier archivo del repo.** Todo va a DB. Gold Rule 5c.
+**Never hardcode personal data in scripts, AGENTS.md, or any repo file.** Everything goes to DB. Gold Rule 5c.
 
-### Registro en DB
+### DB registration
 
-**Tabla `applications` columnas:** `id, user_id, platform, company, role, url, status, applied_at, data`
+**`applications` table columns:** `id, user_id, platform, company, role, url, status, applied_at, data`
 
-**Platforms usadas:**
+**Platforms used:**
 - `linkedin` = Easy Apply jobs
 - `linkedin_invite` = connection requests
-- `email` = emails directos a reclutadores
-- `teamtailor` = aplicaciones vía Teamtailor (con LinkedIn auth, email verification, Connect)
-- `humand` = aplicaciones vía Humand.co
-- `kavak_career_site`, `clarika`, `homie`, etc. = career sites específicos
+- `email` = direct emails to recruiters
+- `teamtailor` = applications via Teamtailor (with LinkedIn auth, email verification, Connect)
+- `humand` = applications via Humand.co
+- `<company>_career_site`, etc. = specific career sites
 
 **Status values (pipeline stages, canonical):**
 
 Active stages (left to right in the kanban):
-- `discovered` = encontrado pero sin acción
-- `contacted` = invite/email enviado, sin aplicación formal
-- `applied` = aplicación enviada
-- `in_review` = empresa revisando, sin respuesta
-- `screening` = screening call agendada/done
-- `interview` = entrevista técnica en curso
-- `offer` = oferta recibida, negociando
-- `hired` = aceptado, empezando
+- `discovered` = found but no action taken
+- `contacted` = invite/email sent, no formal application
+- `applied` = application submitted
+- `in_review` = company reviewing, no response
+- `screening` = screening call scheduled/done
+- `interview` = technical interview in progress
+- `offer` = offer received, negotiating
+- `hired` = accepted, starting
 
 Closed stages (shown with `--closed`):
-- `rejected` = empresa rechazó
-- `withdrawn` = usuario retiró
-- `skipped` = decidido no aplicar / no fit
+- `rejected` = company rejected
+- `withdrawn` = user withdrew
+- `skipped` = decided not to apply / not a fit
 
 **Pipeline kanban:** `node scripts/pipeline.js` prints the board. See "Pipeline kanban" section below.
 
-**data JSONB:** incluir `source`, `match` (high/medium/low), `location`, `tech` array, y cualquier metadata relevante
+**data JSONB:** include `source`, `match` (high/medium/low), `location`, `tech` array, and any relevant metadata
 
-### Timing y batch size
+### Timing and batch size
 
-- Una sesión de apply puede procesar 7-10 Easy Apply jobs en ~30 min
-- Connection requests: 8-10 por sesión (evitar límites de LinkedIn)
-- Emails directos: 4-5 por sesión (cada uno toma ~2 min con attach)
-- Total efectivo por sesión: 15-20 acciones de aplicación/contacto
-- Algunas empresas tienen forms muy largos que toman ~10 min cada uno. El resto toma 2-5 min cada uno
+- An apply session can process 7-10 Easy Apply jobs in ~30 min
+- Connection requests: 8-10 per session (avoid LinkedIn limits)
+- Direct emails: 4-5 per session (each takes ~2 min with attachment)
+- Effective total per session: 15-20 application/contact actions
+- Some companies have very long forms that take ~10 min each. The rest take 2-5 min each
 
-## Scripts de automatizacion (validados en sesiones reales)
+## Automation scripts (validated in real sessions)
 
-Estos scripts encapsulan los patrones repetitivos del playbook. Todos requieren que el browser este abierto via `node scripts/browser.js open` primero. Usan `playwright-cli` internamente.
+These scripts encapsulate the repetitive patterns from the playbook. All require the browser to be open via `node scripts/browser.js open` first. They use `playwright-cli` internally.
 
-### `scripts/linkedin-search.js` — Buscar posts con vacantes
+### `scripts/linkedin-search.js` — Search posts for job openings
 
-Busca posts de LinkedIn, extrae autor + vanity + email + preview del contenido. Filtra por relevancia (AI/ML keywords) y dedupe.
+Searches LinkedIn posts, extracts author + vanity + email + content preview. Filters by relevance (AI/ML keywords) and dedupes.
 
 ```bash
-# Busqueda basica (output human-readable)
+# Basic search (human-readable output)
 node scripts/linkedin-search.js '"<Role>" "hiring" LATAM'
 
-# Busqueda con mas scrolls y output JSON (para pipear a otros scripts)
+# Search with more scrolls and JSON output (to pipe to other scripts)
 node scripts/linkedin-search.js '"<Role>" "<City>" "hiring"' --scroll 3 --json
 
-# Queries validadas:
-#   '"<Role>" "hiring" LATAM'               (mas productiva)
-#   '"<Role>" "<City>" "hiring"'      (geo-especifica Argentina)
-#   '"ingeniero IA" "buscamos"'                  (español)
+# Validated queries:
+#   '"<Role>" "hiring" LATAM'               (most productive)
+#   '"<Role>" "<City>" "hiring"'      (geo-specific)
+#   '"ingeniero IA" "buscamos"'                  (Spanish)
 ```
 
 **Flags:** `--scroll <n>` (default 2), `--json` (raw JSON output)
 **Output JSON:** `[{author, vanity, email, content}, ...]`
 
-### `scripts/linkedin-invite.js` — Enviar connection requests
+### `scripts/linkedin-invite.js` — Send connection requests
 
-Navega a `/preload/custom-invite/?vanityName=<vanity>`, click "Send without a note". Anti-ban delay de 3s entre invites.
+Navigates to `/preload/custom-invite/?vanityName=<vanity>`, clicks "Send without a note". Anti-ban delay of 3s between invites.
 
 ```bash
-# Invitar a uno o mas vanities
-node scripts/linkedin-invite.js franco-andr%C3%A9s-mena-ch%C3%A1vez-98019687
+# Invite one or more vanities
+node scripts/linkedin-invite.js <vanity-name>
 
-# Invitar a multiples
+# Invite multiple
 node scripts/linkedin-invite.js vanity1 vanity2 vanity3
 
-# Buscar + invitar en un solo comando (pipea search -> invite)
+# Search + invite in one command (pipe search -> invite)
 node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" LATAM'
 ```
 
-**Flags:** `--from-search "<keywords>"` (busca y invita a todos los encontrados)
-**Exit codes:** 0 = al menos uno enviado, 1 = todos fallaron, 2 = error
+**Flags:** `--from-search "<keywords>"` (searches and invites all found)
+**Exit codes:** 0 = at least one sent, 1 = all failed, 2 = error
 
-### `scripts/linkedin-easy-apply.js` — Aplicar via Easy Apply
+### `scripts/linkedin-easy-apply.js` — Apply via Easy Apply
 
-Busca jobs con filtro Easy Apply, hace click, llena forms con respuestas estandar, submitea, registra en DB.
+Searches jobs with Easy Apply filter, clicks, fills forms with standard answers, submits, registers in DB.
 
 ```bash
-# Aplicar a los primeros 10 jobs (default)
+# Apply to the first 10 jobs (default)
 node scripts/linkedin-easy-apply.js
 
 # Keywords custom + limit
 node scripts/linkedin-easy-apply.js --keywords '"<Role>" OR "<Skill>"' --max 5
 
-# Solo listar, no aplicar
+# List only, don't apply
 node scripts/linkedin-easy-apply.js --dry-run
 
 # Output JSON
@@ -624,88 +624,88 @@ node scripts/linkedin-easy-apply.js --json
 ```
 
 **Flags:** `--keywords <q>` (default: derived from DB profile.title + profile.skills), `--location <loc>` (default: from DB job_preferences.location), `--max <n>` (default 10), `--dry-run`, `--json`
-**Auto-fill:** todos los valores se leen de `users.data.form_answers` (DB). El script llena: años de experiencia por tech, nivel de idiomas, ubicación, empresa actual, LinkedIn URL, salario, disponibilidad, GenAI tools, AWS, etc. Radios: Yes para skills, No para disability/sponsorship (valores configurables en DB). Comboboxes: English/Spanish level, seniority (from DB).
-**Captcha:** detecta y detiene con exit 1 + mensaje. Nunca intenta resolver.
-**DB:** registra cada aplicacion con `platform='linkedin'`, `status='applied'`.
+**Auto-fill:** all values are read from `users.data.form_answers` (DB). The script fills: years of experience per tech, language level, location, current company, LinkedIn URL, salary, availability, GenAI tools, AWS, etc. Radios: Yes for skills, No for disability/sponsorship (configurable values in DB). Comboboxes: English/Spanish level, seniority (from DB).
+**Captcha:** detects and stops with exit 1 + message. Never attempts to solve.
+**DB:** registers each application with `platform='linkedin'`, `status='applied'`.
 
-### `scripts/gmail-send.js` — Enviar emails con CV adjunto
+### `scripts/gmail-send.js` — Send emails with CV attached
 
-Abre Gmail compose, fill Para/Asunto/Cuerpo, adjunta CV, envia. Soporta CC/BCC y body desde archivo.
+Opens Gmail compose, fills To/Subject/Body, attaches CV, sends. Supports CC/BCC and body from file.
 
 ```bash
-# Email basico con CV adjunto
+# Basic email with CV attached
 node scripts/gmail-send.js \
-  --to reclutador@empresa.com \
-  --subject "Aplicacion - <Role> - <Tu Nombre>" \
-  --body "Hola, vi tu post en LinkedIn..."
+  --to recruiter@company.com \
+  --subject "Application - <Role> - <Your Name>" \
+  --body "Hi, I saw your post on LinkedIn..."
 
-# Email sin CV
+# Email without CV
 node scripts/gmail-send.js --to email@x.com --subject "..." --body "..." --no-cv
 
-# Body desde archivo
+# Body from file
 node scripts/gmail-send.js --to email@x.com --subject "..." --body-file templates/email-ai-engineer.txt
 
-# Multiples destinatarios + CC
+# Multiple recipients + CC
 node scripts/gmail-send.js --to a@x.com,b@x.com --cc c@x.com --subject "..." --body "..."
 ```
 
 **Flags:** `--to <emails>` (required, comma-separated), `--subject <text>` (required), `--body <text>`, `--body-file <path>`, `--cv <path>` (default: from DB profile.cv_path), `--no-cv`, `--cc <emails>`, `--bcc <emails>`
-**UI:** soporta Gmail en español (Redactar/Asunto/Cuerpo/Enviar/Adjuntar) e inglés (Compose/Subject/Body/Send/Attach)
-**CV path: leido de DB (users.data.profile.cv_path o personal_info.cv_pdf_path)
+**UI:** supports Gmail in Spanish (Redactar/Asunto/Cuerpo/Enviar/Adjuntar) and English (Compose/Subject/Body/Send/Attach)
+**CV path:** read from DB (users.data.profile.cv_path or personal_info.cv_pdf_path)
 
-### Pipeline completo en un comando
+### Full pipeline in one command
 
 ```bash
-# 1. Asegurar browser abierto con sesion de LinkedIn
+# 1. Ensure browser is open with LinkedIn session
 node scripts/browser.js open "https://www.linkedin.com"
 
-# 2. Buscar posts, extraer contactos, invitar a todos
+# 2. Search posts, extract contacts, invite all
 node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" LATAM'
 
-# 3. Aplicar via Easy Apply a 10 jobs
+# 3. Apply via Easy Apply to 10 jobs
 node scripts/linkedin-easy-apply.js --max 10
 
-# 4. Para posts con email visible, enviar email con CV
+# 4. For posts with visible email, send email with CV
 node scripts/linkedin-search.js '"<Role>" "hiring" LATAM' --json | \
-  jq -r '.[] | select(.email) | "--to \(.email) --subject \"Aplicacion - <Role>\" --body \"Hola \(.author), vi tu post...\""' | \
+  jq -r '.[] | select(.email) | "--to \(.email) --subject \"Application - <Role>\" --body \"Hi \(.author), I saw your post...\""' | \
   xargs -I {} node scripts/gmail-send.js {}
 ```
 
-### Cuando NO usar los scripts (modo manual)
+### When NOT to use scripts (manual mode)
 
-- Forms de Easy Apply con preguntas abiertas complejas (ej: "Describe tu experiencia con <tech> en 300 palabras") que requieren respuestas personalizadas
-- Posts de LinkedIn que requieren analizar el contenido para decidir si aplicar (match ambiguo)
-- Emails a reclutadores que ya respondieron (usar Gold Rule 6: draft + approval)
-- Career sites custom (Lever, Greenhouse, Workday) que no son LinkedIn Easy Apply
-- Situaciones que requieren captcha (Gold Rule 5b: detener y pedir al usuario)
+- Easy Apply forms with complex open-ended questions (e.g: "Describe your experience with <tech> in 300 words") that require personalized answers
+- LinkedIn posts that require analyzing the content to decide whether to apply (ambiguous match)
+- Emails to recruiters who already replied (use Gold Rule 6: draft + approval)
+- Custom career sites (Lever, Greenhouse, Workday) that aren't LinkedIn Easy Apply
+- Situations that require captcha (Gold Rule 5b: stop and ask the user)
 
 ### Pipeline kanban
 
-`scripts/pipeline.js` es el tablero kanban para tracking de aplicaciones y contactos. Unifica LinkedIn invites, emails directos y aplicaciones formales en un solo pipeline con stages canonicos.
+`scripts/pipeline.js` is the kanban board for tracking applications and contacts. Unifies LinkedIn invites, direct emails, and formal applications into a single pipeline with canonical stages.
 
 ```bash
-# Tablero completo (active cards)
+# Full board (active cards)
 node scripts/pipeline.js
 
-# Incluir closed (rejected, withdrawn, skipped)
+# Include closed (rejected, withdrawn, skipped)
 node scripts/pipeline.js --closed
 
-# Funnel summary (counts por stage)
+# Funnel summary (counts per stage)
 node scripts/pipeline.js --funnel
 
-# Filtrar por stage
+# Filter by stage
 node scripts/pipeline.js --stage interview
 
-# Filtrar por company
-node scripts/pipeline.js --company Ionix
+# Filter by company
+node scripts/pipeline.js --company <company>
 
-# Mover una card a otro stage (actualiza status + agrega a stage_history)
+# Move a card to another stage (updates status + adds to stage_history)
 node scripts/pipeline.js --move 82 interview
 
-# Ver detalle de una card (con messages vinculados via application_id)
+# View card detail (with linked messages via application_id)
 node scripts/pipeline.js --card 82
 ```
 
-**Stages canonicos (ordenados):** `discovered` -> `contacted` -> `applied` -> `in_review` -> `screening` -> `interview` -> `offer` -> `hired`. Closed: `rejected`, `withdrawn`, `skipped`.
+**Canonical stages (ordered):** `discovered` -> `contacted` -> `applied` -> `in_review` -> `screening` -> `interview` -> `offer` -> `hired`. Closed: `rejected`, `withdrawn`, `skipped`.
 
-**Cuando el agente mueve cards:** cuando detecta un cambio de estado (recruiter responde, entrevista agendada, rechazo), usa `pipeline.js --move <id> <stage>` en lugar de un UPDATE directo. Esto mantiene el audit trail en `data.stage_history`.
+**When the agent moves cards:** when it detects a status change (recruiter replies, interview scheduled, rejection), it uses `pipeline.js --move <id> <stage>` instead of a direct UPDATE. This maintains the audit trail in `data.stage_history`.

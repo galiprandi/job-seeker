@@ -74,7 +74,7 @@ Context:
 - Strategy: <strategy level and params>
 
 Instructions:
-1. Open <url> using: node scripts/browser.js open <url> (from /Users/cenco/Github/Personal/job-seeker)
+1. Open <url> using: node scripts/browser.js open <url> (from the repo root directory)
 2. <source-specific steps: read unread messages, extract sender/subject/snippet/date>
 3. For each item, identify: sender, subject, date, snippet (first 200 chars), category guess (interview/offer/recruiter_new/recruiter_reply/rejected/newsletter/new_job), action items (calendar link? CV requested? form to fill?), and any scheduling URLs
 4. Return a markdown table with all items found. Do NOT reply to anything, do NOT archive, do NOT click scheduling links (just extract the URL)
