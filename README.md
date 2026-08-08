@@ -11,7 +11,7 @@ It's not an agent. It's a set of skills, guides, and scripts that any coding age
 
 ## Demo
 
-https://github.com/galiprandi/job-seeker/raw/main/assets/demo-terminal.webm
+https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.webm
 
 **Pipeline kanban** (`node scripts/pipeline.js`):
 
