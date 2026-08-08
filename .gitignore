@@ -7,3 +7,5 @@
 node_modules/
 orca/
 assets/*.html
+docs/.vitepress/dist/
+docs/.vitepress/cache/

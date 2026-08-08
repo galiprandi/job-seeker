@@ -3,6 +3,7 @@
 > Automate your job search with your favorite coding agent.
 
 [![CI](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-vitepress-646cff.svg)](https://galiprandi.github.io/job-seeker/)
 
 Stop spending hours scrolling job boards. Job Seeker gives your AI agent the skills to search, filter, apply, and track jobs the way you would, but in minutes. Your agent reads your CV, learns your preferences, and handles the repetitive work, while you approve what matters.
 
