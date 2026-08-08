@@ -4,7 +4,9 @@
   "description": "Automatizá tu búsqueda laboral con tu agente coding favorito. Skills, guías y scripts que cualquier agente (Devin, Claude, opencode) consume para buscar, aplicar y hacer seguimiento de trabajos en tu nombre.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:browser": "vitest run tests/browser/",
     "db": "node scripts/db.js"
   },
   "repository": {
@@ -38,6 +40,7 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.0"
+    "@types/pg": "^8.20.0",
+    "vitest": "^4.1.10"
   }
 }
