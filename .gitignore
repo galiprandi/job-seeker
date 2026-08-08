@@ -6,3 +6,4 @@
 .env
 node_modules/
 orca/
+assets/*.html
