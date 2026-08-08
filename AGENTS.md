@@ -64,6 +64,30 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Enforcement:** before committing, grep the diff for personal data patterns (names, emails, phone numbers, paths with real names). If found, move to DB and replace with placeholders.
 
+### Gold Rule 10 — Browser isolation
+**ALWAYS use the work browser via the wrapper script.** Never use any other browser instance (personal Chrome, Safari, Firefox, etc.) even if it's available or already open.
+
+**Mandatory workflow:**
+- **Open:** `node scripts/browser.js open <url>` (only this command)
+- **Navigate:** `node scripts/browser.js goto <url>` (only this command)
+- **Close:** `node scripts/browser.js close` (only this command)
+
+**What is prohibited:**
+- Never call `playwright-cli open` directly
+- Never call `npx playwright` or `npx @playwright/cli` for open/goto/close
+- Never open Chrome/Safari/Firefox manually or via shortcuts
+- Never reuse an existing personal browser session
+
+**Why:** The wrapper guarantees:
+1. The `.browser-profile` directory is always used (isolated work sessions)
+2. Browser mode preference (`headed_logins_only`, `headless`, `headed`) is respected automatically
+3. Session management (prevent multiple instances, proper cleanup)
+4. Cookie/state isolation between work and personal browsing
+
+**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `npx @playwright/cli` directly AFTER opening via the wrapper. The wrapper only wraps open/goto/close.
+
+**Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
