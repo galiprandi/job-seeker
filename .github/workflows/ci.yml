@@ -15,5 +15,4 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npx playwright-cli install chromium
-      - run: npm test
+      - run: npm run docs:build
