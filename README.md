@@ -62,7 +62,7 @@ Works best for tech professionals who use LinkedIn as their primary job platform
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22+
 - npx
 - A LinkedIn account
 - A Gmail account
