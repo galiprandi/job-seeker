@@ -4,18 +4,13 @@ Community-maintained catalog. The agent consults it to decide where to search ba
 
 ## Alert Tracking (Passive Sourcing)
 
-Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gmail when `news` runs.
+Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gmail when `news` runs. The `radar` flow populates this table as it sets up alerts on each platform.
 
 | Platform | URL | Profile | Alerts | Gmail Filter | Last review | Notes |
 |---|---|---|---|---|---|---|
-| HireIndex | hireindex.app | N/A (newsletter) | ✅ Weekly newsletter confirmed | ✅ | 2026-07-30 | AI/ML jobs aggregator. 1678 roles, 800 companies. Double opt-in confirmed |
-| Torre | torre.ai | ✅ Login (email+OTP) | ✅ Automatic AI matching | ✅ | 2026-07-30 | Genome pending completion. Automatic matching without keywords |
-| We Work Remotely | weworkremotely.com | ❌ Removed — paywalled | ❌ Removed — paywalled | ❌ Removed | 2026-07-31 | ⚠️ Paywall: $14.95/mo Basic. Account deleted. Do not subscribe without confirming value first. |
-| Built In | builtin.com | ✅ Google login + onboarding | ✅ Job emails enabled | ✅ | 2026-07-30 | Onboarding completed with user's role, location, remote, company size, and seniority preferences |
-| Y Combinator | workatastartup.com | ✅ Magic link login | ✅ Profile-based matching | ✅ | 2026-07-30 | Pre-existing profile. Automatic matching without keywords |
-| Rooftop | rooftop.dev | ✅ Connect profile | ✅ Per-vacancy alerts enabled | ✅ | 2026-07-31 | LATAM tech staffing. Notifications for all departments/puestos. Profile connected to user's Gmail. |
+| _<platform>_ | _<url>_ | _<status>_ | _<status>_ | _<yes/no>_ | _<date>_ | _<notes>_ |
 
-> **Active Gmail filter:** `from:(hireindex.app OR torre.ai OR builtin.com OR workatastartup.com OR ycombinator.com OR teamtailor.com)` → Skip Inbox → Apply label "Job Alerts"
+> **Gmail filter template:** `from:(<domain1> OR <domain2> OR ...)` → Skip Inbox → Apply label "Job Alerts"
 
 ## General (high volume, all levels)
 

@@ -1,418 +1,418 @@
-# Estrategias de busqueda laboral y networking
+# Job Search and Networking Strategies
 
-Documento de referencia con estrategias ordenadas por efectividad, basado en datos de investigacion de fuentes confiables (2025-2026). Agnostico al candidato, region, rol e industria. Las plataformas mencionadas son ejemplos, no recomendaciones exclusivas.
+Reference document with strategies ranked by effectiveness, based on research data from reliable sources (2025-2026). Agnostic to candidate, region, role, and industry. The platforms mentioned are examples, not exclusive recommendations.
 
-## Tabla de efectividad (resumen)
+## Effectiveness table (summary)
 
-| # | Estrategia | Response rate | Hire rate | Tiempo prom. | Esfuerzo | Fuente |
+| # | Strategy | Response rate | Hire rate | Avg. time | Effort | Source |
 |---|---|---|---|---|---|---|
-| 1 | Referal interna (empleado te refiere) | 40-65% | 40% | 30 dias | Bajo (si tenes contacto) | Jobvite, NBER, Glassdoor |
-| 2 | Cold outreach personalizado a reclutador (DM/InMail) | 17-34% | 12-18% | 3-7 dias | Medio | Pin, Noon, Puzzle Inbox |
-| 3 | Email directo a reclutador con CV adjunto | 5-17% | 8-12% | 2-14 dias | Medio | Pin, Puzzle Inbox |
-| 4 | Multi-channel combo (social post search + email + connect) | ~8-25% | variable | 1-7 dias | Medio-Alto | Sesion real + Pin |
-| 5 | Connection request + DM despues de aceptacion | 34% (post-accept) | variable | 1-14 dias | Medio | Noon |
-| 6 | 1-click apply (Easy Apply, Quick Apply, etc.) | 2-8% | 2-3% | 6-83 dias | Bajo (automatizable) | Huntr, Glassdoor |
-| 7 | Career site directo (ATS manual) | 4-10% | 3-5% | 7-45 dias | Alto | Huntr, scale.jobs |
-| 8 | Job boards niche + alerts (radar pasivo) | 6-11% | 4-8% | 14-45 dias | Bajo (configurar alerts) | Huntr |
-| 9 | Content creation / thought leadership | indirecto | indirecto | semanas-meses | Alto (continuo) | ContentIn, LinkPost |
-| 10 | Informational interviews | 34% reply rate | indirecto | 1-30 dias | Alto | TechTrendi, ECP |
-| 11 | Community engagement (open source, forums, events) | indirecto | indirecto | meses | Alto (continuo) | Dice, TechTrendi |
-| 12 | Alumni network + university career services | 15-25% | variable | 7-30 dias | Medio | Dice, ECP |
+| 1 | Internal referral (employee refers you) | 40-65% | 40% | 30 days | Low (if you have a contact) | Jobvite, NBER, Glassdoor |
+| 2 | Personalized cold outreach to recruiter (DM/InMail) | 17-34% | 12-18% | 3-7 days | Medium | Pin, Noon, Puzzle Inbox |
+| 3 | Direct email to recruiter with attached CV | 5-17% | 8-12% | 2-14 days | Medium | Pin, Puzzle Inbox |
+| 4 | Multi-channel combo (social post search + email + connect) | ~8-25% | variable | 1-7 days | Medium-High | Real session + Pin |
+| 5 | Connection request + DM after acceptance | 34% (post-accept) | variable | 1-14 days | Medium | Noon |
+| 6 | 1-click apply (Easy Apply, Quick Apply, etc.) | 2-8% | 2-3% | 6-83 days | Low (automatable) | Huntr, Glassdoor |
+| 7 | Direct career site (manual ATS) | 4-10% | 3-5% | 7-45 days | High | Huntr, scale.jobs |
+| 8 | Niche job boards + alerts (passive radar) | 6-11% | 4-8% | 14-45 days | Low (set up alerts) | Huntr |
+| 9 | Content creation / thought leadership | indirect | indirect | weeks-months | High (ongoing) | ContentIn, LinkPost |
+| 10 | Informational interviews | 34% reply rate | indirect | 1-30 days | High | TechTrendi, ECP |
+| 11 | Community engagement (open source, forums, events) | indirect | indirect | months | High (ongoing) | Dice, TechTrendi |
+| 12 | Alumni network + university career services | 15-25% | variable | 7-30 days | Medium | Dice, ECP |
 
 ---
 
-## 1. Referal interna (empleado te refiere)
+## 1. Internal referral (employee refers you)
 
-**Efectividad: MAXIMA** — 40-65% interview rate, 40% hire rate, 29 dias mas rapido que cold apply
+**Effectiveness: MAXIMUM** — 40-65% interview rate, 40% hire rate, 29 days faster than cold apply
 
-Un empleado existente de la empresa te refiere internamente. Tu CV salta el ATS y llega directo al hiring manager con un flag de "Referral".
+An existing employee at the company refers you internally. Your CV skips the ATS and goes directly to the hiring manager with a "Referral" flag.
 
-**Datos:**
-- Referred candidates: 4x mas probabilidad de interview vs cold apply (Jobvite 2024)
-- 40% de referred candidates reciben offer vs 2% desde job boards (LinkedCraft 2026)
-- 35% mas probabilidad de offer despues de interview (Glassdoor 2025)
-- 46% mayor retencion a 2 anos (NBER)
-- Solo 7% de aplicaciones son referrals, pero generan 40% de hires
-- ATS (Greenhouse, Lever, Ashby, Workday, iCIMS) rutean referrals a cola separada con flag visible
+**Data:**
+- Referred candidates: 4x more likely to get an interview vs cold apply (Jobvite 2024)
+- 40% of referred candidates receive an offer vs 2% from job boards (LinkedCraft 2026)
+- 35% more likely to get an offer after interview (Glassdoor 2025)
+- 46% higher retention at 2 years (NBER)
+- Only 7% of applications are referrals, but they generate 40% of hires
+- ATS (Greenhouse, Lever, Ashby, Workday, iCIMS) route referrals to a separate queue with a visible flag
 
-**Como ejecutarlo:**
-1. Identificar empleados de la empresa target en la red social profesional que uses (LinkedIn, X, Bluesky, etc.) o via alumni network
-2. Priorizar: ex-colegas, alumni de tu universidad, connections en comun, miembros de comunidades compartidas (Slack, Discord, etc.)
-3. Connection request o mensaje sin pedir referral directo
-4. Despues de aceptacion: conversacion natural pidiendo info sobre el team/rol
-5. Si la conversacion va bien, preguntar si estarian dispuestos a referirte
-6. Alternativa: usar plataformas como ReferMe, TeamBlind, o comunidades especificas que conectan con empleados dispuestos a referir
+**How to execute:**
+1. Identify employees of the target company on the professional social network you use (LinkedIn, X, Bluesky, etc.) or via alumni network
+2. Prioritize: former colleagues, alumni from your university, mutual connections, members of shared communities (Slack, Discord, etc.)
+3. Connection request or message without asking for a direct referral
+4. After acceptance: natural conversation asking for info about the team/role
+5. If the conversation goes well, ask if they would be willing to refer you
+6. Alternative: use platforms like ReferMe, TeamBlind, or specific communities that connect you with employees willing to refer
 
-**Cuando usarlo:** siempre que tengas un contacto o connection de 2do grado en la empresa. Es la estrategia con mejor ROI.
+**When to use it:** whenever you have a contact or 2nd-degree connection at the company. It's the strategy with the best ROI.
 
-**Herramientas en este repo:** `linkedin-search.js` para encontrar empleados, `linkedin-invite.js` para conectar (adaptable a otras plataformas)
+**Tools in this repo:** `linkedin-search.js` to find employees, `linkedin-invite.js` to connect (adaptable to other platforms)
 
 ---
 
-## 2. Cold outreach personalizado a reclutador (DM/InMail)
+## 2. Personalized cold outreach to recruiter (DM/InMail)
 
-**Efectividad: ALTA** — 17-34% reply rate, 3.4x mejor que email
+**Effectiveness: HIGH** — 17-34% reply rate, 3.4x better than email
 
-Mensaje directo por la red social profesional que use el reclutador (LinkedIn, X, etc.) a un reclutador o hiring manager que tiene un rol abierto. Personalizado, corto, con credibility anchor.
+Direct message via the professional social network the recruiter uses (LinkedIn, X, etc.) to a recruiter or hiring manager who has an open role. Personalized, short, with a credibility anchor.
 
-**Datos:**
-- LinkedIn messages: 17.08% reply rate vs 4.96% email (Pin, 4M+ mensajes, 2026)
-- InMails <400 caracteres: 22% mas response rate que el promedio (LinkedIn 2024)
-- Sequences que empiezan en LinkedIn: 18.8% reply vs 16.4% email-first (Noon, 844k sequences)
-- Mensajes personalizados: 2-3x reply rate vs genericos (StartupKit)
-- Mensajes que mencionan proyectos especificos del reclutador: 34% reply vs 3% genericos (TechTrendi)
-- 65% de replies llegan despues de un follow-up (Noon)
-- 3 touches capturan 93.2% de todos los replies (Pin)
+**Data:**
+- LinkedIn messages: 17.08% reply rate vs 4.96% email (Pin, 4M+ messages, 2026)
+- InMails <400 characters: 22% higher response rate than average (LinkedIn 2024)
+- Sequences that start on LinkedIn: 18.8% reply vs 16.4% email-first (Noon, 844k sequences)
+- Personalized messages: 2-3x reply rate vs generic (StartupKit)
+- Messages that mention specific projects from the recruiter: 34% reply vs 3% generic (TechTrendi)
+- 65% of replies come after a follow-up (Noon)
+- 3 touches capture 93.2% of all replies (Pin)
 
-**Como ejecutarlo:**
-1. Buscar reclutadores de la empresa target en la red social profesional relevante (`<Company> recruiter` o `<Company> talent acquisition`)
-2. Revisar su actividad reciente (posts, comentarios) para encontrar un hook personalizado
-3. Connection request con nota corta (mencionar algo especifico de su contenido)
-4. Despues de aceptacion: mensaje de 3-4 lineas maximo:
-   - Linea 1: trigger (por que le escribis ahora)
-   - Linea 2: credibility (que hiciste relevante al rol)
-   - Linea 3: ask (chat breve? info sobre el team?)
-   - Linea 4: signature (profile URL + portfolio/blog)
-5. Follow-up a los 3-5 dias si no responde (segun strategy level)
-6. Max 3 touches total. Despues de 3, mover al siguiente target
+**How to execute:**
+1. Search for recruiters at the target company on the relevant professional social network (`<Company> recruiter` or `<Company> talent acquisition`)
+2. Review their recent activity (posts, comments) to find a personalized hook
+3. Connection request with a short note (mention something specific from their content)
+4. After acceptance: message of 3-4 lines maximum:
+   - Line 1: trigger (why you're reaching out now)
+   - Line 2: credibility (what you did that's relevant to the role)
+   - Line 3: ask (brief chat? info about the team?)
+   - Line 4: signature (profile URL + portfolio/blog)
+5. Follow-up after 3-5 days if no response (according to strategy level)
+6. Max 3 touches total. After 3, move to the next target
 
-**Template (adaptar al perfil del usuario):**
+**Template (adapt to user's profile):**
 ```
 Hola <Nombre>, vi tu post buscando <Role>. Trabajé en <proyecto relevante con metrica>. Me gustaria conectar y contarte mas.
 ```
 
-**Cuando usarlo:** cuando hay un post del reclutador en cualquier red social, o cuando encontras un reclutador de una empresa target. Priorizar sobre 1-click apply.
+**When to use it:** when there's a post from the recruiter on any social network, or when you find a recruiter from a target company. Prioritize over 1-click apply.
 
-**Herramientas en este repo:** `linkedin-search.js` (encontrar posts), `linkedin-invite.js` (connection request)
+**Tools in this repo:** `linkedin-search.js` (find posts), `linkedin-invite.js` (connection request)
 
 ---
 
-## 3. Email directo a reclutador con CV adjunto
+## 3. Direct email to recruiter with attached CV
 
-**Efectividad: MEDIA-ALTA** — 5-17% reply rate, 8-12% positive reply rate
+**Effectiveness: MEDIUM-HIGH** — 5-17% reply rate, 8-12% positive reply rate
 
-Email directo al reclutador cuando su email es visible en un post, perfil, o via herramientas de sourcing. Incluye CV adjunto.
+Direct email to the recruiter when their email is visible in a post, profile, or via sourcing tools. Includes attached CV.
 
-**Datos:**
-- Cold email a recruiters: 17.4% reply rate mediana, 7.8% positive reply (Puzzle Inbox, 14k sends, Q1 2026)
-- Top 10% de senders: 41%+ reply rate
-- Senior (7-12 anos): 24% reply, 12% positive (sweet spot)
+**Data:**
+- Cold email to recruiters: 17.4% median reply rate, 7.8% positive reply (Puzzle Inbox, 14k sends, Q1 2026)
+- Top 10% of senders: 41%+ reply rate
+- Senior (7-12 years): 24% reply, 12% positive (sweet spot)
 - ML/AI engineers: 34% reply, 18% positive (highest demand)
 - Specialist boutique recruiters: 29% reply (highest signal-to-noise)
-- In-house recruiters: 14% reply (solo responden si fits open req)
-- Emails <90 palabras: mejor performance
-- Subject line con rol + nombre: mejor open rate
+- In-house recruiters: 14% reply (only respond if it fits an open req)
+- Emails <90 words: better performance
+- Subject line with role + name: better open rate
 
-**Como ejecutarlo:**
-1. Buscar posts con `mailto:` visible, o extraer email del perfil del reclutador
-2. Subject: `Aplicacion - <Role> - <Tu Nombre>` (o en el idioma del post)
-3. Body: 3-4 parrafos cortos, conversacional, no formal
-   - Mencionar experiencia relevante especifica del JD
-   - Incluir logros concretos con numeros
-   - Profile URL + portfolio/blog URL si es relevante
-4. Adjuntar CV siempre
-5. Pasar por Gold Rule 7 (anti-LLM checklist) antes de enviar
-6. Follow-up a los 3-5 dias si no responde
+**How to execute:**
+1. Search for posts with visible `mailto:`, or extract email from the recruiter's profile
+2. Subject: `Application - <Role> - <Your Name>` (or in the language of the post)
+3. Body: 3-4 short paragraphs, conversational, not formal
+   - Mention specific relevant experience from the JD
+   - Include concrete achievements with numbers
+   - Profile URL + portfolio/blog URL if relevant
+4. Always attach CV
+5. Run through Gold Rule 7 (anti-LLM checklist) before sending
+6. Follow-up after 3-5 days if no response
 
-**Cuando usarlo:** cuando hay email visible en un post o perfil. Combinar con connection request (estrategia #4).
+**When to use it:** when there's a visible email in a post or profile. Combine with connection request (strategy #4).
 
-**Herramientas en este repo:** `gmail-send.js`
+**Tools in this repo:** `gmail-send.js`
 
 ---
 
 ## 4. Multi-channel combo (social post search + email + connect)
 
-**Efectividad: ALTA** — combina 3 canales en 1 accion
+**Effectiveness: HIGH** — combines 3 channels in 1 action
 
-Buscar posts de reclutadores/hiring managers en redes sociales profesionales, extraer email y profile, enviar email + connection request simultaneamente.
+Search for posts from recruiters/hiring managers on professional social networks, extract email and profile, send email + connection request simultaneously.
 
-**Datos de sesion real (este repo):**
-- 4 emails + 8 connection requests enviados, 1 entrevista conseguida
-- Email response rate: ~25% (1 de 4 respondio con entrevista)
-- Tiempo total: ~30 min para 12 acciones
+**Data from real session (this repo):**
+- 4 emails + 8 connection requests sent, 1 interview secured
+- Email response rate: ~25% (1 of 4 replied with an interview)
+- Total time: ~30 min for 12 actions
 
-**Como ejecutarlo:**
-1. Content search en la red social profesional: `"<Role>" "hiring" <Region>` en search de contenido/posts
-2. Extraer: autor, profile URL, email (si visible), contenido del post
-3. Paralelizar:
-   - Email con CV adjunto (`gmail-send.js`)
-   - Connection request sin nota (`linkedin-invite.js` o equivalente)
-4. Registrar ambos en DB (`applications` con platform `email` y `linkedin_invite` o equivalente)
+**How to execute:**
+1. Content search on the professional social network: `"<Role>" "hiring" <Region>` in content/post search
+2. Extract: author, profile URL, email (if visible), post content
+3. Parallelize:
+   - Email with attached CV (`gmail-send.js`)
+   - Connection request without note (`linkedin-invite.js` or equivalent)
+4. Register both in DB (`applications` with platform `email` and `linkedin_invite` or equivalent)
 
-**Queries validadas (patron, adaptar a rol/region del usuario):**
-1. `"<Role>" "hiring" <Region>` — mas productiva, devuelve posts con emails
-2. `"<Role>" "<City>" "hiring"` — geo-especifica
-3. `"<Rol en idioma local>" "<palabra clave de hiring en ese idioma>"` — encuentra posts que no aparecen en ingles
-4. `#hiring + "<Role>"` — hashtag + keyword (si la plataforma soporta hashtags)
+**Validated queries (pattern, adapt to user's role/region):**
+1. `"<Role>" "hiring" <Region>` — most productive, returns posts with emails
+2. `"<Role>" "<City>" "hiring"` — geo-specific
+3. `"<Role in local language>" "<hiring keyword in that language>"` — finds posts that don't appear in English
+4. `#hiring + "<Role>"` — hashtag + keyword (if the platform supports hashtags)
 
-**Cuando usarlo:** es la estrategia default para sesiones de `apply`. Maximo ROI por tiempo invertido.
+**When to use it:** this is the default strategy for `apply` sessions. Maximum ROI per time invested.
 
-**Herramientas en este repo:** `linkedin-search.js` + `gmail-send.js` + `linkedin-invite.js` (adaptables a otras plataformas)
+**Tools in this repo:** `linkedin-search.js` + `gmail-send.js` + `linkedin-invite.js` (adaptable to other platforms)
 
 ---
 
-## 5. Connection request + DM despues de aceptacion
+## 5. Connection request + DM after acceptance
 
-**Efectividad: MEDIA-ALTA** — 34.2% reply rate despues de aceptacion
+**Effectiveness: MEDIUM-HIGH** — 34.2% reply rate after acceptance
 
-Enviar connection request sin nota, esperar aceptacion, luego enviar DM personalizado.
+Send a connection request without a note, wait for acceptance, then send a personalized DM.
 
-**Datos:**
+**Data:**
 - LinkedIn connection acceptance rate: 19.4% (Noon, 844k sequences)
-- Reply rate despues de aceptacion: 34.2% (Noon)
-- Connection acceptance promedio: 67% (LinkedCraft, mas amplio)
-- Tiempo mediano a reply: 2.8 dias (Noon)
+- Reply rate after acceptance: 34.2% (Noon)
+- Average connection acceptance: 67% (LinkedCraft, broader sample)
+- Median time to reply: 2.8 days (Noon)
 
-**Como ejecutarlo:**
-1. Identificar reclutador o hiring manager en la red social profesional
-2. Connection request sin nota (menos invasivo, mayor acceptance)
-3. Esperar aceptacion (1-7 dias)
-4. DM personalizado post-aceptacion:
-   - Mencionar por que te conectaste
-   - Preguntar sobre el team/rol (no pedir trabajo directo)
-   - Ofrecer valor (compartir un insight o proyecto relevante)
-5. Si responde positivamente, pasar a conversacion sobre roles abiertos
-6. Si no responde en 3-5 dias, follow-up una vez
+**How to execute:**
+1. Identify recruiter or hiring manager on the professional social network
+2. Connection request without a note (less invasive, higher acceptance)
+3. Wait for acceptance (1-7 days)
+4. Personalized DM post-acceptance:
+   - Mention why you connected
+   - Ask about the team/role (don't ask for a job directly)
+   - Offer value (share an insight or relevant project)
+5. If they respond positively, move to a conversation about open positions
+6. If no response in 3-5 days, follow-up once
 
-**Cuando usarlo:** cuando no hay email visible pero si profile en la red social. Segunda mejor opcion despues del combo #4.
+**When to use it:** when there's no visible email but there is a profile on the social network. Second best option after combo #4.
 
-**Herramientas en este repo:** `linkedin-invite.js` (adaptable a otras plataformas)
+**Tools in this repo:** `linkedin-invite.js` (adaptable to other platforms)
 
 ---
 
 ## 6. 1-click apply (Easy Apply, Quick Apply, etc.)
 
-**Efectividad: BAJA-MEDIA** — 2-8% callback rate, 2-3% hire rate, pero alto volumen
+**Effectiveness: LOW-MEDIUM** — 2-8% callback rate, 2-3% hire rate, but high volume
 
-Aplicar con 1 click a jobs que tienen boton "Easy Apply" / "Quick Apply" / "1-Click Apply". El form se llena automaticamente con el perfil de la plataforma.
+Apply with 1 click to jobs that have an "Easy Apply" / "Quick Apply" / "1-Click Apply" button. The form is filled automatically with the platform profile.
 
-**Datos:**
-- Cold applications: 60% de todos los job offers (Glassdoor 2025), pero bajando del 73% en 2023
-- Callback rate: 2-8% dependiendo del rol (Huntr, refer.me)
+**Data:**
+- Cold applications: 60% of all job offers (Glassdoor 2025), but down from 73% in 2023
+- Callback rate: 2-8% depending on the role (Huntr, refer.me)
 - Tech competitive roles: <3% callback
-- LinkedIn domina volumen: 76% de jobs saved (Huntr Q1 2025)
-- Google Jobs: 11.3% callback (3x mas que LinkedIn) pero menos volumen
-- Sweet spot: 20-39 aplicaciones totales para landing offer (Huntr)
-- Mass applying (<5 apps/semana): peor performance que targeted 10-20
-- 75% de resumes filtrados por ATS antes de humano
+- LinkedIn dominates volume: 76% of saved jobs (Huntr Q1 2025)
+- Google Jobs: 11.3% callback (3x more than LinkedIn) but less volume
+- Sweet spot: 20-39 total applications to land an offer (Huntr)
+- Mass applying (<5 apps/week): worse performance than targeted 10-20
+- 75% of resumes filtered by ATS before human review
 
-**Como ejecutarlo:**
-1. Search con filtros: keywords del rol + location + Easy Apply + remote (segun preferencias del usuario)
-2. Script `linkedin-easy-apply.js` automatiza todo el flow (adaptable a otras plataformas con API similar)
-3. Form answers se leen de `users.data.form_answers` (DB)
-4. Si una key falta, el script saltea el campo (Gold Rule 5c)
-5. Registrar cada aplicacion en DB
+**How to execute:**
+1. Search with filters: role keywords + location + Easy Apply + remote (according to user preferences)
+2. The `linkedin-easy-apply.js` script automates the entire flow (adaptable to other platforms with similar API)
+3. Form answers are read from `users.data.form_answers` (DB)
+4. If a key is missing, the script skips the field (Gold Rule 5c)
+5. Register each application in DB
 
-**Cuando usarlo:** estrategia de volumen. Combinar con #4 para sesiones productivas. No es la mejor estrategia sola, pero el alto volumen compensa la baja response rate.
+**When to use it:** volume strategy. Combine with #4 for productive sessions. Not the best strategy alone, but the high volume compensates for the low response rate.
 
-**Herramientas en este repo:** `linkedin-easy-apply.js` (adaptable a otras plataformas)
+**Tools in this repo:** `linkedin-easy-apply.js` (adaptable to other platforms)
 
 ---
 
-## 7. Career site directo (ATS manual)
+## 7. Direct career site (manual ATS)
 
-**Efectividad: BAJA-MEDIA** — 4-10% callback, pero llega a empresas no publicadas en job boards
+**Effectiveness: LOW-MEDIUM** — 4-10% callback, but reaches companies not published on job boards
 
-Ir directamente al career site de la empresa, navegar el ATS (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Teamtailor, etc.), llenar form manualmente.
+Go directly to the company's career site, navigate the ATS (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Teamtailor, etc.), fill out the form manually.
 
-**Datos:**
-- Job boards general: 4-10% success rate (FindWarmIntros, scale.jobs)
+**Data:**
+- General job boards: 4-10% success rate (FindWarmIntros, scale.jobs)
 - Niche platforms (Wellfound, Google Jobs): 6-11% callback (Huntr)
-- ATS filtra 75% antes de humano
+- ATS filters 75% before human review
 - Referred candidates bypass ATS filtering
-- Greenhouse: no auto-rejecta, pero flag de referral surfacea arriba
+- Greenhouse: doesn't auto-reject, but referral flag surfaces at the top
 
-**Como ejecutarlo:**
-1. Flow `targets` maneja empresas target del usuario
-2. Detectar ATS por URL pattern (greenhouse.io, lever.co, ashbyhq.com, workday, smartrecruiters.com, teamtailor.com, etc.)
-3. Login con Google, LinkedIn, o email (reusar sesion)
-4. Llenar form con datos de DB (`profile`, `personal_info`, `form_answers`)
-5. Registrar en DB
+**How to execute:**
+1. The `targets` flow manages the user's target companies
+2. Detect ATS by URL pattern (greenhouse.io, lever.co, ashbyhq.com, workday, smartrecruiters.com, teamtailor.com, etc.)
+3. Login with Google, LinkedIn, or email (reuse session)
+4. Fill form with data from DB (`profile`, `personal_info`, `form_answers`)
+5. Register in DB
 
-**Cuando usarlo:** para empresas target que no publican en job boards o tienen roles exclusivos en su career site. Mas lento pero llega a oportunidades que otros no ven.
+**When to use it:** for target companies that don't publish on job boards or have exclusive roles on their career site. Slower but reaches opportunities others don't see.
 
-**Herramientas en este repo:** flow `targets`
+**Tools in this repo:** `targets` flow
 
 ---
 
-## 8. Job boards niche + alerts (radar pasivo)
+## 8. Niche job boards + alerts (passive radar)
 
-**Efectividad: BAJA (indirecta)** — alimenta el pipeline, no genera aplicaciones directas
+**Effectiveness: LOW (indirect)** — feeds the pipeline, doesn't generate direct applications
 
-Registrar en job boards relevantes al perfil del usuario + configurar alerts en career sites de empresas de interes. Las alerts llegan a Gmail.
+Register on job boards relevant to the user's profile + set up alerts on career sites of companies of interest. Alerts arrive in Gmail.
 
-**Datos:**
-- Niche platforms: 6-11% callback vs 2-4% en mass boards (Huntr)
+**Data:**
+- Niche platforms: 6-11% callback vs 2-4% on mass boards (Huntr)
 - Wellfound: 6.0% callback, Google Jobs: 11.3% (Huntr 2025)
-- 85% de jobs se llenan via networking, no job boards (LinkedCraft)
-- 70-80% de jobs nunca se publican (hidden job market) (Federal Reserve St. Louis)
-- En tech senior roles: 80% nunca se publican (TechTrendi)
+- 85% of jobs are filled via networking, not job boards (LinkedCraft)
+- 70-80% of jobs are never published (hidden job market) (Federal Reserve St. Louis)
+- In tech senior roles: 80% are never published (TechTrendi)
 
-**Plataformas por categoria (ver `PLATFORMS.md` para catalogo completo):**
+**Platforms by category (see `PLATFORMS.md` for full catalog):**
 - General: LinkedIn, Glassdoor, Indeed, Google Jobs
 - Tech/Dev: Wellfound, Get on Board, RemoteOK, Y Combinator
 - AI/ML: AIJobs.ai, NeuralHire, AIRoles, AIEngJobs
 - Executive: RoleZar, CTO Jobs HQ, ExecThread
-- Region-specific: Computrabajo, Bumeran, eFinancialCareers, StepStone, Seek, etc. (varia por region)
+- Region-specific: Computrabajo, Bumeran, eFinancialCareers, StepStone, Seek, etc. (varies by region)
 
-**Como ejecutarlo:**
-1. Flow `radar` registra en plataformas relevantes al perfil del usuario y configura alerts
-2. Gmail filter rutea alerts a folder `Job Alerts`
-3. Flow `news` procesa las alerts y clasifica por fit
-4. Must-match: auto-apply. Strong: listar. Nice: ignorar
+**How to execute:**
+1. The `radar` flow registers on platforms relevant to the user's profile and configures alerts
+2. Gmail filter routes alerts to `Job Alerts` folder
+3. The `news` flow processes alerts and classifies them by fit
+4. Must-match: auto-apply. Strong: list. Nice: ignore
 
-**Cuando usarlo:** como complemento pasivo. No es estrategia principal pero genera oportunidades que despues se procesan con #4 o #6.
+**When to use it:** as a passive complement. Not a main strategy but generates opportunities that are then processed with #4 or #6.
 
-**Herramientas en este repo:** flow `radar` + flow `news`
+**Tools in this repo:** `radar` flow + `news` flow
 
 ---
 
 ## 9. Content creation / thought leadership
 
-**Efectividad: INDIRECTA** — genera inbound, no outbound
+**Effectiveness: INDIRECT** — generates inbound, not outbound
 
-Crear contenido sobre tu area de expertise en la red social profesional que uses (LinkedIn, X/Twitter, blog personal, dev.to, Medium, etc.). Atrae reclutadores y hiring managers que te encuentran organicamente.
+Create content about your area of expertise on the professional social network you use (LinkedIn, X/Twitter, personal blog, dev.to, Medium, etc.). Attracts recruiters and hiring managers who find you organically.
 
-**Datos (LinkedIn-specific, aplicable a otras plataformas con variaciones):**
-- Solo 1% de usuarios postea semanalmente (ContentIn 2026)
-- 9 billones de impresiones semanales (LinkedIn)
-- 65M decision-makers + 10M C-level executives alcanzables (LinkedIn)
-- Document/carousel posts: 39% mas reach, 30% mas engagement (AuthoredUp, 3M posts)
-- Posts de 1,500+ caracteres: 49% mas engagement que posts cortos (LinkPost, 438k posts)
-- Comments pesan 7x mas que reactions en el algoritmo (LinkedIn 2026)
-- Golden hour: engagement en primeros 60 min = 70% del reach total
-- 3-5 posts/semana: sweet spot. Mas de 5: reach por post declina
-- Best time: Martes-Jueves 7:30-10:00 AM local (adaptar a plataforma y audiencia)
+**Data (LinkedIn-specific, applicable to other platforms with variations):**
+- Only 1% of users post weekly (ContentIn 2026)
+- 9 billion weekly impressions (LinkedIn)
+- 65M decision-makers + 10M C-level executives reachable (LinkedIn)
+- Document/carousel posts: 39% more reach, 30% more engagement (AuthoredUp, 3M posts)
+- Posts of 1,500+ characters: 49% more engagement than short posts (LinkPost, 438k posts)
+- Comments weigh 7x more than reactions in the algorithm (LinkedIn 2026)
+- Golden hour: engagement in the first 60 min = 70% of total reach
+- 3-5 posts/week: sweet spot. More than 5: reach per post declines
+- Best time: Tuesday-Thursday 7:30-10:00 AM local (adapt to platform and audience)
 
-**Como ejecutarlo:**
-1. Postear 3-5 veces por semana sobre tu area de expertise
-2. Formatos top: carousel/document (39% mas reach), posts largos (1,500+ chars)
-3. Responder comentarios dentro de 30 min (64% mas comentarios totales)
-4. No poner links externos en el post (-30-50% reach). Link en primer comentario
-5. 3-5 hashtags de nicho. Mas de 7: reach declina
-6. Temas: proyectos reales con metricas, lessons learned, opinion sobre trends
-7. Tagging: mencionar companeros, empresas, tools relevantes
-8. Adaptar formato y frecuencia a la plataforma (X: mas corto y frecuente, blog: mas largo y menos frecuente)
+**How to execute:**
+1. Post 3-5 times per week about your area of expertise
+2. Top formats: carousel/document (39% more reach), long posts (1,500+ chars)
+3. Reply to comments within 30 min (64% more total comments)
+4. Don't put external links in the post (-30-50% reach). Link in the first comment
+5. 3-5 niche hashtags. More than 7: reach declines
+6. Topics: real projects with metrics, lessons learned, opinions on trends
+7. Tagging: mention colleagues, companies, relevant tools
+8. Adapt format and frequency to the platform (X: shorter and more frequent, blog: longer and less frequent)
 
-**Cuando usarlo:** estrategia de largo plazo (semanas-meses). No genera resultados inmediatos pero construye inbound. Combinar con strategies activas (#4, #6) para resultados a corto plazo.
+**When to use it:** long-term strategy (weeks-months). Doesn't generate immediate results but builds inbound. Combine with active strategies (#4, #6) for short-term results.
 
 ---
 
 ## 10. Informational interviews
 
-**Efectividad: MEDIA-ALTA (indirecta)** — 34% reply rate a outreach, genera referrals
+**Effectiveness: MEDIUM-HIGH (indirect)** — 34% reply rate to outreach, generates referrals
 
-Conversaciones cortas (15-30 min) con profesionales de empresas target para aprender sobre la empresa, el team, y el rol. No es una entrevista de trabajo, es una charla exploratoria.
+Short conversations (15-30 min) with professionals at target companies to learn about the company, the team, and the role. It's not a job interview, it's an exploratory chat.
 
-**Datos:**
-- Outreach para informational interviews: 34% response rate (TechTrendi, 312 mensajes)
+**Data:**
+- Outreach for informational interviews: 34% response rate (TechTrendi, 312 messages)
 - Generic outreach: 3% response rate
-- 50%+ de oportunidades nunca llegan a publicarse (ECP 2025)
-- Informational interviews son la puerta de entrada al hidden job market
-- 70-80% de jobs se llenan via networking, no public postings
+- 50%+ of opportunities never get published (ECP 2025)
+- Informational interviews are the gateway to the hidden job market
+- 70-80% of jobs are filled via networking, not public postings
 
-**Como ejecutarlo:**
-1. Identificar profesionales en empresas target (no necesariamente recruiters)
-2. Outreach personalizado mencionando su trabajo/proyecto especifico
-3. Ask: "Would you be open to a brief coffee chat?" (no "I'm looking for a job")
-4. En la charla: preguntar sobre su trabajo, el team, challenges. NO pedir trabajo
-5. Si mencionan que estan hiring o conociendo a alguien que lo esta, ahi si expresar interes
-6. Follow-up: agradecer + mantener contacto. El valor es a largo plazo
+**How to execute:**
+1. Identify professionals at target companies (not necessarily recruiters)
+2. Personalized outreach mentioning their specific work/project
+3. Ask: "Would you be open to a brief coffee chat?" (not "I'm looking for a job")
+4. In the chat: ask about their work, the team, challenges. DO NOT ask for a job
+5. If they mention they're hiring or know someone who is, then express interest
+6. Follow-up: thank them + keep in touch. The value is long-term
 
-**Cuando usarlo:** para empresas target de alto valor donde queres construir una relacion antes de que haya un rol abierto. Es la estrategia mas efectiva para el hidden job market pero requiere mas tiempo y skill social.
+**When to use it:** for high-value target companies where you want to build a relationship before there's an open role. It's the most effective strategy for the hidden job market but requires more time and social skill.
 
 ---
 
 ## 11. Community engagement (open source, forums, events)
 
-**Efectividad: INDIRECTA** — construye reputacion y red a largo plazo
+**Effectiveness: INDIRECT** — builds reputation and network long-term
 
-Participar activamente en comunidades relevantes a tu area: contribuir a open source, responder en Stack Overflow / Discord / Slack / Reddit, asistir y hablar en meetups/conferencias.
+Actively participate in communities relevant to your area: contribute to open source, answer on Stack Overflow / Discord / Slack / Reddit, attend and speak at meetups/conferences.
 
-**Datos:**
-- 70-80% de tech jobs senior nunca se publican (TechTrendi, Federal Reserve)
-- Hackathons y developer communities son fuente de hiring para startups (Dice)
-- Open source contributions generan visibilidad directa con hiring managers (Dice)
+**Data:**
+- 70-80% of senior tech jobs are never published (TechTrendi, Federal Reserve)
+- Hackathons and developer communities are a hiring source for startups (Dice)
+- Open source contributions generate direct visibility with hiring managers (Dice)
 - Companies fill roles through informal networking before posting (Dice)
 
-**Como ejecutarlo:**
-1. **Open source:** contribuir a proyectos que usas o te interesan. PRs merged = portfolio visible
-2. **Forums:** responder preguntas en Stack Overflow, Reddit (r/cscareerquestions, r/experienceddevs), Discord/Slack communities
-3. **Events:** asistir a meetups, conferencias, hackathons. Hablar si tenes oportunidad
-4. **Communities:** unirte a Slack/Discord de tu stack/area (ej: Python Discord, Reactiflux, AI communities)
-5. **Mentorship:** ser mentor en plataformas como MentorCruise, ADPList. Genera conexiones y reputacion
+**How to execute:**
+1. **Open source:** contribute to projects you use or are interested in. Merged PRs = visible portfolio
+2. **Forums:** answer questions on Stack Overflow, Reddit (r/cscareerquestions, r/experienceddevs), Discord/Slack communities
+3. **Events:** attend meetups, conferences, hackathons. Speak if you have the opportunity
+4. **Communities:** join Slack/Discord for your stack/area (e.g.: Python Discord, Reactiflux, AI communities)
+5. **Mentorship:** be a mentor on platforms like MentorCruise, ADPList. Generates connections and reputation
 
-**Cuando usarlo:** estrategia de largo plazo. No genera resultados inmediatos pero construye una red y reputacion que genera inbound organico. Ideal combinar con content creation (#9).
+**When to use it:** long-term strategy. Doesn't generate immediate results but builds a network and reputation that generates organic inbound. Ideal to combine with content creation (#9).
 
 ---
 
 ## 12. Alumni network + university career services
 
-**Efectividad: MEDIA** — 15-25% reply rate, red con confianza inherente
+**Effectiveness: MEDIUM** — 15-25% reply rate, network with inherent trust
 
-Usar tu red de alumni universitaria para conectar con profesionales en empresas target. El shared background genera confianza inmediata.
+Use your university alumni network to connect with professionals at target companies. The shared background generates immediate trust.
 
-**Datos:**
-- Alumni networks son fuente significativa de hiring en tech (Dice)
-- Universidades con STEM programs tienen redes grandes de profesionales
-- Shared educational background = mayor willingness to help (ECP)
-- Informational interviews via alumni: mas altas response rates que cold outreach generico
+**Data:**
+- Alumni networks are a significant source of hiring in tech (Dice)
+- Universities with STEM programs have large networks of professionals
+- Shared educational background = greater willingness to help (ECP)
+- Informational interviews via alumni: higher response rates than generic cold outreach
 
-**Como ejecutarlo:**
-1. Buscar alumni de tu universidad en empresas target (LinkedIn, plataforma de alumni de la universidad)
-2. Mensaje mencionando el shared background: "Soy alumni de <Universidad>, vi que estas en <Company>..."
-3. Pedir informational interview (estrategia #10)
-4. Universidades suelen tener career services, job boards exclusivos, y ferias de empleo
-5. Alumni events y reuniones: oportunidad de networking in-person
+**How to execute:**
+1. Search for alumni from your university at target companies (LinkedIn, university alumni platform)
+2. Message mentioning the shared background: "I'm an alumni of <University>, I saw you're at <Company>..."
+3. Ask for an informational interview (strategy #10)
+4. Universities often have career services, exclusive job boards, and job fairs
+5. Alumni events and reunions: in-person networking opportunity
 
-**Cuando usarlo:** cuando tenes universidad con red activa de alumni. Especialmente util para empresas con concentracion de alumni de tu universidad.
+**When to use it:** when you have a university with an active alumni network. Especially useful for companies with a concentration of alumni from your university.
 
 ---
 
-## Estrategias combinadas recomendadas por situation
+## Recommended combined strategies by situation
 
-### Active (unemployed, buscando activamente)
-1. **Combo #4** (social post search + email + connect) — 3x por semana
-2. **1-click apply #6** — 10-15 por sesion, 2x por semana
-3. **Cold outreach #2** — a reclutadores de empresas target
-4. **Career sites #7** — para empresas target del usuario
-5. **Radar #8** — configurado, procesar alerts con `news`
-6. **Referals #1** — activar red existente, pedir referals donde tengas contactos
+### Active (unemployed, actively looking)
+1. **Combo #4** (social post search + email + connect) — 3x per week
+2. **1-click apply #6** — 10-15 per session, 2x per week
+3. **Cold outreach #2** — to recruiters at target companies
+4. **Career sites #7** — for the user's target companies
+5. **Radar #8** — set up, process alerts with `news`
+6. **Referrals #1** — activate existing network, ask for referrals where you have contacts
 
-### Selective (employed, buscando algo mejor)
-1. **Cold outreach #2** — selectivo, solo high-match
-2. **Combo #4** — 1x por semana
-3. **Informational interviews #10** — construir relaciones en empresas top
-4. **Content creation #9** — construir inbound
-5. **Community engagement #11** — mantener presencia
-6. **Radar #8** — pasivo
+### Selective (employed, looking for something better)
+1. **Cold outreach #2** — selective, only high-match
+2. **Combo #4** — 1x per week
+3. **Informational interviews #10** — build relationships at top companies
+4. **Content creation #9** — build inbound
+5. **Community engagement #11** — maintain presence
+6. **Radar #8** — passive
 
 ### Passive (employed, open to opportunities)
-1. **Content creation #9** — prioridad #1
-2. **Community engagement #11** — mantener presencia
-3. **Radar #8** — pasivo
-4. **Informational interviews #10** — ocasional, solo empresas dream
-5. No aplicar activamente, solo responder a inbound
+1. **Content creation #9** — priority #1
+2. **Community engagement #11** — maintain presence
+3. **Radar #8** — passive
+4. **Informational interviews #10** — occasional, only dream companies
+5. Don't apply actively, only respond to inbound
 
 ---
 
-## Anti-patterns (que NO funciona)
+## Anti-patterns (what doesn't work)
 
-- **Mass applying** sin personalizar: 2-8% callback, burnout mental (Huntr: 68.4% reporta impacto negativo en mental health)
-- **Generic cold messages**: 3% reply rate vs 34% personalizado
-- **Solo 1-click apply sin networking**: te quedas en el 2-3% hire rate del ATS
-- **Pedir trabajo en el primer mensaje**: baja reply rate. Pedir info/chat primero
-- **No hacer follow-up**: 65% de replies llegan despues del primer follow-up (Noon)
-- **Posts con links externos**: -30-50% reach en LinkedIn (adaptar a plataforma)
-- **Mas de 5 posts/semana en LinkedIn**: reach por post declina
-- **Ignorar el hidden job market**: 70-80% de jobs nunca se publican
-- **Usar una sola plataforma**: diversificar canales aumenta reach y reduce dependencia
-- **No adaptar el idioma**: si el reclutador escribe en espanol, responder en espanol. Si en ingles, en ingles
-- **Ignorar niche job boards**: niche platforms tienen 3x mas callback que mass boards (Huntr)
+- **Mass applying** without personalizing: 2-8% callback, mental burnout (Huntr: 68.4% report negative impact on mental health)
+- **Generic cold messages**: 3% reply rate vs 34% personalized
+- **Only 1-click apply without networking**: you stay in the 2-3% hire rate of the ATS
+- **Asking for a job in the first message**: low reply rate. Ask for info/chat first
+- **Not following up**: 65% of replies come after the first follow-up (Noon)
+- **Posts with external links**: -30-50% reach on LinkedIn (adapt to platform)
+- **More than 5 posts/week on LinkedIn**: reach per post declines
+- **Ignoring the hidden job market**: 70-80% of jobs are never published
+- **Using a single platform**: diversifying channels increases reach and reduces dependency
+- **Not adapting the language**: if the recruiter writes in Spanish, respond in Spanish. If in English, in English
+- **Ignoring niche job boards**: niche platforms have 3x more callback than mass boards (Huntr)
 
 ---
 
-## Fuentes
+## Sources
 
 - [Huntr 2025 Annual Job Search Trends Report](https://huntr.co/research/2025-annual-job-search-trends-report) — 1.7M applications, 1M job postings
 - [Glassdoor via CNBC (2026)](https://www.cnbc.com/2026/01/12/cold-applying-is-still-the-no-1-way-to-get-a-new-job-but-this-method-is-quickly-getting-more-common.html) — 60% of offers from cold apply, referrals 35% more likely to convert

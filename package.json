@@ -1,7 +1,7 @@
 {
   "name": "job-seeker",
   "version": "0.1.0",
-  "description": "Automatizá tu búsqueda laboral con tu agente coding favorito. Skills, guías y scripts que cualquier agente (Devin, Claude, opencode) consume para buscar, aplicar y hacer seguimiento de trabajos en tu nombre.",
+  "description": "Automate your job search with your favorite coding agent. Skills, guides, and scripts that any agent (Devin, Claude, Cursor, opencode) consumes to search, apply, and track jobs on your behalf.",
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
@@ -29,7 +29,7 @@
     "claude",
     "opencode"
   ],
-  "author": "",
+  "author": "German Aliprandi",
   "license": "MIT",
   "type": "commonjs",
   "bugs": {
