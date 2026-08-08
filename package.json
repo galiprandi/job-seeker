@@ -7,7 +7,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "vitest run tests/browser/",
-    "db": "node scripts/db.js"
+    "db": "node scripts/db.js",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "repository": {
     "type": "git",
@@ -42,6 +45,7 @@
   "devDependencies": {
     "@types/pg": "^8.20.0",
     "playwright-cli": "^0.262.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.10"
   }
 }
