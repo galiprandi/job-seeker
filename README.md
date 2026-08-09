@@ -23,7 +23,7 @@ The CLI prints a terminal kanban grouped by pipeline stage (discovered → hired
 
 **Local dashboard** (`node scripts/dashboard.js --open`):
 
-<img src="assets/dashboard-v2-full.png" width="640" alt="Dashboard" />
+<img src="assets/dashboard-light.png" width="640" alt="Dashboard" />
 
 The dashboard visualizes your pipeline with a VitePress-inspired design, including KPI cards, a funnel chart, a kanban board, target-company groups, and recent messages. It also supports light and dark themes. The agent opens it at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
 
