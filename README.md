@@ -17,13 +17,13 @@ https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.
 
 **Pipeline kanban** (`node scripts/pipeline.js`):
 
-![Pipeline Kanban](assets/pipeline-demo.png)
+<img src="assets/pipeline-demo.png" width="640" alt="Pipeline Kanban" />
 
 The CLI prints a terminal kanban grouped by pipeline stage (discovered → hired), with match indicators (★ Must, ◆ Strong, ○ Nice), interview dates, and a closed summary. Use `--closed` to include rejected/withdrawn/skipped columns, `--funnel` for a bar chart, `--move <id> <stage>` to move cards, and `--card <id>` for full card detail with linked messages.
 
 **Local dashboard** (`node scripts/dashboard.js --open`):
 
-![Dashboard](assets/dashboard-v2-full.png)
+<img src="assets/dashboard-v2-full.png" width="640" alt="Dashboard" />
 
 The dashboard visualizes your pipeline with a VitePress-inspired design, including KPI cards, a funnel chart, a kanban board, target-company groups, and recent messages. It also supports light and dark themes. The agent opens it at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
 
