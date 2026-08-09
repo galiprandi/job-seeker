@@ -6,6 +6,7 @@ export default defineConfig({
   lang: 'en-US',
   lastUpdated: true,
   cleanUrls: true,
+  base: '/job-seeker/',
 
   themeConfig: {
     siteTitle: 'Job Seeker',
