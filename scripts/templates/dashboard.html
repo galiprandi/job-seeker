@@ -278,27 +278,28 @@
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
   }
-  @media (max-width: 1300px) {
+  @media (max-width: 1200px) {
     .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
-  @media (max-width: 900px) {
+  @media (max-width: 820px) {
     .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  @media (max-width: 600px) {
+  @media (max-width: 560px) {
     .kpi-grid { grid-template-columns: 1fr; }
   }
   .kpi-card {
     background: var(--vp-c-bg-soft);
     border: 1px solid transparent;
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 16px;
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
     transition: var(--vp-transition);
     box-shadow: var(--vp-shadow-1);
+    min-width: 0;
   }
   .kpi-card:hover {
     background: var(--vp-c-bg-elv);
@@ -307,13 +308,13 @@
     transform: translateY(-1px);
   }
   .kpi-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 800;
     flex-shrink: 0;
     color: var(--vp-c-white);
@@ -321,16 +322,17 @@
   .kpi-content {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
   }
   .kpi-value {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
     color: var(--vp-c-text-1);
   }
   .kpi-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -338,10 +340,13 @@
     font-weight: 600;
   }
   .kpi-sublabel {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--vp-c-text-3);
-    margin-top: 6px;
+    margin-top: 5px;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .kpi-active .kpi-icon   { background: linear-gradient(135deg, var(--vp-c-indigo-2), var(--vp-c-indigo-3)); }
