@@ -37,6 +37,7 @@ export default defineConfig({
             { text: 'Strategy Levels', link: '/guide/strategy' },
             { text: 'Data Model', link: '/guide/data-model' },
             { text: 'Gold Rules', link: '/guide/gold-rules' },
+            { text: 'Dashboard', link: '/guide/dashboard' },
           ],
         },
         {

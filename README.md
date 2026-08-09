@@ -17,6 +17,12 @@ https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.
 
 ![Pipeline Kanban](assets/pipeline-demo.png)
 
+**Local dashboard** (`node scripts/dashboard.js --open`):
+
+![Dashboard](assets/dashboard-v2-full.png)
+
+The agent opens the dashboard at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
+
 ## How it works
 
 ```
