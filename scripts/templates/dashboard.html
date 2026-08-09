@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Seeker Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-faint: #484f58;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --orange: #db6d28;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --cyan: #39c5cf;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(63,185,80,0.15);
+    color: var(--green);
+    border: 1px solid rgba(63,185,80,0.3);
+  }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .header-meta { font-size: 12px; color: var(--text-dim); }
+  .refresh-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--bg);
+    padding: 16px 20px;
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  /* Funnel */
+  .funnel-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .funnel {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 60px;
+  }
+  .funnel-bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--bg);
+    min-height: 20px;
+    transition: opacity 0.2s;
+    cursor: default;
+    position: relative;
+  }
+  .funnel-bar:hover { opacity: 0.8; }
+  .funnel-labels {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .funnel-label {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  /* Kanban */
+  .kanban {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    overflow-x: auto;
+    min-height: calc(100vh - 250px);
+  }
+  .column {
+    flex: 1;
+    min-width: 220px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .column-header {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+  }
+  .column-count {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--bg);
+    padding: 1px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .column-cards {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid var(--text-faint);
+  }
+  .card:hover { background: var(--surface-hover); border-color: var(--text-faint); }
+  .card-company { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .card-role { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .tag-high { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-medium { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .tag-low { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .tag-platform { background: rgba(88,166,255,0.1); color: var(--blue); }
+  .card-date { font-size: 10px; color: var(--text-faint); margin-left: auto; }
+
+  /* Stage colors */
+  .col-discovered { border-left-color: var(--text-faint); }
+  .col-contacted { border-left-color: var(--cyan); }
+  .col-applied { border-left-color: var(--blue); }
+  .col-in_review { border-left-color: var(--yellow); }
+  .col-screening { border-left-color: var(--orange); }
+  .col-interview { border-left-color: var(--green); }
+  .col-offer { border-left-color: var(--purple); }
+  .col-hired { border-left-color: var(--green); }
+
+  /* Messages panel */
+  .messages-section {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .messages-list { display: flex; flex-direction: column; gap: 6px; }
+  .message-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .message-channel { font-weight: 600; text-transform: uppercase; font-size: 10px; padding: 2px 6px; border-radius: 3px; }
+  .ch-gmail { background: rgba(234,67,53,0.15); color: #ea4335; }
+  .ch-linkedin { background: rgba(10,102,194,0.15); color: #0a66c2; }
+  .ch-platform { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .message-sender { color: var(--text); font-weight: 500; }
+  .message-subject { color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .message-status { font-size: 10px; padding: 1px 6px; border-radius: 3px; }
+  .st-pending { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .st-draft { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .st-sent { background: rgba(63,185,80,0.15); color: var(--green); }
+  .st-ignored { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+
+  /* Loading & error */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-size: 16px;
+    color: var(--text-dim);
+  }
+  .error-banner {
+    background: rgba(248,81,73,0.1);
+    border: 1px solid rgba(248,81,73,0.3);
+    color: var(--red);
+    padding: 12px 24px;
+    font-size: 13px;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-faint);
+    font-size: 13px;
+  }
+
+  /* Targets mini-section */
+  .targets-section {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .target-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .target-pill-num {
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* Auto-refresh indicator */
+  .auto-refresh {
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pulse {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading">Loading pipeline data...</div>
+</div>
+
+<script>
+const STAGE_INFO = {
+  discovered:  { label: 'Discovered',  color: '#484f58' },
+  contacted:   { label: 'Contacted',   color: '#39c5cf' },
+  applied:     { label: 'Applied',     color: '#58a6ff' },
+  in_review:   { label: 'In Review',   color: '#d29922' },
+  screening:   { label: 'Screening',   color: '#db6d28' },
+  interview:   { label: 'Interview',   color: '#3fb950' },
+  offer:       { label: 'Offer',       color: '#bc8cff' },
+  hired:       { label: 'Hired',       color: '#3fb950' },
+  rejected:    { label: 'Rejected',    color: '#f85149' },
+  withdrawn:   { label: 'Withdrawn',   color: '#484f58' },
+  skipped:     { label: 'Skipped',     color: '#484f58' },
+};
+
+const ACTIVE_STAGES = ['discovered','contacted','applied','in_review','screening','interview','offer','hired'];
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+  return d.toLocaleDateString();
+}
+
+function matchTag(match) {
+  if (!match) return '';
+  const cls = match === 'high' ? 'tag-high' : match === 'medium' ? 'tag-medium' : 'tag-low';
+  return `<span class="card-tag ${cls}">${escapeHtml(match)}</span>`;
+}
+
+function platformTag(platform) {
+  if (!platform) return '';
+  return `<span class="card-tag tag-platform">${escapeHtml(platform)}</span>`;
+}
+
+function renderCard(card) {
+  const stageClass = 'col-' + (card.status || 'discovered');
+  return `<div class="card ${stageClass}">
+    <div class="card-company">${escapeHtml(card.company || 'Unknown')}</div>
+    <div class="card-role">${escapeHtml(card.role || '')}</div>
+    <div class="card-meta">
+      ${matchTag(card.match)}
+      ${platformTag(card.platform)}
+      <span class="card-date">${formatDate(card.applied_at)}</span>
+    </div>
+  </div>`;
+}
+
+function renderColumn(stage, cards) {
+  const info = STAGE_INFO[stage] || { label: stage, color: '#484f58' };
+  const filtered = cards.filter(c => c.status === stage);
+  return `<div class="column">
+    <div class="column-header" style="color: ${info.color}">
+      <span>${info.label}</span>
+      <span class="column-count">${filtered.length}</span>
+    </div>
+    <div class="column-cards">
+      ${filtered.length === 0 ? '<div class="empty" style="padding:20px 10px">No cards</div>' : filtered.map(renderCard).join('')}
+    </div>
+  </div>`;
+}
+
+function renderFunnel(funnel) {
+  const stages = ACTIVE_STAGES;
+  const maxCount = Math.max(...stages.map(s => funnel[s] || 0), 1);
+  return stages.map(stage => {
+    const count = funnel[stage] || 0;
+    const pct = (count / maxCount) * 100;
+    const info = STAGE_INFO[stage];
+    return `<div class="funnel-bar" style="height: ${Math.max(pct, 5)}%; background: ${info.color}" title="${info.label}: ${count}">${count > 0 ? count : ''}</div>`;
+  }).join('') + '</div><div class="funnel-labels">' +
+  stages.map(stage => `<div class="funnel-label">${STAGE_INFO[stage].label}</div>`).join('') + '</div>';
+}
+
+function renderMessages(messages) {
+  if (!messages || messages.length === 0) {
+    return '<div class="empty">No recent messages</div>';
+  }
+  return messages.map(m => {
+    const chClass = m.channel === 'gmail' ? 'ch-gmail' : m.channel === 'linkedin' ? 'ch-linkedin' : 'ch-platform';
+    const stClass = m.status ? 'st-' + m.status : 'st-pending';
+    return `<div class="message-item">
+      <span class="message-channel ${chClass}">${escapeHtml(m.channel || 'unknown')}</span>
+      <span class="message-sender">${escapeHtml(m.sender || '')}</span>
+      <span class="message-subject">${escapeHtml(m.subject || '(no subject)')}</span>
+      <span class="message-status ${stClass}">${escapeHtml(m.status || 'pending')}</span>
+      <span class="card-date">${formatDate(m.received_at)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTargets(targets) {
+  if (!targets || Object.keys(targets).length === 0) return '';
+  const labels = {
+    pending: 'Pending', registered: 'Registered', no_fit: 'No Fit',
+    manual_login_needed: 'Manual Login', manual_apply_needed: 'Manual Apply',
+    alert_only: 'Alert Only',
+  };
+  return Object.entries(targets).map(([key, count]) =>
+    `<div class="target-pill"><span class="target-pill-num">${count}</span> ${labels[key] || key}</div>`
+  ).join('');
+}
+
+function renderApp(data) {
+  if (data.error) {
+    return `<div class="error-banner">Error: ${escapeHtml(data.error)}</div>`;
+  }
+
+  const totalActive = ACTIVE_STAGES.reduce((sum, s) => sum + (data.funnel[s] || 0), 0);
+  const totalClosed = ['rejected','withdrawn','skipped'].reduce((sum, s) => sum + (data.funnel[s] || 0), 0);
+  const interviewCount = (data.funnel.interview || 0) + (data.funnel.screening || 0);
+  const offerCount = data.funnel.offer || 0;
+
+  return `
+    <div class="header">
+      <div class="header-left">
+        <h1>Job Seeker Dashboard</h1>
+        <span class="header-badge">${totalActive} active</span>
+      </div>
+      <div class="header-right">
+        <div class="auto-refresh"><div class="pulse"></div> Auto-refresh 30s</div>
+        <span class="header-meta">Last application: ${data.lastApplication ? formatDate(data.lastApplication) : 'none'}</span>
+        <button class="refresh-btn" onclick="loadData()">Refresh</button>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-num" style="color:var(--blue)">${totalActive}</div><div class="stat-label">Active</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green)">${interviewCount}</div><div class="stat-label">In Interview</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${offerCount}</div><div class="stat-label">Offers</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--red)">${data.funnel.rejected || 0}</div><div class="stat-label">Rejected</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--text-dim)">${totalClosed}</div><div class="stat-label">Closed</div></div>
+    </div>
+
+    <div class="funnel-section">
+      <div class="section-title">Pipeline Funnel</div>
+      <div class="funnel">${renderFunnel(data.funnel)}</div>
+    </div>
+
+    <div class="kanban">
+      ${ACTIVE_STAGES.map(stage => renderColumn(stage, data.active)).join('')}
+    </div>
+
+    ${data.targets && Object.keys(data.targets).length > 0 ? `
+    <div class="targets-section">
+      <div class="section-title" style="margin:0">Target Companies</div>
+      ${renderTargets(data.targets)}
+    </div>` : ''}
+
+    <div class="messages-section">
+      <div class="section-title">Recent Messages</div>
+      <div class="messages-list">${renderMessages(data.messages)}</div>
+    </div>
+  `;
+}
+
+async function loadData() {
+  const app = document.getElementById('app');
+  try {
+    const res = await fetch('/api/data');
+    const data = await res.json();
+    app.innerHTML = renderApp(data);
+  } catch (err) {
+    app.innerHTML = `<div class="error-banner">Failed to load: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
