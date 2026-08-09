@@ -144,7 +144,16 @@ async function fetchPipelineData() {
 }
 
 function getDashboardHTML() {
-  return fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'templates', 'dashboard.html'), 'utf8');
+  let html = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'templates', 'dashboard.html'), 'utf8');
+  // Inject docs_url from DB if available
+  try {
+    const { getSocial } = require('./social');
+    const docsUrl = getSocial().docs_url;
+    if (docsUrl) {
+      html = html.replace('id="docs-link" href="#"', `id="docs-link" href="${docsUrl}"`);
+    }
+  } catch {}
+  return html;
 }
 
 function parseArgs() {
