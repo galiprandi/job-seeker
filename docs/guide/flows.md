@@ -1,6 +1,6 @@
 # Flows
 
-The system has 9 flows plus 1 cross-cutting behavior. Each flow has a trigger keyword and a skill file with step-by-step detail.
+The system has 9 flows plus 1 cross-cutting behavior and 1 dashboard. Each flow has a trigger keyword and a skill file with step-by-step detail.
 
 ## Flow map
 
@@ -15,6 +15,7 @@ The system has 9 flows plus 1 cross-cutting behavior. Each flow has a trigger ke
 | Apply | `apply` | Search jobs on LinkedIn, filter by Must-haves, apply via Easy Apply, register in DB |
 | Daily | `daily` | Periodic routine: runs news, inbox cleanup, applies if no recent activity |
 | Memory | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to DB, loads active ones at the start of every flow |
+| Dashboard | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel, stats, messages, and target companies. Auto-refreshes every 30s |
 
 ## Sourcing pillars
 

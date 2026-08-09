@@ -148,7 +148,7 @@ Then adjusts behavior:
 
 ## Flows
 
-The system has 8 flows + 1 cross-cutting behavior. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
+The system has 9 flows + 1 cross-cutting behavior + 1 dashboard. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
 
 ### Flow map
 
@@ -163,6 +163,7 @@ The system has 8 flows + 1 cross-cutting behavior. Each flow has a trigger (keyw
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
 | Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
+| Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel, stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
 
 ### Sourcing pillars
 
