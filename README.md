@@ -1,17 +1,23 @@
 # Job Seeker
 
-> Automate your job search with your favorite coding agent.
+> Let your AI coding agent apply to jobs for you.
 
 [![CI](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-vitepress-646cff.svg)](https://galiprandi.github.io/job-seeker/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/galiprandi/job-seeker?style=social)](https://github.com/galiprandi/job-seeker)
 
-**If this project helps you land a job, give it a star. It helps others discover it too.**
+**If this helps you find your next role, [give it a star](https://github.com/galiprandi/job-seeker).** It helps other devs discover it.
 
-Stop spending hours scrolling job boards. Job Seeker gives your AI agent the skills to search, filter, apply, and track jobs the way you would, but in minutes. Your agent reads your CV, learns your preferences, and handles the repetitive work, while you approve what matters.
+Job Seeker is a set of **markdown skills** that any coding agent (Devin, Claude, Cursor, opencode) consumes to automate the entire job search:
 
-It's not an agent. It's a set of skills, guides, and scripts that any coding agent (Devin, Claude, Cursor, opencode) consumes to work on your behalf.
+- Searches LinkedIn with your Must-have filters
+- Fills Easy Apply forms from your Postgres DB
+- Tracks every application in a kanban pipeline
+- Drafts recruiter replies in your writing style
+- Runs a daily routine while you review and approve
+
+Your data stays in your own DB. The repo is candidate-agnostic: clone it, run onboarding, and go.
 
 **Full documentation: https://galiprandi.github.io/job-seeker/**
 
