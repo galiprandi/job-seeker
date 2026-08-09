@@ -12,89 +12,139 @@
 
   /*
    * Design tokens from VitePress default theme.
-   * Matches the docs site at galiprandi.github.io/job-seeker
    * Dark theme is default; light theme via [data-theme="light"].
    */
   :root {
     /* Dark theme (default) */
-    --vp-bg:          #1b1b1f;
-    --vp-bg-alt:      #161618;
-    --vp-bg-soft:     #202127;
-    --vp-bg-elv:      #202127;
-    --vp-border:      #3c3f44;
-    --vp-divider:     #2e2e32;
-    --vp-text-1:      #dfdfd6;
-    --vp-text-2:      #98989f;
-    --vp-text-3:      #929295;
-    --vp-brand-1:     #a8b1ff;
-    --vp-brand-2:     #5c73e7;
-    --vp-brand-3:     #5672cd;
-    --vp-brand-soft:  rgba(100, 108, 255, .16);
-    --vp-green:       #3dd68c;
-    --vp-green-soft:  rgba(16, 185, 129, .16);
-    --vp-yellow:      #f9b44e;
-    --vp-yellow-soft: rgba(234, 179, 8, .16);
-    --vp-red:         #f66f81;
-    --vp-red-soft:    rgba(244, 63, 94, .16);
-    --vp-purple:      #c8abfa;
-    --vp-purple-soft: rgba(159, 122, 234, .16);
-    --vp-cyan:        #22d3ee;
-    --vp-cyan-soft:   rgba(34, 211, 238, .16);
-    --vp-orange:      #f97316;
-    --vp-orange-soft: rgba(249, 115, 22, .16);
-    --vp-gray-soft:   rgba(101, 117, 133, .16);
+    --vp-c-white: #ffffff;
+    --vp-c-black: #000000;
 
-    --shadow-1:       0 1px 2px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.15);
-    --shadow-2:       0 3px 12px rgba(0,0,0,.25);
+    --vp-c-gray-1: #515c67;
+    --vp-c-gray-2: #414853;
+    --vp-c-gray-3: #32363f;
+    --vp-c-gray-soft: rgba(101, 117, 133, 0.16);
+
+    --vp-c-indigo-1: #a8b1ff;
+    --vp-c-indigo-2: #5c73e7;
+    --vp-c-indigo-3: #3e63dd;
+    --vp-c-indigo-soft: rgba(100, 108, 255, 0.16);
+
+    --vp-c-green-1: #3dd68c;
+    --vp-c-green-2: #30a46c;
+    --vp-c-green-3: #298459;
+    --vp-c-green-soft: rgba(16, 185, 129, 0.16);
+
+    --vp-c-yellow-1: #f9b44e;
+    --vp-c-yellow-2: #da8b17;
+    --vp-c-yellow-3: #a46a0a;
+    --vp-c-yellow-soft: rgba(234, 179, 8, 0.16);
+
+    --vp-c-red-1: #f66f81;
+    --vp-c-red-2: #f14158;
+    --vp-c-red-3: #b62a3c;
+    --vp-c-red-soft: rgba(244, 63, 94, 0.16);
+
+    --vp-c-purple-1: #c8abfa;
+    --vp-c-purple-2: #a879e6;
+    --vp-c-purple-3: #8e5cd9;
+    --vp-c-purple-soft: rgba(159, 122, 234, 0.16);
+
+    --vp-c-cyan-1: #22d3ee;
+    --vp-c-cyan-soft: rgba(34, 211, 238, 0.16);
+    --vp-c-orange-1: #f97316;
+    --vp-c-orange-soft: rgba(249, 115, 22, 0.16);
+
+    --vp-c-bg: #1b1b1f;
+    --vp-c-bg-alt: #161618;
+    --vp-c-bg-soft: #202127;
+    --vp-c-bg-elv: #202127;
+
+    --vp-c-border: #3c3f44;
+    --vp-c-divider: #2e2e32;
+    --vp-c-gutter: #000000;
+
+    --vp-c-text-1: #dfdfd6;
+    --vp-c-text-2: #98989f;
+    --vp-c-text-3: #6a6a71;
+
+    --vp-c-brand-1: var(--vp-c-indigo-1);
+    --vp-c-brand-2: var(--vp-c-indigo-2);
+    --vp-c-brand-3: var(--vp-c-indigo-3);
+    --vp-c-brand-soft: var(--vp-c-indigo-soft);
+
+    --vp-shadow-1: 0 1px 2px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
+    --vp-shadow-2: 0 3px 12px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.07);
+    --vp-shadow-3: 0 12px 32px rgba(0,0,0,.1), 0 2px 6px rgba(0,0,0,.08);
+
+    --vp-transition: 250ms cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif,
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --vp-font-family-mono: ui-monospace, 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-pill: 20px;
   }
 
   [data-theme="light"] {
-    --vp-bg:          #ffffff;
-    --vp-bg-alt:      #f6f6f7;
-    --vp-bg-soft:     #f6f6f7;
-    --vp-bg-elv:      #ffffff;
-    --vp-border:      #c2c2c4;
-    --vp-divider:     #e2e2e3;
-    --vp-text-1:      #3c3c43;
-    --vp-text-2:      #67676c;
-    --vp-text-3:      #6a6a71;
-    --vp-brand-1:     #3451b2;
-    --vp-brand-2:     #3a5ccc;
-    --vp-brand-3:     #3e63dd;
-    --vp-brand-soft:  rgba(100, 108, 255, .14);
-    --vp-green:       #18794e;
-    --vp-green-soft:  rgba(16, 185, 129, .14);
-    --vp-yellow:      #915930;
-    --vp-yellow-soft: rgba(234, 179, 8, .14);
-    --vp-red:         #b8272c;
-    --vp-red-soft:    rgba(244, 63, 94, .14);
-    --vp-purple:      #6f42c1;
-    --vp-purple-soft: rgba(159, 122, 234, .14);
-    --vp-cyan:        #0891b2;
-    --vp-cyan-soft:   rgba(34, 211, 238, .14);
-    --vp-orange:      #c2410c;
-    --vp-orange-soft: rgba(249, 115, 22, .14);
-    --vp-gray-soft:   rgba(142, 150, 170, .14);
+    --vp-c-gray-1: #dddde3;
+    --vp-c-gray-2: #e4e4e9;
+    --vp-c-gray-3: #ebebef;
+    --vp-c-gray-soft: rgba(142, 150, 170, 0.14);
 
-    --shadow-1:       0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
-    --shadow-2:       0 3px 12px rgba(0,0,0,.08);
+    --vp-c-indigo-1: #3451b2;
+    --vp-c-indigo-2: #3a5ccc;
+    --vp-c-indigo-3: #5672cd;
+    --vp-c-indigo-soft: rgba(100, 108, 255, 0.14);
+
+    --vp-c-green-1: #18794e;
+    --vp-c-green-2: #299764;
+    --vp-c-green-3: #30a46c;
+    --vp-c-green-soft: rgba(16, 185, 129, 0.14);
+
+    --vp-c-yellow-1: #915930;
+    --vp-c-yellow-2: #946300;
+    --vp-c-yellow-3: #9f6a00;
+    --vp-c-yellow-soft: rgba(234, 179, 8, 0.14);
+
+    --vp-c-red-1: #b8272c;
+    --vp-c-red-2: #d5393e;
+    --vp-c-red-3: #e0575b;
+    --vp-c-red-soft: rgba(244, 63, 94, 0.14);
+
+    --vp-c-purple-1: #6f42c1;
+    --vp-c-purple-2: #7e4cc9;
+    --vp-c-purple-3: #8e5cd9;
+    --vp-c-purple-soft: rgba(159, 122, 234, 0.14);
+
+    --vp-c-cyan-1: #0891b2;
+    --vp-c-cyan-soft: rgba(34, 211, 238, 0.14);
+    --vp-c-orange-1: #c2410c;
+    --vp-c-orange-soft: rgba(249, 115, 22, 0.14);
+
+    --vp-c-bg: #ffffff;
+    --vp-c-bg-alt: #f6f6f7;
+    --vp-c-bg-soft: #f6f6f7;
+    --vp-c-bg-elv: #ffffff;
+
+    --vp-c-border: #c2c2c4;
+    --vp-c-divider: #e2e2e3;
+    --vp-c-gutter: #e2e2e3;
+
+    --vp-c-text-1: #3c3c43;
+    --vp-c-text-2: #67676c;
+    --vp-c-text-3: #929295;
+
+    --vp-shadow-1: 0 1px 2px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
+    --vp-shadow-2: 0 3px 12px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.07);
+    --vp-shadow-3: 0 12px 32px rgba(0,0,0,.1), 0 2px 6px rgba(0,0,0,.08);
   }
 
-  :root {
-    --vp-font:        "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --vp-font-mono:   ui-monospace, "Menlo", "Monaco", "Consolas", monospace;
-
-    --radius:         12px;
-    --radius-sm:      8px;
-    --radius-pill:    20px;
-
-    --transition:     200ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  body {
-    background: var(--vp-bg);
-    color: var(--vp-text-1);
-    font-family: var(--vp-font);
+  html, body {
+    background: var(--vp-c-bg);
+    color: var(--vp-c-text-1);
+    font-family: var(--vp-font-family-base);
     font-size: 14px;
     line-height: 1.6;
     min-height: 100vh;
@@ -102,100 +152,100 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Smooth theme transitions */
+  *, *::before, *::after {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+  }
+
   button { font-family: inherit; }
   *:focus-visible {
-    outline: 2px solid var(--vp-brand-1);
+    outline: 2px solid var(--vp-c-brand-1);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
 
-  /* ── Layout shell (matches VitePress doc container) ── */
-  .vp-doc {
+  /* ── Layout ── */
+  .dashboard-layout {
     max-width: 1440px;
     margin: 0 auto;
   }
 
-  /* ── Header (VitePress var-like) ── */
+  /* ── Header ── */
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 28px;
-    background: var(--vp-bg-alt);
-    border-bottom: 1px solid var(--vp-border);
+    padding: 0 28px;
+    height: 64px;
+    background: var(--vp-c-bg-alt);
+    border-bottom: 1px solid var(--vp-c-gutter);
     position: sticky;
     top: 0;
     z-index: 100;
     backdrop-filter: blur(12px);
+    box-shadow: var(--vp-shadow-1);
   }
   .header-left {
     display: flex;
-    align-items: center;
-    gap: 14px;
+    align-items: baseline;
+    gap: 16px;
   }
   .header h1 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     letter-spacing: -0.02em;
-    color: var(--vp-text-1);
+    color: var(--vp-c-text-1);
+  }
+  .header-welcome {
+    font-size: 12px;
+    color: var(--vp-c-text-3);
+    font-weight: 500;
   }
   .header-badge {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    padding: 3px 12px;
+    padding: 4px 14px;
     border-radius: var(--radius-pill);
-    background: var(--vp-green-soft);
-    color: var(--vp-green);
+    background: var(--vp-c-brand-soft);
+    color: var(--vp-c-brand-1);
     border: 1px solid transparent;
   }
   .header-right {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 14px;
   }
   .header-meta {
     font-size: 12px;
-    color: var(--vp-text-2);
+    color: var(--vp-c-text-2);
+    white-space: nowrap;
   }
-  .refresh-btn {
-    background: var(--vp-bg-soft);
-    border: 1px solid var(--vp-border);
-    color: var(--vp-text-2);
-    padding: 6px 16px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: var(--transition);
-  }
-  .refresh-btn:hover {
-    border-color: var(--vp-brand-1);
-    color: var(--vp-brand-1);
-    background: var(--vp-brand-soft);
-  }
-  .refresh-btn:active { transform: scale(0.97); }
 
-  .theme-toggle {
-    background: var(--vp-bg-soft);
-    border: 1px solid var(--vp-border);
-    color: var(--vp-text-2);
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    display: flex;
+  .header-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition);
-    flex-shrink: 0;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--vp-c-border);
+    color: var(--vp-c-text-2);
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: var(--vp-transition);
+    white-space: nowrap;
   }
-  .theme-toggle:hover {
-    border-color: var(--vp-brand-1);
-    color: var(--vp-brand-1);
-    background: var(--vp-brand-soft);
+  .header-btn:hover {
+    border-color: var(--vp-c-brand-1);
+    color: var(--vp-c-brand-1);
+    background: var(--vp-c-brand-soft);
   }
-  .theme-toggle:active { transform: scale(0.95); }
-  .theme-toggle svg { width: 16px; height: 16px; }
+  .header-btn:active { transform: scale(0.97); }
+  .header-btn svg { width: 14px; height: 14px; }
+
   .theme-toggle .icon-sun { display: none; }
   .theme-toggle .icon-moon { display: block; }
   [data-theme="light"] .theme-toggle .icon-sun { display: block; }
@@ -203,7 +253,7 @@
 
   .auto-refresh {
     font-size: 11px;
-    color: var(--vp-text-3);
+    color: var(--vp-c-text-3);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -211,7 +261,7 @@
   .pulse {
     width: 7px;
     height: 7px;
-    background: var(--vp-green);
+    background: var(--vp-c-green-1);
     border-radius: 50%;
     animation: pulse 2.5s ease-in-out infinite;
   }
@@ -220,45 +270,86 @@
     50% { opacity: 0.3; transform: scale(0.8); }
   }
 
-  /* ── Stats bar ── */
-  .stats-bar {
+  /* ── KPI Cards ── */
+  .kpi-section {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--vp-c-divider);
+  }
+  .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: var(--vp-divider);
-    border-bottom: 1px solid var(--vp-border);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
   }
-  .stat-card {
-    background: var(--vp-bg);
-    padding: 20px 20px;
-    text-align: center;
-    transition: background var(--transition);
+  .kpi-card {
+    background: var(--vp-c-bg-soft);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: var(--vp-transition);
+    box-shadow: var(--vp-shadow-1);
   }
-  .stat-card:hover { background: var(--vp-bg-soft); }
-  .stat-num {
-    font-size: 28px;
+  .kpi-card:hover {
+    background: var(--vp-c-bg-elv);
+    border-color: var(--vp-c-brand-1);
+    box-shadow: var(--vp-shadow-2);
+    transform: translateY(-1px);
+  }
+  .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+    color: var(--vp-c-white);
+  }
+  .kpi-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .kpi-value {
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
+    color: var(--vp-c-text-1);
   }
-  .stat-label {
-    font-size: 10px;
-    color: var(--vp-text-3);
+  .kpi-label {
+    font-size: 11px;
+    color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-top: 6px;
+    margin-top: 4px;
     font-weight: 600;
   }
+  .kpi-sublabel {
+    font-size: 11px;
+    color: var(--vp-c-text-3);
+    margin-top: 6px;
+    font-weight: 500;
+  }
 
-  /* ── Section (VitePress doc-style container) ── */
+  .kpi-active .kpi-icon   { background: linear-gradient(135deg, var(--vp-c-indigo-2), var(--vp-c-indigo-3)); }
+  .kpi-interview .kpi-icon { background: linear-gradient(135deg, var(--vp-c-green-2), var(--vp-c-green-3)); }
+  .kpi-offer .kpi-icon    { background: linear-gradient(135deg, var(--vp-c-purple-2), var(--vp-c-purple-3)); }
+  .kpi-rejected .kpi-icon { background: linear-gradient(135deg, var(--vp-c-red-2), var(--vp-c-red-3)); }
+  .kpi-closed .kpi-icon   { background: linear-gradient(135deg, var(--vp-c-gray-1), var(--vp-c-gray-2)); }
+
+  /* ── Section ── */
   .section {
     padding: 28px;
-    border-bottom: 1px solid var(--vp-divider);
+    border-bottom: 1px solid var(--vp-c-divider);
   }
   .section-title {
     font-size: 13px;
     font-weight: 700;
-    color: var(--vp-text-2);
+    color: var(--vp-c-text-2);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 18px;
@@ -268,66 +359,91 @@
   .funnel {
     display: flex;
     align-items: flex-end;
-    gap: 8px;
-    height: 80px;
+    gap: 10px;
+    height: 90px;
+    position: relative;
+  }
+  .funnel-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .funnel-bar-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   .funnel-bar {
-    flex: 1;
+    width: 100%;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     display: flex;
     align-items: flex-start;
     justify-content: center;
     padding-top: 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     min-height: 24px;
-    transition: opacity var(--transition), transform var(--transition);
+    transition: var(--vp-transition);
     cursor: default;
-    position: relative;
+    color: var(--vp-c-white);
   }
   .funnel-bar:hover { opacity: 0.85; transform: translateY(-2px); }
-  .funnel-bar-count { color: #fff; }
-  [data-theme="light"] .funnel-bar-count { color: #fff; }
-  .funnel-bar-zero { color: var(--vp-text-3); font-weight: 500; }
-  .funnel-labels {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-  }
+  .funnel-bar span { opacity: 0.95; }
   .funnel-label {
-    flex: 1;
     text-align: center;
     font-size: 10px;
-    color: var(--vp-text-3);
+    color: var(--vp-c-text-3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
+    margin-top: 10px;
+  }
+  .funnel-arrow {
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--vp-c-text-3);
+    font-size: 10px;
+    z-index: 2;
   }
   .funnel-conversion {
-    display: flex;
-    gap: 8px;
-    margin-top: 6px;
-  }
-  .funnel-conv-item {
-    flex: 1;
     text-align: center;
     font-size: 10px;
-    color: var(--vp-text-3);
-    font-family: var(--vp-font-mono);
+    color: var(--vp-c-text-3);
+    font-family: var(--vp-font-family-mono);
+    margin-top: 3px;
   }
+  .funnel-bar-discovered { background: linear-gradient(135deg, #6c7280, #929295); }
+  .funnel-bar-contacted  { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
+  .funnel-bar-applied    { background: linear-gradient(135deg, var(--vp-c-indigo-2), var(--vp-c-indigo-3)); }
+  .funnel-bar-in_review  { background: linear-gradient(135deg, #f59e0b, var(--vp-c-yellow-1)); }
+  .funnel-bar-screening  { background: linear-gradient(135deg, #ea580c, #f97316); }
+  .funnel-bar-interview  { background: linear-gradient(135deg, #22c55e, #3dd68c); }
+  .funnel-bar-offer      { background: linear-gradient(135deg, #a855f7, var(--vp-c-purple-1)); }
+  .funnel-bar-hired      { background: linear-gradient(135deg, #22c55e, #3dd68c); }
+
+  [data-theme="light"] .funnel-bar-applied { background: linear-gradient(135deg, #3451b2, #5672cd); }
+  [data-theme="light"] .funnel-bar-interview,
+  [data-theme="light"] .funnel-bar-hired { background: linear-gradient(135deg, #18794e, #30a46c); }
+  [data-theme="light"] .funnel-bar-offer { background: linear-gradient(135deg, #6f42c1, #8e5cd9); }
+  [data-theme="light"] .funnel-bar-rejected { background: linear-gradient(135deg, #b8272c, #e0575b); }
 
   /* ── Kanban ── */
   .kanban {
     display: flex;
     gap: 1px;
-    background: var(--vp-divider);
+    background: var(--vp-c-divider);
     overflow-x: auto;
-    min-height: 420px;
+    min-height: 440px;
   }
   .column {
     flex: 1;
-    min-width: 250px;
-    background: var(--vp-bg);
+    min-width: 260px;
+    background: var(--vp-c-bg);
     display: flex;
     flex-direction: column;
   }
@@ -340,83 +456,82 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--vp-border);
+    border-bottom: 1px solid var(--vp-c-border);
     position: sticky;
     top: 0;
-    background: var(--vp-bg-alt);
+    background: var(--vp-c-bg-alt);
     z-index: 10;
+    border-left: 4px solid transparent;
   }
   .column-header-left {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  .stage-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
+    color: var(--vp-c-text-1);
   }
   .column-count {
     font-size: 11px;
-    color: var(--vp-text-3);
+    color: var(--vp-c-text-3);
     font-weight: 600;
-    background: var(--vp-bg-soft);
-    padding: 2px 8px;
+    background: var(--vp-c-bg-soft);
+    padding: 2px 10px;
     border-radius: var(--radius-pill);
-    border: 1px solid var(--vp-border);
+    border: 1px solid var(--vp-c-border);
     min-width: 28px;
     text-align: center;
   }
   .column-cards {
-    padding: 12px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     overflow-y: auto;
     flex: 1;
+    background: var(--vp-c-bg);
   }
 
-  /* ── Card ── */
+  /* Card */
   .card {
-    background: var(--vp-bg-soft);
-    border: 1px solid var(--vp-border);
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-border);
     border-radius: var(--radius);
     padding: 14px 16px;
     cursor: pointer;
-    transition: var(--transition);
-    box-shadow: var(--shadow-1);
+    transition: var(--vp-transition);
+    box-shadow: var(--vp-shadow-1);
   }
   .card:hover {
-    background: var(--vp-bg-elv);
-    border-color: var(--vp-text-3);
-    box-shadow: var(--shadow-2);
-    transform: translateY(-1px);
+    background: var(--vp-c-bg-elv);
+    border-color: var(--vp-c-text-3);
+    box-shadow: var(--vp-shadow-2);
+    transform: translateY(-2px);
   }
   .card-top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   .card-company {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    color: var(--vp-text-1);
+    color: var(--vp-c-text-1);
   }
   .card-date {
     font-size: 10px;
-    color: var(--vp-text-3);
+    color: var(--vp-c-text-3);
     white-space: nowrap;
     flex-shrink: 0;
     margin-top: 2px;
+    font-weight: 500;
   }
   .card-role {
-    font-size: 12px;
-    color: var(--vp-text-2);
+    font-size: 13px;
+    color: var(--vp-c-text-2);
     margin-bottom: 10px;
+    font-weight: 500;
   }
   .card-meta {
     display: flex;
@@ -426,120 +541,212 @@
   }
   .card-tag {
     font-size: 10px;
-    padding: 2px 10px;
+    padding: 3px 10px;
     border-radius: var(--radius-pill);
     font-weight: 600;
     letter-spacing: 0.01em;
+    border: 1px solid transparent;
   }
-  .tag-high { background: var(--vp-green-soft); color: var(--vp-green); }
-  .tag-medium { background: var(--vp-yellow-soft); color: var(--vp-yellow); }
-  .tag-low { background: var(--vp-gray-soft); color: var(--vp-text-2); }
-  .tag-platform { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
+  .tag-high { background: var(--vp-c-green-soft); color: var(--vp-c-green-1); border-color: rgba(61,214,140,0.2); }
+  .tag-medium { background: var(--vp-c-yellow-soft); color: var(--vp-c-yellow-1); border-color: rgba(249,180,78,0.2); }
+  .tag-low { background: var(--vp-c-gray-soft); color: var(--vp-c-text-2); border-color: rgba(101,117,133,0.2); }
+  .tag-platform { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); border-color: rgba(100,108,255,0.2); }
 
   /* ── Messages ── */
-  .messages-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .messages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 12px;
   }
-  .message-item {
+  .message-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    transition: var(--vp-transition);
+    box-shadow: var(--vp-shadow-1);
+  }
+  .message-card:hover {
+    background: var(--vp-c-bg-elv);
+    border-color: var(--vp-c-text-3);
+    box-shadow: var(--vp-shadow-2);
+  }
+  .message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--vp-bg-soft);
-    border: 1px solid var(--vp-border);
-    border-radius: var(--radius-sm);
+    justify-content: center;
     font-size: 12px;
-    transition: var(--transition);
+    font-weight: 700;
+    color: var(--vp-c-white);
+    flex-shrink: 0;
+    text-transform: uppercase;
   }
-  .message-item:hover {
-    background: var(--vp-bg-elv);
-    border-color: var(--vp-text-3);
+  .message-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .message-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .message-sender {
+    color: var(--vp-c-text-1);
+    font-weight: 600;
   }
   .message-channel {
     font-weight: 700;
     text-transform: uppercase;
     font-size: 9px;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: var(--radius-pill);
     letter-spacing: 0.04em;
-    flex-shrink: 0;
   }
-  .ch-gmail { background: var(--vp-red-soft); color: var(--vp-red); }
-  .ch-linkedin { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
-  .ch-platform { background: var(--vp-gray-soft); color: var(--vp-text-2); }
-  .message-sender {
-    color: var(--vp-text-1);
-    font-weight: 500;
-    white-space: nowrap;
-  }
+  .ch-gmail { background: var(--vp-c-red-soft); color: var(--vp-c-red-1); }
+  .ch-linkedin { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
+  .ch-platform { background: var(--vp-c-gray-soft); color: var(--vp-c-text-2); }
   .message-subject {
-    color: var(--vp-text-2);
-    flex: 1;
+    color: var(--vp-c-text-2);
+    margin-bottom: 6px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .message-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .message-status {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
     padding: 2px 10px;
     border-radius: var(--radius-pill);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    flex-shrink: 0;
   }
-  .st-pending { background: var(--vp-yellow-soft); color: var(--vp-yellow); }
-  .st-draft { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
-  .st-sent { background: var(--vp-green-soft); color: var(--vp-green); }
-  .st-ignored { background: var(--vp-gray-soft); color: var(--vp-text-2); }
+  .st-pending { background: var(--vp-c-yellow-soft); color: var(--vp-c-yellow-1); }
+  .st-draft { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
+  .st-sent { background: var(--vp-c-green-soft); color: var(--vp-c-green-1); }
+  .st-ignored { background: var(--vp-c-gray-soft); color: var(--vp-c-text-2); }
   .message-date {
     font-size: 10px;
-    color: var(--vp-text-3);
+    color: var(--vp-c-text-3);
     white-space: nowrap;
-    flex-shrink: 0;
+    font-weight: 500;
   }
 
   /* ── Targets ── */
-  .targets-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  .targets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
   }
-  .target-pill {
+  .target-group {
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--vp-shadow-1);
+    transition: var(--vp-transition);
+  }
+  .target-group:hover {
+    border-color: var(--vp-c-text-3);
+    box-shadow: var(--vp-shadow-2);
+  }
+  .target-group-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--vp-text-2);
-    background: var(--vp-bg-soft);
-    border: 1px solid var(--vp-border);
-    border-radius: var(--radius-pill);
-    padding: 6px 16px;
-    transition: var(--transition);
+    justify-content: space-between;
+    margin-bottom: 12px;
   }
-  .target-pill:hover {
-    border-color: var(--vp-text-3);
-    background: var(--vp-bg-elv);
-  }
-  .target-pill-num {
-    font-weight: 800;
-    color: var(--vp-text-1);
+  .target-group-title {
     font-size: 13px;
+    font-weight: 600;
+    color: var(--vp-c-text-1);
+  }
+  .target-group-count {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--vp-c-brand-1);
+  }
+  .target-progress-bg {
+    height: 6px;
+    background: var(--vp-c-bg);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    border: 1px solid var(--vp-c-border);
+  }
+  .target-progress-fill {
+    height: 100%;
+    width: 100%;
+    transform-origin: left;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, var(--vp-c-brand-2), var(--vp-c-brand-1));
+    transform: scaleX(var(--progress, 0));
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .target-group-detail {
+    font-size: 11px;
+    color: var(--vp-c-text-3);
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* ── Empty state ── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    gap: 10px;
+  }
+  .empty-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    background: var(--vp-c-bg-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vp-c-text-3);
+    border: 1px solid var(--vp-c-border);
+  }
+  .empty-icon svg { width: 20px; height: 20px; }
+  .empty-text {
+    font-size: 13px;
+    color: var(--vp-c-text-2);
+    font-weight: 500;
+  }
+  .empty-hint {
+    font-size: 12px;
+    color: var(--vp-c-text-3);
   }
 
   /* ── Skeleton loading ── */
   .skeleton-header {
-    padding: 16px 28px;
-    background: var(--vp-bg-alt);
-    border-bottom: 1px solid var(--vp-border);
+    padding: 0 28px;
+    height: 64px;
+    background: var(--vp-c-bg-alt);
+    border-bottom: 1px solid var(--vp-c-gutter);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   .skeleton-block {
-    background: linear-gradient(90deg, var(--vp-bg-soft) 0%, var(--vp-bg-elv) 50%, var(--vp-bg-soft) 100%);
+    background: linear-gradient(90deg, var(--vp-c-bg-soft) 0%, var(--vp-c-bg-elv) 50%, var(--vp-c-bg-soft) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
     border-radius: var(--radius-sm);
@@ -548,44 +755,49 @@
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
-  .skeleton-stats {
+  .skeleton-kpi {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: var(--vp-divider);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--vp-c-divider);
   }
-  .skeleton-stat {
-    background: var(--vp-bg);
+  .skeleton-kpi-card {
+    background: var(--vp-c-bg-soft);
+    border-radius: var(--radius);
     padding: 20px;
-    text-align: center;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
   }
   .skeleton-kanban {
     display: flex;
     gap: 1px;
-    background: var(--vp-divider);
+    background: var(--vp-c-divider);
     padding-top: 28px;
+    min-height: 440px;
   }
   .skeleton-col {
     flex: 1;
-    min-width: 250px;
-    background: var(--vp-bg);
-    padding: 12px;
+    min-width: 260px;
+    background: var(--vp-c-bg);
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   /* ── Error ── */
   .error-banner {
-    background: var(--vp-red-soft);
-    border: 1px solid var(--vp-red);
-    color: var(--vp-red);
+    background: var(--vp-c-red-soft);
+    border: 1px solid var(--vp-c-red-1);
+    color: var(--vp-c-red-1);
     padding: 16px 28px;
     font-size: 13px;
     display: flex;
     align-items: center;
     gap: 10px;
-    border-radius: 0;
+    font-weight: 500;
   }
   .error-icon {
     width: 18px;
@@ -593,101 +805,153 @@
     flex-shrink: 0;
   }
 
-  /* ── Empty state ── */
-  .empty {
-    text-align: center;
-    padding: 36px 16px;
-  }
-  .empty-text {
+  /* ── Footer ── */
+  .footer {
+    padding: 20px 28px;
+    border-top: 1px solid var(--vp-c-divider);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 12px;
-    color: var(--vp-text-3);
-    margin-bottom: 4px;
+    color: var(--vp-c-text-3);
   }
-  .empty-hint {
-    font-size: 11px;
-    color: var(--vp-text-3);
-    opacity: 0.6;
+  .footer a {
+    color: var(--vp-c-brand-1);
+    text-decoration: none;
+    font-weight: 600;
   }
+  .footer a:hover { text-decoration: underline; }
 
-  /* ── Scrollbar (VitePress-style) ── */
+  /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--vp-border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--vp-text-3); }
+  ::-webkit-scrollbar-thumb { background: var(--vp-c-border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--vp-c-text-3); }
 
   /* ── Responsive ── */
   @media (max-width: 900px) {
-    .stats-bar { grid-template-columns: repeat(3, 1fr); }
-    .stat-card:nth-child(4), .stat-card:nth-child(5) { display: none; }
+    .header { padding: 0 16px; }
+    .header-welcome { display: none; }
     .header-meta { display: none; }
-    .section { padding: 16px; }
+    .kpi-section, .section { padding: 16px; }
+    .messages-grid { grid-template-columns: 1fr; }
+    .targets-grid { grid-template-columns: 1fr; }
+    .kanban { flex-direction: column; }
+    .column { min-width: 100%; }
   }
 </style>
 </head>
 <body>
 
 <div id="app">
-  <!-- Skeleton loading state (VitePress-style shimmer) -->
+  <!-- Skeleton loading state -->
   <div class="skeleton-header">
     <div style="display:flex;align-items:center;gap:14px">
       <div class="skeleton-block" style="width:160px;height:18px"></div>
-      <div class="skeleton-block" style="width:60px;height:20px;border-radius:20px"></div>
+      <div class="skeleton-block" style="width:100px;height:14px"></div>
     </div>
-    <div class="skeleton-block" style="width:80px;height:30px;border-radius:8px"></div>
+    <div class="skeleton-block" style="width:100px;height:30px;border-radius:20px"></div>
   </div>
-  <div class="skeleton-stats">
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+  <div class="skeleton-kpi">
+    <div class="skeleton-kpi-card">
+      <div class="skeleton-block" style="width:48px;height:48px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skeleton-block" style="width:80px;height:22px;margin-bottom:6px"></div>
+        <div class="skeleton-block" style="width:60px;height:10px"></div>
+      </div>
+    </div>
+    <div class="skeleton-kpi-card">
+      <div class="skeleton-block" style="width:48px;height:48px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skeleton-block" style="width:80px;height:22px;margin-bottom:6px"></div>
+        <div class="skeleton-block" style="width:60px;height:10px"></div>
+      </div>
+    </div>
+    <div class="skeleton-kpi-card">
+      <div class="skeleton-block" style="width:48px;height:48px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skeleton-block" style="width:80px;height:22px;margin-bottom:6px"></div>
+        <div class="skeleton-block" style="width:60px;height:10px"></div>
+      </div>
+    </div>
+    <div class="skeleton-kpi-card">
+      <div class="skeleton-block" style="width:48px;height:48px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skeleton-block" style="width:80px;height:22px;margin-bottom:6px"></div>
+        <div class="skeleton-block" style="width:60px;height:10px"></div>
+      </div>
+    </div>
+    <div class="skeleton-kpi-card">
+      <div class="skeleton-block" style="width:48px;height:48px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skeleton-block" style="width:80px;height:22px;margin-bottom:6px"></div>
+        <div class="skeleton-block" style="width:60px;height:10px"></div>
+      </div>
+    </div>
   </div>
   <div class="skeleton-kanban">
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:70px"></div>
     </div>
   </div>
 </div>
 
 <script>
 const STAGE_INFO = {
-  discovered:  { label: 'Discovered',  color: '#929295' },
-  contacted:   { label: 'Contacted',   color: '#22d3ee' },
-  applied:     { label: 'Applied',     color: '#a8b1ff' },
-  in_review:   { label: 'In Review',   color: '#eab008' },
-  screening:   { label: 'Screening',   color: '#f97316' },
-  interview:   { label: 'Interview',   color: '#10b981' },
-  offer:       { label: 'Offer',       color: '#9f7aea' },
-  hired:       { label: 'Hired',       color: '#10b981' },
-  rejected:    { label: 'Rejected',    color: '#f43f5e' },
-  withdrawn:   { label: 'Withdrawn',   color: '#929295' },
-  skipped:     { label: 'Skipped',     color: '#929295' },
+  discovered:  { label: 'Discovered',  color: '#929295', gradient: 'funnel-bar-discovered' },
+  contacted:   { label: 'Contacted',   color: '#22d3ee', gradient: 'funnel-bar-contacted' },
+  applied:     { label: 'Applied',     color: '#a8b1ff', gradient: 'funnel-bar-applied' },
+  in_review:   { label: 'In Review',   color: '#f9b44e', gradient: 'funnel-bar-in_review' },
+  screening:   { label: 'Screening',   color: '#f97316', gradient: 'funnel-bar-screening' },
+  interview:   { label: 'Interview',   color: '#3dd68c', gradient: 'funnel-bar-interview' },
+  offer:       { label: 'Offer',       color: '#c8abfa', gradient: 'funnel-bar-offer' },
+  hired:       { label: 'Hired',       color: '#3dd68c', gradient: 'funnel-bar-hired' },
+  rejected:    { label: 'Rejected',    color: '#f66f81', gradient: 'funnel-bar-rejected' },
+  withdrawn:   { label: 'Withdrawn',   color: '#929295', gradient: 'funnel-bar-discovered' },
+  skipped:     { label: 'Skipped',     color: '#929295', gradient: 'funnel-bar-discovered' },
 };
 
 const ACTIVE_STAGES = ['discovered','contacted','applied','in_review','screening','interview','offer','hired'];
 
+const CHANNEL_ICONS = {
+  gmail: 'G',
+  linkedin: 'in',
+  platform: 'P'
+};
+
 function escapeHtml(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function initials(name, fallback='?') {
+  if (!name) return fallback;
+  return name.split(/\s+/).slice(0,2).map(w => w[0] || '').join('') || fallback;
+}
+
+function channelColor(channel) {
+  if (channel === 'gmail') return 'var(--vp-c-red-1)';
+  if (channel === 'linkedin') return 'var(--vp-c-brand-1)';
+  return 'var(--vp-c-text-2)';
 }
 
 function formatDate(iso) {
@@ -718,7 +982,7 @@ function renderCard(card) {
   return `<div class="card" tabindex="0">
     <div class="card-top">
       <div class="card-company">${escapeHtml(card.company || 'Unknown')}</div>
-      <div class="card-date">${formatDate(card.applied_at)}</div>
+      <div class="card-date" title="${new Date(card.applied_at).toLocaleString()}">${formatDate(card.applied_at)}</div>
     </div>
     <div class="card-role">${escapeHtml(card.role || '')}</div>
     <div class="card-meta">
@@ -732,12 +996,17 @@ function renderColumn(stage, cards) {
   const info = STAGE_INFO[stage] || { label: stage, color: '#929295' };
   const filtered = cards.filter(c => c.status === stage);
   const emptyHtml = filtered.length === 0
-    ? `<div class="empty"><div class="empty-text">No applications here</div><div class="empty-hint">Run "apply to N jobs" to populate</div></div>`
+    ? `<div class="empty">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+        <div class="empty-text">No applications here</div>
+        <div class="empty-hint">Run "apply to N jobs" to populate</div>
+      </div>`
     : filtered.map(renderCard).join('');
   return `<div class="column">
-    <div class="column-header">
+    <div class="column-header" style="border-left-color:${info.color}">
       <div class="column-header-left">
-        <div class="stage-dot" style="background:${info.color}"></div>
         <span style="color:${info.color}">${info.label}</span>
       </div>
       <span class="column-count">${filtered.length}</span>
@@ -749,58 +1018,109 @@ function renderColumn(stage, cards) {
 function renderFunnel(funnel) {
   const stages = ACTIVE_STAGES;
   const maxCount = Math.max(...stages.map(s => funnel[s] || 0), 1);
-  const bars = stages.map(stage => {
+
+  return stages.map((stage, i) => {
     const count = funnel[stage] || 0;
     const pct = (count / maxCount) * 100;
     const info = STAGE_INFO[stage];
-    const countDisplay = count > 0
-      ? `<span class="funnel-bar-count">${count}</span>`
-      : `<span class="funnel-bar-zero">0</span>`;
-    return `<div class="funnel-bar" style="height:${Math.max(pct, 8)}%;background:${info.color}" title="${info.label}: ${count}">${countDisplay}</div>`;
+    const nextCount = i < stages.length - 1 ? (funnel[stages[i + 1]] || 0) : null;
+    const conversion = (count > 0 && nextCount !== null)
+      ? Math.round((nextCount / count) * 100) + '%'
+      : '';
+    const arrow = i < stages.length - 1
+      ? `<span class="funnel-arrow">→</span><div class="funnel-conversion">${count > 0 ? conversion : '-'}</div>`
+      : '';
+
+    return `<div class="funnel-stage">
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar ${info.gradient}" style="height:${Math.max(pct, 8)}%" title="${info.label}: ${count}">
+          <span>${count}</span>
+        </div>
+      </div>
+      <div class="funnel-label">${info.label}</div>
+      ${arrow}
+    </div>`;
   }).join('');
-
-  const labels = stages.map(stage =>
-    `<div class="funnel-label">${STAGE_INFO[stage].label}</div>`
-  ).join('');
-
-  const conversions = stages.slice(0, -1).map((stage, i) => {
-    const current = funnel[stage] || 0;
-    const next = funnel[stages[i + 1]] || 0;
-    const rate = current > 0 ? Math.round((next / current) * 100) : 0;
-    return `<div class="funnel-conv-item">${current > 0 ? rate + '%' : '-'}</div>`;
-  }).join('');
-
-  return `${bars}</div><div class="funnel-labels">${labels}</div><div class="funnel-conversion">${conversions}</div>`;
 }
 
 function renderMessages(messages) {
   if (!messages || messages.length === 0) {
-    return `<div class="empty"><div class="empty-text">No recent messages</div><div class="empty-hint">Run "news" to check for recruiter updates</div></div>`;
+    return `<div class="empty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <div class="empty-text">No recent messages</div>
+      <div class="empty-hint">Run "news" to check for recruiter updates</div>
+    </div>`;
   }
   return messages.map(m => {
     const chClass = m.channel === 'gmail' ? 'ch-gmail' : m.channel === 'linkedin' ? 'ch-linkedin' : 'ch-platform';
     const stClass = m.status ? 'st-' + m.status : 'st-pending';
-    return `<div class="message-item">
-      <span class="message-channel ${chClass}">${escapeHtml(m.channel || 'unknown')}</span>
-      <span class="message-sender">${escapeHtml(m.sender || '')}</span>
-      <span class="message-subject">${escapeHtml(m.subject || '(no subject)')}</span>
-      <span class="message-status ${stClass}">${escapeHtml(m.status || 'pending')}</span>
-      <span class="message-date">${formatDate(m.received_at)}</span>
+    const chInitial = CHANNEL_ICONS[m.channel] || 'M';
+    const color = channelColor(m.channel);
+    const senderInitials = initials(m.sender, chInitial);
+    const exactDate = m.received_at ? new Date(m.received_at).toLocaleString() : '';
+    const borderColor = color;
+    return `<div class="message-card" style="border-left-color:${borderColor}" title="${exactDate}">
+      <div class="message-avatar" style="background:${color}">${senderInitials}</div>
+      <div class="message-body">
+        <div class="message-top">
+          <span class="message-sender">${escapeHtml(m.sender || '')}</span>
+          <span class="message-channel ${chClass}">${escapeHtml(m.channel || 'unknown')}</span>
+        </div>
+        <div class="message-subject">${escapeHtml(m.subject || '(no subject)')}</div>
+        <div class="message-bottom">
+          <span class="message-status ${stClass}">${escapeHtml(m.status || 'pending')}</span>
+          <span class="message-date">${formatDate(m.received_at)}</span>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
 
 function renderTargets(targets) {
-  if (!targets || Object.keys(targets).length === 0) return '';
+  if (!targets || Object.keys(targets).length === 0) {
+    return `<div class="empty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div class="empty-text">No target companies yet</div>
+      <div class="empty-hint">Run "targets" to find companies</div>
+    </div>`;
+  }
   const labels = {
     pending: 'Pending', registered: 'Registered', no_fit: 'No Fit',
     manual_login_needed: 'Manual Login', manual_apply_needed: 'Manual Apply',
     alert_only: 'Alert Only', applied: 'Applied', alerts_configured: 'Alerts Set',
     blocked: 'Blocked',
   };
-  return Object.entries(targets).map(([key, count]) =>
-    `<div class="target-pill"><span class="target-pill-num">${count}</span> ${labels[key] || key}</div>`
-  ).join('');
+  const total = Object.values(targets).reduce((sum, c) => sum + c, 0);
+  return Object.entries(targets).map(([key, count]) => {
+    const pct = total > 0 ? (count / total) * 100 : 0;
+    return `<div class="target-group">
+      <div class="target-group-header">
+        <span class="target-group-title">${labels[key] || key}</span>
+        <span class="target-group-count">${count}</span>
+      </div>
+      <div class="target-progress-bg">
+        <div class="target-progress-fill" style="--progress:${pct / 100}"></div>
+      </div>
+      <div class="target-group-detail">${Math.round(pct)}% of all targets</div>
+    </div>`;
+  }).join('');
+}
+
+function renderKpiCard(cls, value, label, sublabel, colorVar) {
+  return `<div class="kpi-card kpi-${cls}">
+    <div class="kpi-icon" style="background:linear-gradient(135deg, ${colorVar[0]}, ${colorVar[1]})">
+      ${value}
+    </div>
+    <div class="kpi-content">
+      <div class="kpi-value">${value}</div>
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-sublabel">${sublabel}</div>
+    </div>
+  </div>`;
 }
 
 function renderApp(data) {
@@ -816,50 +1136,68 @@ function renderApp(data) {
   const interviewCount = (data.funnel.interview || 0) + (data.funnel.screening || 0);
   const offerCount = data.funnel.offer || 0;
   const rejectCount = data.funnel.rejected || 0;
+  const welcome = data.userName ? `Welcome back, ${escapeHtml(data.userName)}` : '';
+
+  const kpiCards = [
+    renderKpiCard('active', totalActive, 'Active', 'Total in pipeline', ['var(--vp-c-indigo-2)', 'var(--vp-c-indigo-3)']),
+    renderKpiCard('interview', interviewCount, 'In Interview', 'Screening + interview', ['var(--vp-c-green-2)', 'var(--vp-c-green-3)']),
+    renderKpiCard('offer', offerCount, 'Offers', 'Negotiation stage', ['var(--vp-c-purple-2)', 'var(--vp-c-purple-3)']),
+    renderKpiCard('rejected', rejectCount, 'Rejected', 'Closed without match', ['var(--vp-c-red-2)', 'var(--vp-c-red-3)']),
+    renderKpiCard('closed', totalClosed, 'Closed', 'All time closed', ['var(--vp-c-gray-1)', 'var(--vp-c-gray-2)']),
+  ].join('');
 
   return `
-    <div class="header">
-      <div class="header-left">
-        <h1>Job Seeker Dashboard</h1>
-        <span class="header-badge">${totalActive} active</span>
+    <div class="dashboard-layout">
+      <div class="header">
+        <div class="header-left">
+          <h1>Job Seeker Dashboard</h1>
+          ${welcome ? `<span class="header-welcome">${welcome}</span>` : ''}
+          <span class="header-badge">${totalActive} active</span>
+        </div>
+        <div class="header-right">
+          <div class="auto-refresh"><div class="pulse"></div> Auto-refresh 30s</div>
+          <span class="header-meta">Last activity: ${data.lastApplication ? formatDate(data.lastApplication) : 'none'}</span>
+          <button class="header-btn theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark theme">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+          <button class="header-btn" onclick="loadData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
       </div>
-      <div class="header-right">
-        <div class="auto-refresh"><div class="pulse"></div> Auto-refresh 30s</div>
-        <span class="header-meta">Last application: ${data.lastApplication ? formatDate(data.lastApplication) : 'none'}</span>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark theme">
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        </button>
-        <button class="refresh-btn" onclick="loadData()">Refresh</button>
+
+      <div class="kpi-section">
+        <div class="kpi-grid">
+          ${kpiCards}
+        </div>
       </div>
-    </div>
 
-    <div class="stats-bar">
-      <div class="stat-card"><div class="stat-num" style="color:var(--vp-brand-1)">${totalActive}</div><div class="stat-label">Active</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--vp-green)">${interviewCount}</div><div class="stat-label">In Interview</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--vp-purple)">${offerCount}</div><div class="stat-label">Offers</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--vp-red)">${rejectCount}</div><div class="stat-label">Rejected</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--vp-text-2)">${totalClosed}</div><div class="stat-label">Closed</div></div>
-    </div>
+      <div class="section">
+        <div class="section-title">Pipeline Funnel</div>
+        <div class="funnel">${renderFunnel(data.funnel)}</div>
+      </div>
 
-    <div class="section">
-      <div class="section-title">Pipeline Funnel</div>
-      <div class="funnel">${renderFunnel(data.funnel)}</div>
-    </div>
+      <div class="kanban">
+        ${ACTIVE_STAGES.map(stage => renderColumn(stage, data.active)).join('')}
+      </div>
 
-    <div class="kanban">
-      ${ACTIVE_STAGES.map(stage => renderColumn(stage, data.active)).join('')}
-    </div>
+      ${data.targets && Object.keys(data.targets).length > 0 ? `
+      <div class="section">
+        <div class="section-title">Target Companies</div>
+        <div class="targets-grid">${renderTargets(data.targets)}</div>
+      </div>` : ''}
 
-    ${data.targets && Object.keys(data.targets).length > 0 ? `
-    <div class="section">
-      <div class="section-title">Target Companies</div>
-      <div class="targets-row">${renderTargets(data.targets)}</div>
-    </div>` : ''}
+      <div class="section">
+        <div class="section-title">Recent Messages</div>
+        <div class="messages-grid">${renderMessages(data.messages)}</div>
+      </div>
 
-    <div class="section">
-      <div class="section-title">Recent Messages</div>
-      <div class="messages-list">${renderMessages(data.messages)}</div>
+      <div class="footer">
+        <span>Job Seeker Dashboard</span>
+        <a href="https://galiprandi.github.io/job-seeker/" target="_blank" rel="noopener">Documentation</a>
+      </div>
     </div>
   `;
 }

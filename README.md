@@ -23,7 +23,7 @@ https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.
 
 ![Dashboard](assets/dashboard-v2-full.png)
 
-The agent opens the dashboard at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
+The dashboard visualizes your pipeline with a VitePress-inspired design, including KPI cards, a funnel chart, a kanban board, target-company groups, and recent messages. It also supports light and dark themes. The agent opens it at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
 
 ## How it works
 

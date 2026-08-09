@@ -117,6 +117,11 @@ async function fetchPipelineData() {
       SELECT data->'strategy' as strategy FROM users WHERE id = 1
     `).catch(() => ({ rows: [] }));
 
+    // User name
+    const { rows: userRows } = await client.query(`
+      SELECT name FROM users WHERE id = 1
+    `).catch(() => ({ rows: [{ name: '' }] }));
+
     // Last activity
     const { rows: lastActivity } = await client.query(`
       SELECT max(applied_at) as last_application FROM applications WHERE user_id = 1
@@ -129,6 +134,7 @@ async function fetchPipelineData() {
       messages,
       targets: targets.reduce((acc, r) => { acc[r.registration_status] = parseInt(r.count); return acc; }, {}),
       strategy: strategyRows[0]?.strategy || null,
+      userName: userRows[0]?.name || '',
       lastApplication: lastActivity[0]?.last_application || null,
       generatedAt: new Date().toISOString(),
     };
