@@ -19,6 +19,8 @@ https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.
 
 ![Pipeline Kanban](assets/pipeline-demo.png)
 
+The CLI prints a terminal kanban grouped by pipeline stage (discovered → hired), with match indicators (★ Must, ◆ Strong, ○ Nice), interview dates, and a closed summary. Use `--closed` to include rejected/withdrawn/skipped columns, `--funnel` for a bar chart, `--move <id> <stage>` to move cards, and `--card <id>` for full card detail with linked messages.
+
 **Local dashboard** (`node scripts/dashboard.js --open`):
 
 ![Dashboard](assets/dashboard-v2-full.png)
