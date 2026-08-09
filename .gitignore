@@ -2,6 +2,8 @@
 .browser-profile-temp/
 .playwright-cli/
 .playwright-mcp/
+.playwright/
+.impeccable/
 .devin/
 .env
 node_modules/
