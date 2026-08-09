@@ -91,6 +91,26 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
 
+### Email delivery — use SMTP, not the browser
+Do not automate the Gmail web UI to send outbound email. The compose view is loaded in a cross-origin iframe, so `playwright-cli` cannot see or click the **Send** button, and keyboard shortcuts (`Ctrl+Enter` / `Cmd+Enter`) do not work because focus is trapped inside the iframe.
+
+**Workaround:** use `scripts/send-email.js` with `nodemailer` and an SMTP app password.
+
+1. Generate an app password in the provider (e.g., Gmail: https://myaccount.google.com/apppasswords)
+2. Add to `.env` (never commit `.env`):
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_SECURE=true
+   SMTP_USER=you@example.com
+   SMTP_PASS=your-app-password
+   ```
+3. Send:
+   ```
+   node scripts/send-email.js --to someone@example.com --subject "Subject" --body "Message"
+   ```
+4. For outreach to contacts in the DB, build on top of `sendEmail()` from `scripts/send-email.js` and mark `outreach_contacts.status = 'contacted'` after successful delivery.
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
