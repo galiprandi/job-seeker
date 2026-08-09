@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Seeker Dashboard</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
   :root {
     --bg: #0d1117;
     --surface: #161b22;
-    --surface-hover: #1c2129;
-    --border: #30363d;
+    --surface-2: #1c2330;
+    --surface-3: #222a3a;
+    --border: #2d333b;
+    --border-subtle: #21262d;
     --text: #e6edf3;
-    --text-dim: #8b949e;
-    --text-faint: #484f58;
+    --text-dim: #9da9bb;
+    --text-faint: #5c6678;
     --blue: #58a6ff;
     --green: #3fb950;
     --yellow: #d29922;
@@ -21,99 +24,186 @@
     --red: #f85149;
     --purple: #bc8cff;
     --cyan: #39c5cf;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-pill: 20px;
+
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.35);
+
+    --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    --font: -apple-system, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
   }
+
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: var(--font);
     font-size: 14px;
+    line-height: 1.5;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Header */
+  button { font-family: inherit; }
+  *:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Header ── */
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
     background: var(--surface);
+    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 100;
   }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header h1 { font-size: 18px; font-weight: 700; }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
   .header-badge {
     font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background: rgba(63,185,80,0.15);
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(63,185,80,0.12);
     color: var(--green);
-    border: 1px solid rgba(63,185,80,0.3);
+    border: 1px solid rgba(63,185,80,0.2);
   }
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .header-meta { font-size: 12px; color: var(--text-dim); }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .header-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
   .refresh-btn {
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 6px 14px;
-    border-radius: 6px;
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.15s;
+    font-weight: 500;
+    transition: var(--transition);
   }
-  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .refresh-btn:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: rgba(88,166,255,0.05);
+  }
+  .refresh-btn:active { transform: scale(0.97); }
 
-  /* Stats bar */
-  .stats-bar {
+  .auto-refresh {
+    font-size: 11px;
+    color: var(--text-faint);
     display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pulse {
+    width: 7px;
+    height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.85); }
+  }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 1px;
-    background: var(--border);
+    background: var(--border-subtle);
     border-bottom: 1px solid var(--border);
   }
   .stat-card {
-    flex: 1;
     background: var(--bg);
-    padding: 16px 20px;
+    padding: 18px 20px;
     text-align: center;
+    transition: background var(--transition);
   }
-  .stat-num { font-size: 28px; font-weight: 800; }
-  .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .stat-card:hover { background: var(--surface); }
+  .stat-num {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+    font-weight: 600;
+  }
 
-  /* Funnel */
-  .funnel-section {
-    padding: 20px 24px;
+  /* ── Section ── */
+  .section {
+    padding: 24px 28px;
     border-bottom: 1px solid var(--border);
   }
-  .section-title { font-size: 13px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+
+  /* ── Funnel ── */
   .funnel {
     display: flex;
     align-items: flex-end;
-    gap: 4px;
-    height: 60px;
+    gap: 6px;
+    height: 72px;
   }
   .funnel-bar {
     flex: 1;
-    border-radius: 4px 4px 0 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 6px;
+    padding-top: 8px;
     font-size: 12px;
     font-weight: 700;
-    color: var(--bg);
-    min-height: 20px;
-    transition: opacity 0.2s;
+    min-height: 24px;
+    transition: opacity var(--transition), transform var(--transition);
     cursor: default;
     position: relative;
   }
-  .funnel-bar:hover { opacity: 0.8; }
+  .funnel-bar:hover { opacity: 0.85; transform: translateY(-2px); }
+  .funnel-bar-count { color: #fff; }
+  .funnel-bar-zero { color: var(--text-faint); font-weight: 500; }
   .funnel-labels {
     display: flex;
-    gap: 4px;
-    margin-top: 6px;
+    gap: 6px;
+    margin-top: 8px;
   }
   .funnel-label {
     flex: 1;
@@ -121,29 +211,43 @@
     font-size: 10px;
     color: var(--text-faint);
     text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .funnel-conversion {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .funnel-conv-item {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
   }
 
-  /* Kanban */
+  /* ── Kanban ── */
   .kanban {
     display: flex;
     gap: 1px;
-    background: var(--border);
+    background: var(--border-subtle);
     overflow-x: auto;
-    min-height: calc(100vh - 250px);
+    min-height: 400px;
   }
   .column {
     flex: 1;
-    min-width: 220px;
+    min-width: 240px;
     background: var(--bg);
     display: flex;
     flex-direction: column;
   }
   .column-header {
-    padding: 10px 14px;
-    font-size: 12px;
+    padding: 12px 16px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.06em;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -151,166 +255,326 @@
     position: sticky;
     top: 0;
     background: var(--surface);
+    z-index: 10;
+  }
+  .column-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
   .column-count {
     font-size: 11px;
     color: var(--text-faint);
+    font-weight: 600;
     background: var(--bg);
-    padding: 1px 7px;
-    border-radius: 10px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
     border: 1px solid var(--border);
+    min-width: 28px;
+    text-align: center;
   }
   .column-cards {
-    padding: 8px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     overflow-y: auto;
+    flex: 1;
   }
 
-  /* Card */
+  /* ── Card ── */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
+    border-radius: var(--radius);
+    padding: 12px 14px;
     cursor: pointer;
-    transition: all 0.15s;
-    border-left: 3px solid var(--text-faint);
+    transition: var(--transition);
+    box-shadow: var(--shadow-card);
   }
-  .card:hover { background: var(--surface-hover); border-color: var(--text-faint); }
-  .card-company { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  .card-role { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card:hover {
+    background: var(--surface-2);
+    border-color: var(--text-faint);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .card-company {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .card-date {
+    font-size: 10px;
+    color: var(--text-faint);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .card-role {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
   .card-tag {
     font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
     font-weight: 600;
+    letter-spacing: 0.01em;
   }
-  .tag-high { background: rgba(63,185,80,0.15); color: var(--green); }
-  .tag-medium { background: rgba(210,153,34,0.15); color: var(--yellow); }
-  .tag-low { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-  .tag-platform { background: rgba(88,166,255,0.1); color: var(--blue); }
-  .card-date { font-size: 10px; color: var(--text-faint); margin-left: auto; }
+  .tag-high { background: rgba(63,185,80,0.12); color: var(--green); }
+  .tag-medium { background: rgba(210,153,34,0.12); color: var(--yellow); }
+  .tag-low { background: rgba(93,102,120,0.15); color: var(--text-dim); }
+  .tag-platform { background: rgba(88,166,255,0.08); color: var(--blue); }
 
-  /* Stage colors */
-  .col-discovered { border-left-color: var(--text-faint); }
-  .col-contacted { border-left-color: var(--cyan); }
-  .col-applied { border-left-color: var(--blue); }
-  .col-in_review { border-left-color: var(--yellow); }
-  .col-screening { border-left-color: var(--orange); }
-  .col-interview { border-left-color: var(--green); }
-  .col-offer { border-left-color: var(--purple); }
-  .col-hired { border-left-color: var(--green); }
-
-  /* Messages panel */
-  .messages-section {
-    padding: 20px 24px;
-    border-top: 1px solid var(--border);
+  /* ── Messages ── */
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .messages-list { display: flex; flex-direction: column; gap: 6px; }
   .message-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
+    transition: var(--transition);
   }
-  .message-channel { font-weight: 600; text-transform: uppercase; font-size: 10px; padding: 2px 6px; border-radius: 3px; }
-  .ch-gmail { background: rgba(234,67,53,0.15); color: #ea4335; }
-  .ch-linkedin { background: rgba(10,102,194,0.15); color: #0a66c2; }
-  .ch-platform { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-  .message-sender { color: var(--text); font-weight: 500; }
-  .message-subject { color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .message-status { font-size: 10px; padding: 1px 6px; border-radius: 3px; }
-  .st-pending { background: rgba(210,153,34,0.15); color: var(--yellow); }
-  .st-draft { background: rgba(88,166,255,0.15); color: var(--blue); }
-  .st-sent { background: rgba(63,185,80,0.15); color: var(--green); }
-  .st-ignored { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-
-  /* Loading & error */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    font-size: 16px;
+  .message-item:hover {
+    background: var(--surface-2);
+    border-color: var(--text-faint);
+  }
+  .message-channel {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .ch-gmail { background: rgba(234,67,53,0.12); color: #ea4335; }
+  .ch-linkedin { background: rgba(10,102,194,0.12); color: #4493f8; }
+  .ch-platform { background: rgba(93,102,120,0.12); color: var(--text-dim); }
+  .message-sender {
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .message-subject {
     color: var(--text-dim);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .error-banner {
-    background: rgba(248,81,73,0.1);
-    border: 1px solid rgba(248,81,73,0.3);
-    color: var(--red);
-    padding: 12px 24px;
-    font-size: 13px;
+  .message-status {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
   }
-
-  /* Empty state */
-  .empty {
-    text-align: center;
-    padding: 40px 20px;
+  .st-pending { background: rgba(210,153,34,0.12); color: var(--yellow); }
+  .st-draft { background: rgba(88,166,255,0.12); color: var(--blue); }
+  .st-sent { background: rgba(63,185,80,0.12); color: var(--green); }
+  .st-ignored { background: rgba(93,102,120,0.12); color: var(--text-dim); }
+  .message-date {
+    font-size: 10px;
     color: var(--text-faint);
-    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  /* Targets mini-section */
-  .targets-section {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
+  /* ── Targets ── */
+  .targets-row {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
   }
   .target-pill {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 12px;
     color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 5px 14px;
   }
   .target-pill-num {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text);
-    background: var(--surface);
-    padding: 2px 8px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
+    font-size: 13px;
   }
 
-  /* Auto-refresh indicator */
-  .auto-refresh {
-    font-size: 11px;
-    color: var(--text-faint);
+  /* ── Skeleton loading ── */
+  .skeleton-header {
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .skeleton-block {
+    background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .skeleton-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border-subtle);
+  }
+  .skeleton-stat {
+    background: var(--bg);
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .skeleton-kanban {
+    display: flex;
+    gap: 1px;
+    background: var(--border-subtle);
+    padding-top: 24px;
+  }
+  .skeleton-col {
+    flex: 1;
+    min-width: 240px;
+    background: var(--bg);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── Error ── */
+  .error-banner {
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.2);
+    color: var(--red);
+    padding: 16px 28px;
+    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 10px;
   }
-  .pulse {
-    width: 6px;
-    height: 6px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
+  .error-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 32px 16px;
+  }
+  .empty-text {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+  }
+  .empty-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    opacity: 0.6;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .stat-card:nth-child(4), .stat-card:nth-child(5) { display: none; }
+    .header-meta { display: none; }
+    .section { padding: 16px; }
   }
 </style>
 </head>
 <body>
 
 <div id="app">
-  <div class="loading">Loading pipeline data...</div>
+  <!-- Skeleton loading state -->
+  <div class="skeleton-header">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="skeleton-block" style="width:160px;height:18px"></div>
+      <div class="skeleton-block" style="width:60px;height:20px;border-radius:20px"></div>
+    </div>
+    <div class="skeleton-block" style="width:80px;height:28px;border-radius:8px"></div>
+  </div>
+  <div class="skeleton-stats">
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+  </div>
+  <div class="skeleton-kanban">
+    <div class="skeleton-col">
+      <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+    </div>
+    <div class="skeleton-col">
+      <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+    </div>
+    <div class="skeleton-col">
+      <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+    </div>
+    <div class="skeleton-col">
+      <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
+      <div class="skeleton-block" style="width:100%;height:62px"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 const STAGE_INFO = {
-  discovered:  { label: 'Discovered',  color: '#484f58' },
+  discovered:  { label: 'Discovered',  color: '#5c6678' },
   contacted:   { label: 'Contacted',   color: '#39c5cf' },
   applied:     { label: 'Applied',     color: '#58a6ff' },
   in_review:   { label: 'In Review',   color: '#d29922' },
@@ -319,8 +583,8 @@ const STAGE_INFO = {
   offer:       { label: 'Offer',       color: '#bc8cff' },
   hired:       { label: 'Hired',       color: '#3fb950' },
   rejected:    { label: 'Rejected',    color: '#f85149' },
-  withdrawn:   { label: 'Withdrawn',   color: '#484f58' },
-  skipped:     { label: 'Skipped',     color: '#484f58' },
+  withdrawn:   { label: 'Withdrawn',   color: '#5c6678' },
+  skipped:     { label: 'Skipped',     color: '#5c6678' },
 };
 
 const ACTIVE_STAGES = ['discovered','contacted','applied','in_review','screening','interview','offer','hired'];
@@ -345,7 +609,8 @@ function formatDate(iso) {
 function matchTag(match) {
   if (!match) return '';
   const cls = match === 'high' ? 'tag-high' : match === 'medium' ? 'tag-medium' : 'tag-low';
-  return `<span class="card-tag ${cls}">${escapeHtml(match)}</span>`;
+  const label = match === 'high' ? 'Must' : match === 'medium' ? 'Strong' : 'Nice';
+  return `<span class="card-tag ${cls}">${label}</span>`;
 }
 
 function platformTag(platform) {
@@ -354,47 +619,67 @@ function platformTag(platform) {
 }
 
 function renderCard(card) {
-  const stageClass = 'col-' + (card.status || 'discovered');
-  return `<div class="card ${stageClass}">
-    <div class="card-company">${escapeHtml(card.company || 'Unknown')}</div>
+  return `<div class="card" tabindex="0">
+    <div class="card-top">
+      <div class="card-company">${escapeHtml(card.company || 'Unknown')}</div>
+      <div class="card-date">${formatDate(card.applied_at)}</div>
+    </div>
     <div class="card-role">${escapeHtml(card.role || '')}</div>
     <div class="card-meta">
       ${matchTag(card.match)}
       ${platformTag(card.platform)}
-      <span class="card-date">${formatDate(card.applied_at)}</span>
     </div>
   </div>`;
 }
 
 function renderColumn(stage, cards) {
-  const info = STAGE_INFO[stage] || { label: stage, color: '#484f58' };
+  const info = STAGE_INFO[stage] || { label: stage, color: '#5c6678' };
   const filtered = cards.filter(c => c.status === stage);
+  const emptyHtml = filtered.length === 0
+    ? `<div class="empty"><div class="empty-text">No applications here</div><div class="empty-hint">Run "apply to N jobs" to populate</div></div>`
+    : filtered.map(renderCard).join('');
   return `<div class="column">
-    <div class="column-header" style="color: ${info.color}">
-      <span>${info.label}</span>
+    <div class="column-header">
+      <div class="column-header-left">
+        <div class="stage-dot" style="background:${info.color}"></div>
+        <span style="color:${info.color}">${info.label}</span>
+      </div>
       <span class="column-count">${filtered.length}</span>
     </div>
-    <div class="column-cards">
-      ${filtered.length === 0 ? '<div class="empty" style="padding:20px 10px">No cards</div>' : filtered.map(renderCard).join('')}
-    </div>
+    <div class="column-cards">${emptyHtml}</div>
   </div>`;
 }
 
 function renderFunnel(funnel) {
   const stages = ACTIVE_STAGES;
   const maxCount = Math.max(...stages.map(s => funnel[s] || 0), 1);
-  return stages.map(stage => {
+  const bars = stages.map(stage => {
     const count = funnel[stage] || 0;
     const pct = (count / maxCount) * 100;
     const info = STAGE_INFO[stage];
-    return `<div class="funnel-bar" style="height: ${Math.max(pct, 5)}%; background: ${info.color}" title="${info.label}: ${count}">${count > 0 ? count : ''}</div>`;
-  }).join('') + '</div><div class="funnel-labels">' +
-  stages.map(stage => `<div class="funnel-label">${STAGE_INFO[stage].label}</div>`).join('') + '</div>';
+    const countDisplay = count > 0
+      ? `<span class="funnel-bar-count">${count}</span>`
+      : `<span class="funnel-bar-zero">0</span>`;
+    return `<div class="funnel-bar" style="height:${Math.max(pct, 8)}%;background:${info.color}" title="${info.label}: ${count}">${countDisplay}</div>`;
+  }).join('');
+
+  const labels = stages.map(stage =>
+    `<div class="funnel-label">${STAGE_INFO[stage].label}</div>`
+  ).join('');
+
+  const conversions = stages.slice(0, -1).map((stage, i) => {
+    const current = funnel[stage] || 0;
+    const next = funnel[stages[i + 1]] || 0;
+    const rate = current > 0 ? Math.round((next / current) * 100) : 0;
+    return `<div class="funnel-conv-item">${current > 0 ? rate + '%' : '-'}</div>`;
+  }).join('');
+
+  return `${bars}</div><div class="funnel-labels">${labels}</div><div class="funnel-conversion">${conversions}</div>`;
 }
 
 function renderMessages(messages) {
   if (!messages || messages.length === 0) {
-    return '<div class="empty">No recent messages</div>';
+    return `<div class="empty"><div class="empty-text">No recent messages</div><div class="empty-hint">Run "news" to check for recruiter updates</div></div>`;
   }
   return messages.map(m => {
     const chClass = m.channel === 'gmail' ? 'ch-gmail' : m.channel === 'linkedin' ? 'ch-linkedin' : 'ch-platform';
@@ -404,7 +689,7 @@ function renderMessages(messages) {
       <span class="message-sender">${escapeHtml(m.sender || '')}</span>
       <span class="message-subject">${escapeHtml(m.subject || '(no subject)')}</span>
       <span class="message-status ${stClass}">${escapeHtml(m.status || 'pending')}</span>
-      <span class="card-date">${formatDate(m.received_at)}</span>
+      <span class="message-date">${formatDate(m.received_at)}</span>
     </div>`;
   }).join('');
 }
@@ -414,7 +699,8 @@ function renderTargets(targets) {
   const labels = {
     pending: 'Pending', registered: 'Registered', no_fit: 'No Fit',
     manual_login_needed: 'Manual Login', manual_apply_needed: 'Manual Apply',
-    alert_only: 'Alert Only',
+    alert_only: 'Alert Only', applied: 'Applied', alerts_configured: 'Alerts Set',
+    blocked: 'Blocked',
   };
   return Object.entries(targets).map(([key, count]) =>
     `<div class="target-pill"><span class="target-pill-num">${count}</span> ${labels[key] || key}</div>`
@@ -423,13 +709,17 @@ function renderTargets(targets) {
 
 function renderApp(data) {
   if (data.error) {
-    return `<div class="error-banner">Error: ${escapeHtml(data.error)}</div>`;
+    return `<div class="error-banner">
+      <svg class="error-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a1 1 0 011 1v3a1 1 0 01-2 0V5a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z"/></svg>
+      Error loading pipeline: ${escapeHtml(data.error)}
+    </div>`;
   }
 
   const totalActive = ACTIVE_STAGES.reduce((sum, s) => sum + (data.funnel[s] || 0), 0);
   const totalClosed = ['rejected','withdrawn','skipped'].reduce((sum, s) => sum + (data.funnel[s] || 0), 0);
   const interviewCount = (data.funnel.interview || 0) + (data.funnel.screening || 0);
   const offerCount = data.funnel.offer || 0;
+  const rejectCount = data.funnel.rejected || 0;
 
   return `
     <div class="header">
@@ -448,11 +738,11 @@ function renderApp(data) {
       <div class="stat-card"><div class="stat-num" style="color:var(--blue)">${totalActive}</div><div class="stat-label">Active</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--green)">${interviewCount}</div><div class="stat-label">In Interview</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${offerCount}</div><div class="stat-label">Offers</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--red)">${data.funnel.rejected || 0}</div><div class="stat-label">Rejected</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--red)">${rejectCount}</div><div class="stat-label">Rejected</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--text-dim)">${totalClosed}</div><div class="stat-label">Closed</div></div>
     </div>
 
-    <div class="funnel-section">
+    <div class="section">
       <div class="section-title">Pipeline Funnel</div>
       <div class="funnel">${renderFunnel(data.funnel)}</div>
     </div>
@@ -462,12 +752,12 @@ function renderApp(data) {
     </div>
 
     ${data.targets && Object.keys(data.targets).length > 0 ? `
-    <div class="targets-section">
-      <div class="section-title" style="margin:0">Target Companies</div>
-      ${renderTargets(data.targets)}
+    <div class="section">
+      <div class="section-title">Target Companies</div>
+      <div class="targets-row">${renderTargets(data.targets)}</div>
     </div>` : ''}
 
-    <div class="messages-section">
+    <div class="section">
       <div class="section-title">Recent Messages</div>
       <div class="messages-list">${renderMessages(data.messages)}</div>
     </div>
@@ -481,7 +771,10 @@ async function loadData() {
     const data = await res.json();
     app.innerHTML = renderApp(data);
   } catch (err) {
-    app.innerHTML = `<div class="error-banner">Failed to load: ${escapeHtml(err.message)}</div>`;
+    app.innerHTML = `<div class="error-banner">
+      <svg class="error-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a1 1 0 011 1v3a1 1 0 01-2 0V5a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z"/></svg>
+      Failed to load: ${escapeHtml(err.message)}
+    </div>`;
   }
 }
 
