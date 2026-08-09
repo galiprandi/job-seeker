@@ -2,6 +2,8 @@
 
 A local web dashboard that visualizes your job application pipeline in real time. The agent opens it at the end of each round so you can review the results visually.
 
+![Dashboard](/dashboard.png)
+
 ## Launch
 
 ```bash
@@ -30,25 +32,25 @@ The dashboard skill triggers at the end of any round that changes the pipeline:
 
 ## What it shows
 
-### Stats bar
+### KPI stats
 
-Five key metrics at the top:
+Five professional cards at the top, each with a gradient icon container, a large metric, a label, and a small sub-label for context:
 
-| Stat | What it counts |
-|---|---|
-| Active | Applications in any active stage (discovered through hired) |
-| In Interview | Applications in screening or interview stages |
-| Offers | Applications with an offer |
-| Rejected | Applications rejected |
-| Closed | Total closed (rejected + withdrawn + skipped) |
+| Stat | What it counts | Sublabel |
+|---|---|---|
+| Active | Applications in any active stage (discovered through hired) | Total in pipeline |
+| In Interview | Applications in screening or interview stages | Screening + interview |
+| Offers | Applications with an offer | Negotiation stage |
+| Rejected | Applications rejected | Closed without match |
+| Closed | Total closed (rejected + withdrawn + skipped) | All time closed |
 
 ### Pipeline funnel
 
-A bar chart showing the count at each pipeline stage, plus stage-to-stage conversion rates. The funnel flows left to right: discovered -> contacted -> applied -> in_review -> screening -> interview -> offer -> hired.
+A bar chart with gradient bars showing the count at each stage, plus arrows and stage-to-stage conversion rates. The funnel flows left to right: discovered -> contacted -> applied -> in_review -> screening -> interview -> offer -> hired.
 
 ### Kanban board
 
-Eight columns, one per active stage. Each card shows:
+Eight columns, one per active stage. Each column has a colored left accent on its header. Each card shows:
 
 - Company name
 - Role title
@@ -56,15 +58,25 @@ Eight columns, one per active stage. Each card shows:
 - Platform (linkedin, email, etc.)
 - Relative date (just now, 5m ago, 3d ago)
 
-Cards have hover and focus states. The board scrolls horizontally if columns don't fit.
+Cards have hover elevation, focus states, and a subtle shadow. The board scrolls horizontally if columns don't fit.
 
 ### Target companies
 
-A summary of target company registration status (pending, registered, no fit, manual login needed, etc.) shown as pills.
+A grid of cards showing each registration status with its count and a progress bar representing the share of all targets.
 
 ### Recent messages
 
-The last 10 recruiter or contact messages with channel (Gmail, LinkedIn, platform), sender, subject, status (pending, draft, sent, ignored), and date.
+A grid of message cards with:
+
+- An avatar showing the sender's initials
+- Channel label (Gmail, LinkedIn, platform)
+- Sender and subject
+- Status pill (pending, draft, sent, ignored)
+- Relative date
+
+## Theme
+
+The dashboard supports dark and light themes. Click the sun/moon icon in the header to switch. Your preference is saved in `localStorage` and restored on reload.
 
 ## Auto-refresh
 
