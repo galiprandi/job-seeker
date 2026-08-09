@@ -9,6 +9,8 @@ Stop spending hours scrolling job boards. Job Seeker gives your AI agent the ski
 
 It's not an agent. It's a set of skills, guides, and scripts that any coding agent (Devin, Claude, Cursor, opencode) consumes to work on your behalf.
 
+**Full documentation: https://galiprandi.github.io/job-seeker/**
+
 ## Demo
 
 https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.webm

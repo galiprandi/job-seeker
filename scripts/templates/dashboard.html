@@ -4,68 +4,94 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Seeker Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /*
+   * Design tokens from VitePress default dark theme.
+   * Matches the docs site at galiprandi.github.io/job-seeker
+   */
   :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-2: #1c2330;
-    --surface-3: #222a3a;
-    --border: #2d333b;
-    --border-subtle: #21262d;
-    --text: #e6edf3;
-    --text-dim: #9da9bb;
-    --text-faint: #5c6678;
-    --blue: #58a6ff;
-    --green: #3fb950;
-    --yellow: #d29922;
-    --orange: #db6d28;
-    --red: #f85149;
-    --purple: #bc8cff;
-    --cyan: #39c5cf;
+    --vp-bg:          #1b1b1f;
+    --vp-bg-alt:      #161618;
+    --vp-bg-soft:     #202127;
+    --vp-bg-elv:      #202127;
+    --vp-border:      #3c3f44;
+    --vp-divider:     #2e2e32;
+    --vp-text-1:      #dfdfd6;
+    --vp-text-2:      #98989f;
+    --vp-text-3:      #929295;
+    --vp-brand-1:     #a8b1ff;
+    --vp-brand-2:     #5c73e7;
+    --vp-brand-3:     #5672cd;
+    --vp-brand-soft:  rgba(100, 108, 255, .16);
+    --vp-green:       #10b981;
+    --vp-green-soft:  rgba(16, 185, 129, .16);
+    --vp-yellow:      #eab008;
+    --vp-yellow-soft: rgba(234, 179, 8, .16);
+    --vp-red:         #f43f5e;
+    --vp-red-soft:    rgba(244, 63, 94, .16);
+    --vp-purple:      #9f7aea;
+    --vp-purple-soft: rgba(159, 122, 234, .16);
+    --vp-cyan:        #22d3ee;
+    --vp-cyan-soft:   rgba(34, 211, 238, .16);
+    --vp-orange:      #f97316;
+    --vp-orange-soft: rgba(249, 115, 22, .16);
+    --vp-gray-soft:   rgba(101, 117, 133, .16);
 
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-pill: 20px;
+    --vp-font:        "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --vp-font-mono:   ui-monospace, "Menlo", "Monaco", "Consolas", monospace;
 
-    --shadow-card: 0 2px 8px rgba(0,0,0,0.25);
-    --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.35);
+    --radius:         12px;
+    --radius-sm:      8px;
+    --radius-pill:    20px;
 
-    --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow-1:       0 1px 2px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.15);
+    --shadow-2:       0 3px 12px rgba(0,0,0,.25);
+    --shadow-3:       0 8px 24px rgba(0,0,0,.3);
 
-    --font: -apple-system, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
-    --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+    --transition:     200ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
+    background: var(--vp-bg);
+    color: var(--vp-text-1);
+    font-family: var(--vp-font);
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   button { font-family: inherit; }
   *:focus-visible {
-    outline: 2px solid var(--blue);
+    outline: 2px solid var(--vp-brand-1);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
 
-  /* ── Header ── */
+  /* ── Layout shell (matches VitePress doc container) ── */
+  .vp-doc {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* ── Header (VitePress var-like) ── */
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 28px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    background: var(--vp-bg-alt);
+    border-bottom: 1px solid var(--vp-border);
     position: sticky;
     top: 0;
     z-index: 100;
+    backdrop-filter: blur(12px);
   }
   .header-left {
     display: flex;
@@ -76,15 +102,16 @@
     font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    color: var(--vp-text-1);
   }
   .header-badge {
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 3px 12px;
     border-radius: var(--radius-pill);
-    background: rgba(63,185,80,0.12);
-    color: var(--green);
-    border: 1px solid rgba(63,185,80,0.2);
+    background: var(--vp-green-soft);
+    color: var(--vp-green);
+    border: 1px solid transparent;
   }
   .header-right {
     display: flex;
@@ -93,12 +120,12 @@
   }
   .header-meta {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--vp-text-2);
   }
   .refresh-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+    background: var(--vp-bg-soft);
+    border: 1px solid var(--vp-border);
+    color: var(--vp-text-2);
     padding: 6px 16px;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -107,15 +134,15 @@
     transition: var(--transition);
   }
   .refresh-btn:hover {
-    border-color: var(--blue);
-    color: var(--blue);
-    background: rgba(88,166,255,0.05);
+    border-color: var(--vp-brand-1);
+    color: var(--vp-brand-1);
+    background: var(--vp-brand-soft);
   }
   .refresh-btn:active { transform: scale(0.97); }
 
   .auto-refresh {
     font-size: 11px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -123,13 +150,13 @@
   .pulse {
     width: 7px;
     height: 7px;
-    background: var(--green);
+    background: var(--vp-green);
     border-radius: 50%;
     animation: pulse 2.5s ease-in-out infinite;
   }
   @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(0.85); }
+    50% { opacity: 0.3; transform: scale(0.8); }
   }
 
   /* ── Stats bar ── */
@@ -137,51 +164,51 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 1px;
-    background: var(--border-subtle);
-    border-bottom: 1px solid var(--border);
+    background: var(--vp-divider);
+    border-bottom: 1px solid var(--vp-border);
   }
   .stat-card {
-    background: var(--bg);
-    padding: 18px 20px;
+    background: var(--vp-bg);
+    padding: 20px 20px;
     text-align: center;
     transition: background var(--transition);
   }
-  .stat-card:hover { background: var(--surface); }
+  .stat-card:hover { background: var(--vp-bg-soft); }
   .stat-num {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
   }
   .stat-label {
     font-size: 10px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-top: 4px;
+    margin-top: 6px;
     font-weight: 600;
   }
 
-  /* ── Section ── */
+  /* ── Section (VitePress doc-style container) ── */
   .section {
-    padding: 24px 28px;
-    border-bottom: 1px solid var(--border);
+    padding: 28px;
+    border-bottom: 1px solid var(--vp-divider);
   }
   .section-title {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-dim);
+    color: var(--vp-text-2);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
 
   /* ── Funnel ── */
   .funnel {
     display: flex;
     align-items: flex-end;
-    gap: 6px;
-    height: 72px;
+    gap: 8px;
+    height: 80px;
   }
   .funnel-bar {
     flex: 1;
@@ -199,51 +226,51 @@
   }
   .funnel-bar:hover { opacity: 0.85; transform: translateY(-2px); }
   .funnel-bar-count { color: #fff; }
-  .funnel-bar-zero { color: var(--text-faint); font-weight: 500; }
+  .funnel-bar-zero { color: var(--vp-text-3); font-weight: 500; }
   .funnel-labels {
     display: flex;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 10px;
   }
   .funnel-label {
     flex: 1;
     text-align: center;
     font-size: 10px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
   }
   .funnel-conversion {
     display: flex;
-    gap: 6px;
-    margin-top: 4px;
+    gap: 8px;
+    margin-top: 6px;
   }
   .funnel-conv-item {
     flex: 1;
     text-align: center;
     font-size: 10px;
-    color: var(--text-faint);
-    font-family: var(--font-mono);
+    color: var(--vp-text-3);
+    font-family: var(--vp-font-mono);
   }
 
   /* ── Kanban ── */
   .kanban {
     display: flex;
     gap: 1px;
-    background: var(--border-subtle);
+    background: var(--vp-divider);
     overflow-x: auto;
-    min-height: 400px;
+    min-height: 420px;
   }
   .column {
     flex: 1;
-    min-width: 240px;
-    background: var(--bg);
+    min-width: 250px;
+    background: var(--vp-bg);
     display: flex;
     flex-direction: column;
   }
   .column-header {
-    padding: 12px 16px;
+    padding: 14px 16px;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -251,10 +278,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--vp-border);
     position: sticky;
     top: 0;
-    background: var(--surface);
+    background: var(--vp-bg-alt);
     z-index: 10;
   }
   .column-header-left {
@@ -270,17 +297,17 @@
   }
   .column-count {
     font-size: 11px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     font-weight: 600;
-    background: var(--bg);
+    background: var(--vp-bg-soft);
     padding: 2px 8px;
     border-radius: var(--radius-pill);
-    border: 1px solid var(--border);
+    border: 1px solid var(--vp-border);
     min-width: 28px;
     text-align: center;
   }
   .column-cards {
-    padding: 10px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -290,18 +317,18 @@
 
   /* ── Card ── */
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--vp-bg-soft);
+    border: 1px solid var(--vp-border);
     border-radius: var(--radius);
-    padding: 12px 14px;
+    padding: 14px 16px;
     cursor: pointer;
     transition: var(--transition);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-1);
   }
   .card:hover {
-    background: var(--surface-2);
-    border-color: var(--text-faint);
-    box-shadow: var(--shadow-card-hover);
+    background: var(--vp-bg-elv);
+    border-color: var(--vp-text-3);
+    box-shadow: var(--shadow-2);
     transform: translateY(-1px);
   }
   .card-top {
@@ -315,18 +342,19 @@
     font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.01em;
+    color: var(--vp-text-1);
   }
   .card-date {
     font-size: 10px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     white-space: nowrap;
     flex-shrink: 0;
     margin-top: 2px;
   }
   .card-role {
     font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
+    color: var(--vp-text-2);
+    margin-bottom: 10px;
   }
   .card-meta {
     display: flex;
@@ -336,15 +364,15 @@
   }
   .card-tag {
     font-size: 10px;
-    padding: 2px 8px;
+    padding: 2px 10px;
     border-radius: var(--radius-pill);
     font-weight: 600;
     letter-spacing: 0.01em;
   }
-  .tag-high { background: rgba(63,185,80,0.12); color: var(--green); }
-  .tag-medium { background: rgba(210,153,34,0.12); color: var(--yellow); }
-  .tag-low { background: rgba(93,102,120,0.15); color: var(--text-dim); }
-  .tag-platform { background: rgba(88,166,255,0.08); color: var(--blue); }
+  .tag-high { background: var(--vp-green-soft); color: var(--vp-green); }
+  .tag-medium { background: var(--vp-yellow-soft); color: var(--vp-yellow); }
+  .tag-low { background: var(--vp-gray-soft); color: var(--vp-text-2); }
+  .tag-platform { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
 
   /* ── Messages ── */
   .messages-list {
@@ -356,36 +384,36 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    padding: 12px 16px;
+    background: var(--vp-bg-soft);
+    border: 1px solid var(--vp-border);
     border-radius: var(--radius-sm);
     font-size: 12px;
     transition: var(--transition);
   }
   .message-item:hover {
-    background: var(--surface-2);
-    border-color: var(--text-faint);
+    background: var(--vp-bg-elv);
+    border-color: var(--vp-text-3);
   }
   .message-channel {
     font-weight: 700;
     text-transform: uppercase;
     font-size: 9px;
-    padding: 3px 8px;
+    padding: 3px 10px;
     border-radius: var(--radius-pill);
     letter-spacing: 0.04em;
     flex-shrink: 0;
   }
-  .ch-gmail { background: rgba(234,67,53,0.12); color: #ea4335; }
-  .ch-linkedin { background: rgba(10,102,194,0.12); color: #4493f8; }
-  .ch-platform { background: rgba(93,102,120,0.12); color: var(--text-dim); }
+  .ch-gmail { background: var(--vp-red-soft); color: var(--vp-red); }
+  .ch-linkedin { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
+  .ch-platform { background: var(--vp-gray-soft); color: var(--vp-text-2); }
   .message-sender {
-    color: var(--text);
+    color: var(--vp-text-1);
     font-weight: 500;
     white-space: nowrap;
   }
   .message-subject {
-    color: var(--text-dim);
+    color: var(--vp-text-2);
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -394,19 +422,19 @@
   .message-status {
     font-size: 9px;
     font-weight: 600;
-    padding: 2px 8px;
+    padding: 2px 10px;
     border-radius: var(--radius-pill);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     flex-shrink: 0;
   }
-  .st-pending { background: rgba(210,153,34,0.12); color: var(--yellow); }
-  .st-draft { background: rgba(88,166,255,0.12); color: var(--blue); }
-  .st-sent { background: rgba(63,185,80,0.12); color: var(--green); }
-  .st-ignored { background: rgba(93,102,120,0.12); color: var(--text-dim); }
+  .st-pending { background: var(--vp-yellow-soft); color: var(--vp-yellow); }
+  .st-draft { background: var(--vp-brand-soft); color: var(--vp-brand-1); }
+  .st-sent { background: var(--vp-green-soft); color: var(--vp-green); }
+  .st-ignored { background: var(--vp-gray-soft); color: var(--vp-text-2); }
   .message-date {
     font-size: 10px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -414,7 +442,7 @@
   /* ── Targets ── */
   .targets-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
   }
   .target-pill {
@@ -422,29 +450,34 @@
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    color: var(--text-dim);
-    background: var(--surface);
-    border: 1px solid var(--border);
+    color: var(--vp-text-2);
+    background: var(--vp-bg-soft);
+    border: 1px solid var(--vp-border);
     border-radius: var(--radius-pill);
-    padding: 5px 14px;
+    padding: 6px 16px;
+    transition: var(--transition);
+  }
+  .target-pill:hover {
+    border-color: var(--vp-text-3);
+    background: var(--vp-bg-elv);
   }
   .target-pill-num {
     font-weight: 800;
-    color: var(--text);
+    color: var(--vp-text-1);
     font-size: 13px;
   }
 
   /* ── Skeleton loading ── */
   .skeleton-header {
-    padding: 14px 28px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    background: var(--vp-bg-alt);
+    border-bottom: 1px solid var(--vp-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   .skeleton-block {
-    background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+    background: linear-gradient(90deg, var(--vp-bg-soft) 0%, var(--vp-bg-elv) 50%, var(--vp-bg-soft) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
     border-radius: var(--radius-sm);
@@ -457,24 +490,24 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 1px;
-    background: var(--border-subtle);
+    background: var(--vp-divider);
   }
   .skeleton-stat {
-    background: var(--bg);
-    padding: 18px 20px;
+    background: var(--vp-bg);
+    padding: 20px;
     text-align: center;
   }
   .skeleton-kanban {
     display: flex;
     gap: 1px;
-    background: var(--border-subtle);
-    padding-top: 24px;
+    background: var(--vp-divider);
+    padding-top: 28px;
   }
   .skeleton-col {
     flex: 1;
-    min-width: 240px;
-    background: var(--bg);
-    padding: 10px;
+    min-width: 250px;
+    background: var(--vp-bg);
+    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -482,14 +515,15 @@
 
   /* ── Error ── */
   .error-banner {
-    background: rgba(248,81,73,0.08);
-    border: 1px solid rgba(248,81,73,0.2);
-    color: var(--red);
+    background: var(--vp-red-soft);
+    border: 1px solid var(--vp-red);
+    color: var(--vp-red);
     padding: 16px 28px;
     font-size: 13px;
     display: flex;
     align-items: center;
     gap: 10px;
+    border-radius: 0;
   }
   .error-icon {
     width: 18px;
@@ -500,24 +534,24 @@
   /* ── Empty state ── */
   .empty {
     text-align: center;
-    padding: 32px 16px;
+    padding: 36px 16px;
   }
   .empty-text {
     font-size: 12px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     margin-bottom: 4px;
   }
   .empty-hint {
     font-size: 11px;
-    color: var(--text-faint);
+    color: var(--vp-text-3);
     opacity: 0.6;
   }
 
-  /* ── Scrollbar ── */
+  /* ── Scrollbar (VitePress-style) ── */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+  ::-webkit-scrollbar-thumb { background: var(--vp-border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--vp-text-3); }
 
   /* ── Responsive ── */
   @media (max-width: 900px) {
@@ -531,60 +565,60 @@
 <body>
 
 <div id="app">
-  <!-- Skeleton loading state -->
+  <!-- Skeleton loading state (VitePress-style shimmer) -->
   <div class="skeleton-header">
     <div style="display:flex;align-items:center;gap:14px">
       <div class="skeleton-block" style="width:160px;height:18px"></div>
       <div class="skeleton-block" style="width:60px;height:20px;border-radius:20px"></div>
     </div>
-    <div class="skeleton-block" style="width:80px;height:28px;border-radius:8px"></div>
+    <div class="skeleton-block" style="width:80px;height:30px;border-radius:8px"></div>
   </div>
   <div class="skeleton-stats">
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
-    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:26px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
+    <div class="skeleton-stat"><div class="skeleton-block" style="width:60px;height:28px;margin:0 auto 6px"></div><div class="skeleton-block" style="width:50px;height:10px;margin:0 auto"></div></div>
   </div>
   <div class="skeleton-kanban">
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
     </div>
     <div class="skeleton-col">
       <div class="skeleton-block" style="width:100px;height:14px;margin-bottom:12px"></div>
-      <div class="skeleton-block" style="width:100%;height:62px"></div>
+      <div class="skeleton-block" style="width:100%;height:68px"></div>
     </div>
   </div>
 </div>
 
 <script>
 const STAGE_INFO = {
-  discovered:  { label: 'Discovered',  color: '#5c6678' },
-  contacted:   { label: 'Contacted',   color: '#39c5cf' },
-  applied:     { label: 'Applied',     color: '#58a6ff' },
-  in_review:   { label: 'In Review',   color: '#d29922' },
-  screening:   { label: 'Screening',   color: '#db6d28' },
-  interview:   { label: 'Interview',   color: '#3fb950' },
-  offer:       { label: 'Offer',       color: '#bc8cff' },
-  hired:       { label: 'Hired',       color: '#3fb950' },
-  rejected:    { label: 'Rejected',    color: '#f85149' },
-  withdrawn:   { label: 'Withdrawn',   color: '#5c6678' },
-  skipped:     { label: 'Skipped',     color: '#5c6678' },
+  discovered:  { label: 'Discovered',  color: '#929295' },
+  contacted:   { label: 'Contacted',   color: '#22d3ee' },
+  applied:     { label: 'Applied',     color: '#a8b1ff' },
+  in_review:   { label: 'In Review',   color: '#eab008' },
+  screening:   { label: 'Screening',   color: '#f97316' },
+  interview:   { label: 'Interview',   color: '#10b981' },
+  offer:       { label: 'Offer',       color: '#9f7aea' },
+  hired:       { label: 'Hired',       color: '#10b981' },
+  rejected:    { label: 'Rejected',    color: '#f43f5e' },
+  withdrawn:   { label: 'Withdrawn',   color: '#929295' },
+  skipped:     { label: 'Skipped',     color: '#929295' },
 };
 
 const ACTIVE_STAGES = ['discovered','contacted','applied','in_review','screening','interview','offer','hired'];
@@ -633,7 +667,7 @@ function renderCard(card) {
 }
 
 function renderColumn(stage, cards) {
-  const info = STAGE_INFO[stage] || { label: stage, color: '#5c6678' };
+  const info = STAGE_INFO[stage] || { label: stage, color: '#929295' };
   const filtered = cards.filter(c => c.status === stage);
   const emptyHtml = filtered.length === 0
     ? `<div class="empty"><div class="empty-text">No applications here</div><div class="empty-hint">Run "apply to N jobs" to populate</div></div>`
@@ -735,11 +769,11 @@ function renderApp(data) {
     </div>
 
     <div class="stats-bar">
-      <div class="stat-card"><div class="stat-num" style="color:var(--blue)">${totalActive}</div><div class="stat-label">Active</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--green)">${interviewCount}</div><div class="stat-label">In Interview</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${offerCount}</div><div class="stat-label">Offers</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--red)">${rejectCount}</div><div class="stat-label">Rejected</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--text-dim)">${totalClosed}</div><div class="stat-label">Closed</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--vp-brand-1)">${totalActive}</div><div class="stat-label">Active</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--vp-green)">${interviewCount}</div><div class="stat-label">In Interview</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--vp-purple)">${offerCount}</div><div class="stat-label">Offers</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--vp-red)">${rejectCount}</div><div class="stat-label">Rejected</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--vp-text-2)">${totalClosed}</div><div class="stat-label">Closed</div></div>
     </div>
 
     <div class="section">
