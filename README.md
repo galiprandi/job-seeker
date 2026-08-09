@@ -4,6 +4,10 @@
 
 [![CI](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-vitepress-646cff.svg)](https://galiprandi.github.io/job-seeker/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/galiprandi/job-seeker?style=social)](https://github.com/galiprandi/job-seeker)
+
+**If this project helps you land a job, give it a star. It helps others discover it too.**
 
 Stop spending hours scrolling job boards. Job Seeker gives your AI agent the skills to search, filter, apply, and track jobs the way you would, but in minutes. Your agent reads your CV, learns your preferences, and handles the repetitive work, while you approve what matters.
 
@@ -26,6 +30,18 @@ The CLI prints a terminal kanban grouped by pipeline stage (discovered → hired
 <img src="assets/dashboard-light.png" width="720" alt="Dashboard" />
 
 The dashboard visualizes your pipeline with a VitePress-inspired design, including KPI cards, a funnel chart, a kanban board, target-company groups, and recent messages. It also supports light and dark themes. The agent opens it at the end of each round so you can visually review the pipeline. It auto-refreshes every 30 seconds.
+
+## Why Job Seeker?
+
+The average job seeker spends **5-8 hours per week** scrolling job boards, filling repetitive forms, and tracking applications in spreadsheets. Job Seeker automates the boring part:
+
+- **Search** your agent reads your profile and searches LinkedIn with your Must-have filters
+- **Apply** Easy Apply forms filled automatically with your data from the DB (no guessing, no inventing)
+- **Track** every application, message, and interview in a Postgres pipeline with a kanban view
+- **Reply** recruiter messages drafted in your style, reviewed by you before sending
+- **Remember** your preferences are detected automatically and stored for future sessions
+
+You stay in control. The agent does the grunt work.
 
 ## How it works
 
