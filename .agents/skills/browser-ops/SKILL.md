@@ -152,16 +152,17 @@ node scripts/browser.js open "https://mail.google.com" && \
 
 ```bash
 # Core
-node scripts/browser.js open <url> [--headed|--headless] [--session <name>]  # Open browser
+node scripts/browser.js open <url> [--headed|--headless] [--session <name>]  # Open browser (auto-attaches if browser already running with --session)
 node scripts/browser.js goto <url> [--tab <name>] [--session <name>]         # Navigate
-node scripts/browser.js close [--session <name>]                             # Close session
-node scripts/browser.js close-all                                            # Close all sessions
+node scripts/browser.js close [--session <name>] [--force]                   # Close session (refuses if other agents active, use --force to override)
+node scripts/browser.js close-all [--force]                                  # Close all sessions (refuses if agents active, use --force to override)
 node scripts/browser.js ensure [--session <name>]                            # Idempotent check (no-op if healthy)
 node scripts/browser.js exec <cmd> [args...] [--tab <name>] [--session <name>]  # Passthrough to playwright-cli
 
 # Sessions for parallel subagents
 node scripts/browser.js attach --session <name>     # Attach to running browser (independent tab context)
 node scripts/browser.js detach --session <name>     # Detach session
+node scripts/browser.js who                         # List active attached agents (ref-count)
 
 # Tab management
 node scripts/browser.js tab-new <url> --name <name> [--session <name>]   # Create named tab
@@ -223,6 +224,14 @@ node scripts/browser.js close-all
 ```
 
 **Why attached sessions work:** `playwright-cli attach` creates a new session connected to the same browser, but with its own active tab context. Two sessions can have different active tabs simultaneously without interference. No locks needed.
+
+**Safe close (ref-count):** `close` and `close-all` check for live attached sessions before killing the browser. If other agents are active, `close` refuses (use `--force` to override) and `close-all` refuses (use `--force` to override). This prevents one agent from killing the browser while others are working. Use `who` to see active agents:
+
+```bash
+node scripts/browser.js who    # List active attached agents
+```
+
+**Auto-attach on `open --session`:** If a browser is already running and you call `open` with a different `--session` name, the wrapper automatically attaches a new session to the existing browser (instead of killing it by opening a second instance with the same profile). The attached session gets its own tab so it doesn't clobber the primary session's active tab.
 
 **Alternative: `PLAYWRIGHT_CLI_SESSION` env var.** Subagents can set `PLAYWRIGHT_CLI_SESSION=gmail-worker` once and then call `playwright-cli` directly without `-s=` on every command:
 

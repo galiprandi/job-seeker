@@ -52,9 +52,13 @@ function runShell(cmd, opts = {}) {
 }
 
 function cleanup() {
-  try { spawnSync('node', [BROWSER_JS, 'close-all'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }); } catch {}
+  // Force-close all browser sessions, then clean up state files.
+  // We try close-all --force first, then kill-all as fallback.
+  try { spawnSync('node', [BROWSER_JS, 'close-all', '--force'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }); } catch {}
+  try { spawnSync('npx', ['playwright-cli', 'kill-all'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }); } catch {}
   try { fs.unlinkSync(LOCK_PATH); } catch {}
   try { fs.unlinkSync(TABS_PATH); } catch {}
+  try { fs.unlinkSync(path.join(PROFILE_DIR, 'session-state.json')); } catch {}
 }
 
 function tmpDir() {

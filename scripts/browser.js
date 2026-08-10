@@ -136,6 +136,13 @@ const LOCK_TIMEOUT_MS = parseInt(process.env.BROWSER_LOCK_TIMEOUT_MS || '60000',
 const HEALTH_CHECK_TIMEOUT_MS = parseInt(process.env.BROWSER_HEALTH_CHECK_TIMEOUT_MS || '10000', 10);
 const HEALTH_CHECK_RETRIES = parseInt(process.env.BROWSER_HEALTH_CHECK_RETRIES || '2', 10);
 
+// Ref-count: tracks how many agents are actively using the browser.
+// close/close-all check this before killing the browser.
+// Design: the ref-count is based on LIVE attached sessions. If there are
+// attached sessions that pass a health check, there are agents working.
+// The primary session is NOT counted as an "agent" — it's the browser owner.
+// Only attached sessions represent parallel workers.
+
 // --- logging ---
 
 function debug(msg) {
@@ -424,6 +431,61 @@ function removeLock() {
   }
 }
 
+// --- ref-count management (prevents destructive close when agents are working) ---
+
+/**
+ * Count live attached sessions. An attached session is a parallel worker.
+ * If there are live attached sessions, closing the primary session would
+ * kill the browser for all of them.
+ * @returns {string[]} array of live attached session names
+ */
+function getLiveAttachedSessions() {
+  const state = loadSessionState();
+  if (!state.sessions) return [];
+  const live = [];
+  for (const [name, info] of Object.entries(state.sessions)) {
+    if (!info.attached) continue;
+    // Check if this session is actually alive
+    if (isSessionHealthy(name)) {
+      live.push(name);
+    }
+  }
+  return live;
+}
+
+/**
+ * Count live attached sessions (excluding a specific session if provided).
+ * @param {string|null} excludeSession - session name to exclude from count
+ * @returns {number} number of other live attached sessions
+ */
+function refcountActiveCount(excludeSession = null) {
+  const live = getLiveAttachedSessions();
+  if (excludeSession) {
+    return live.filter((s) => s !== excludeSession).length;
+  }
+  return live.length;
+}
+
+/**
+ * List active attached sessions (for status/who display).
+ */
+function refcountList() {
+  const state = loadSessionState();
+  if (!state.sessions) return [];
+  const result = [];
+  for (const [name, info] of Object.entries(state.sessions)) {
+    if (!info.attached) continue;
+    if (isSessionHealthy(name)) {
+      result.push({
+        session: name,
+        parent: info.parent || 'default',
+        since: info.opened_at,
+      });
+    }
+  }
+  return result;
+}
+
 // --- tab state management ---
 
 /**
@@ -689,6 +751,7 @@ function parseArgs(argv) {
       headless: false,
       json: false,
       help: false,
+      force: false,
     },
     options: {
       session: null,
@@ -700,7 +763,7 @@ function parseArgs(argv) {
   };
 
   const valueFlags = new Set(['--session', '--tab', '--name', '--timeout', '--filename']);
-  const boolFlags = new Set(['--headed', '--headless', '--json', '--help', '-h']);
+  const boolFlags = new Set(['--headed', '--headless', '--json', '--help', '-h', '--force']);
 
   let i = 0;
   let inExecPassthrough = false;
@@ -748,11 +811,11 @@ function parseArgs(argv) {
     }
 
     if (boolFlags.has(arg)) {
-      if (arg === '--headed' || arg === '-h' && false) result.flags.headed = true;
       if (arg === '--headed') result.flags.headed = true;
       if (arg === '--headless') result.flags.headless = true;
       if (arg === '--json') result.flags.json = true;
       if (arg === '--help' || arg === '-h') result.flags.help = true;
+      if (arg === '--force') result.flags.force = true;
       i++;
       continue;
     }
@@ -805,11 +868,14 @@ function usage() {
   node scripts/browser.js goto <url> [--tab <name>] [--session <name>]
     Navigate to <url>. With --tab: atomically selects tab then navigates.
 
-  node scripts/browser.js close [--session <name>]
-    Close current session. Fails if no session is active.
+  node scripts/browser.js close [--session <name>] [--force]
+    Close current session. Refuses if other agents are active (use --force to override).
 
-  node scripts/browser.js close-all
-    Close all sessions.
+  node scripts/browser.js close-all [--force]
+    Close all sessions. Refuses if other agents are active (use --force to override).
+
+  node scripts/browser.js who
+    List agents currently holding a ref-count on the browser.
 
   node scripts/browser.js ensure [--session <name>] [--headed]
     Idempotent check: no-op if healthy session exists, fails if not.
@@ -912,7 +978,7 @@ function main() {
       // Acquire lock to prevent race conditions
       acquireLock();
 
-      // Check if a healthy session already exists
+      // Check if a healthy session already exists with the SAME name
       const existing = getHealthySession(sessionName);
       if (existing) {
         console.error(`[browser] Session '${existing}' already active, navigating with goto instead of opening a new one.`);
@@ -923,6 +989,30 @@ function main() {
         state.tabs[currentName] = { index: 0, url: normalizedUrl };
         state.current = currentName;
         saveTabsState(state);
+        releaseLock();
+        return;
+      }
+
+      // PROBLEMA 3 fix: if a browser is already running with the same profile
+      // (any session exists), do NOT call playwright-cli open — it would kill
+      // the existing browser. Instead, attach a new session to it and create
+      // a new tab so the attached session has its own isolated tab context.
+      const anySession = getAnyHealthySession();
+      if (anySession && sessionName !== 'default') {
+        console.error(`[browser] Browser already running (session '${anySession}'). Attaching '${sessionName}' instead of opening a new instance.`);
+        try {
+          runPwCli(['attach', anySession, `--session=${sessionName}`]);
+          recordAttachedSession(sessionName, anySession);
+          // Create a new tab for this session so it doesn't interfere with
+          // the primary session's active tab. Attached sessions share the
+          // same browser, so without a new tab, goto would navigate the
+          // shared active tab and clobber the primary session's URL.
+          runPwCli([`-s=${sessionName}`, 'tab-new', normalizedUrl]);
+          console.log(`[browser] Session '${sessionName}' attached to '${anySession}' with new tab at ${normalizedUrl}.`);
+        } catch (e) {
+          screenshotOnFailure(sessionName);
+          fail(`Failed to attach session '${sessionName}': ${e.message}`);
+        }
         releaseLock();
         return;
       }
@@ -1054,7 +1144,55 @@ function main() {
       }
       acquireLock();
       try {
-        runPwCli([`-s=${session}`, 'close']);
+        // PROBLEMA 2 fix: check if other agents are actively using the browser.
+        // If so, detach this session instead of killing the browser.
+        const others = refcountActiveCount(sessionName);
+        if (others > 0) {
+          const attached = isAttachedSession(sessionName);
+          if (attached) {
+            // Attached session: detach safely
+            try {
+              execFileSync('playwright-cli', [`-s=${session}`, 'detach'], { cwd: REPO_ROOT, stdio: 'inherit' });
+              console.error(`[browser] Session '${sessionName}' detached (not closed): ${others} other agent(s) still using the browser.`);
+            } catch {
+              // detach failed — try close just this session
+              try { execFileSync('playwright-cli', [`-s=${session}`, 'close'], { cwd: REPO_ROOT, stdio: 'inherit' }); } catch {}
+            }
+            removeSessionState(sessionName);
+            releaseLock();
+            return;
+          } else {
+            // Primary session: closing it would kill the browser for everyone.
+            // Warn and refuse unless --force is passed.
+            if (!flags.force) {
+              console.error(`[browser] WARNING: ${others} attached agent(s) are using the browser. Closing the primary session would kill it for everyone.`);
+              console.error(`[browser] Active agents:`);
+              for (const r of refcountList()) {
+                console.error(`[browser]   session '${r.session}' (attached to '${r.parent}', since ${r.since})`);
+              }
+              console.error(`[browser] Use 'detach --session ${sessionName}' to release this session without killing the browser.`);
+              console.error(`[browser] Or use 'close --session ${sessionName} --force' to force-close anyway.`);
+              releaseLock();
+              fail(`Refusing to close primary session with ${others} active agent(s). Use --force to override.`, 1);
+            }
+            // --force: proceed with close
+            console.error(`[browser] Force-closing primary session despite ${others} active agent(s).`);
+          }
+        }
+        // Try graceful close of this session. If it fails (e.g. attached
+        // sessions prevent closing the primary), fall back to close-all.
+        try {
+          execFileSync('playwright-cli', [`-s=${session}`, 'close'], { cwd: REPO_ROOT, stdio: 'inherit' });
+        } catch {
+          debug(`close: graceful close failed, trying close-all/kill-all`);
+          try {
+            execFileSync('playwright-cli', ['close-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
+          } catch {
+            try {
+              execFileSync('playwright-cli', ['kill-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
+            } catch {}
+          }
+        }
         removeSessionState(sessionName);
         clearTabsState();
       } finally {
@@ -1066,13 +1204,32 @@ function main() {
     case 'close-all': {
       acquireLock();
       try {
+        // PROBLEMA 2 fix: check if other agents are actively using the browser.
+        const others = refcountActiveCount(null);
+        if (others > 0 && !flags.force) {
+          console.error(`[browser] WARNING: ${others} attached agent(s) are using the browser. close-all would kill it for everyone.`);
+          console.error(`[browser] Active agents:`);
+          for (const r of refcountList()) {
+            console.error(`[browser]   session '${r.session}' (attached to '${r.parent}', since ${r.since})`);
+          }
+          console.error(`[browser] Use 'close-all --force' to override.`);
+          releaseLock();
+          fail(`Refusing to close all sessions with ${others} active agent(s). Use --force to override.`, 1);
+        }
+        if (others > 0) {
+          console.error(`[browser] Force-closing all sessions despite ${others} active agent(s).`);
+        }
+        let closed = false;
         try {
           execFileSync('playwright-cli', ['close-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
+          closed = true;
         } catch {
           try {
             execFileSync('playwright-cli', ['kill-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
-          } catch (e) {
-            fail(`Failed to close all sessions: ${e.message}`);
+            closed = true;
+          } catch {
+            // Both failed — likely no sessions to close. That's OK.
+            debug('close-all: both close-all and kill-all failed (probably no sessions)');
           }
         }
         saveSessionState({ sessions: {} });
@@ -1314,11 +1471,25 @@ function main() {
       return;
     }
 
+    case 'who': {
+      const holders = refcountList();
+      if (holders.length === 0) {
+        console.log('No attached agents currently active.');
+      } else {
+        console.log(`Active attached agents (${holders.length}):`);
+        for (const h of holders) {
+          console.log(`  session '${h.session}' (attached to '${h.parent}', since ${h.since})`);
+        }
+      }
+      return;
+    }
+
     case 'status': {
       const mode = getBrowserMode();
       const sessions = getActiveSessions();
       const tabsState = loadTabsState();
       const sessionState = loadSessionState();
+      const holders = refcountList();
       const output = {
         browser_mode: mode || '(not set, default: headless)',
         active_sessions: sessions,
@@ -1326,6 +1497,8 @@ function main() {
         tabs: tabsState.tabs,
         current_tab: tabsState.current,
         session_state: sessionState.sessions,
+        active_agents: holders,
+        active_agent_count: holders.length,
       };
       console.log(JSON.stringify(output, null, 2));
       return;
