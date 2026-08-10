@@ -279,3 +279,132 @@ node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{last_review_at}', 
 - Messages: navigate to `linkedin.com/messaging/` → snapshot → look for unread conversations
 - Notifications: navigate to `linkedin.com/notifications/` → snapshot
 - `mcp6_send_message` and `mcp6_connect_with_person` require `confirm_send: true` (if using LinkedIn MCP)
+
+### Voyager GraphQL inbox endpoint (bulk fetch — PREFERRED over UI scraping)
+
+**Use this instead of opening conversations one by one.** One HTTP call returns ALL conversations with participants, unread count, last message preview, and last activity timestamp.
+
+**Script:** `scripts/linkedin-inbox.js` — run via:
+```bash
+node scripts/browser.js tab-new "https://www.linkedin.com/messaging/" --name linkedin
+sleep 3
+node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.js)"
+```
+
+**Returns JSON array:** `[{participants, unreadCount, lastActivityAt, lastMessage: {text, deliveredAt, isFromSelf}, threadId}, ...]`
+
+**How it works:**
+- Endpoint: `GET /voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.<ID>&variables=(mailboxUrn:urn%3Ali%3Afsd_profile%3A<selfId>)`
+- Headers: `csrf-token` (from JSESSIONID cookie, stripped of quotes), `accept: application/vnd.linkedin.normalized+json+2.1`, `x-restli-protocol-version: 2.0.0`
+- Runs inside `page.evaluate()` so it has all cookies automatically (no need to extract li_at)
+- Query ID changes over time. To find the current one: intercept network requests via `performance.getEntriesByType('resource')` and grep for `messengerConversations`
+- Self fsd_profile_id: extract from HTML via `document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g)` (most frequent match)
+
+**Decision logic after fetch:**
+- `unreadCount > 0` → open that thread in UI to read full message and respond
+- `lastMessage.isFromSelf === true` → waiting for reply, no action needed
+- `lastMessage.isFromSelf === false` AND `unreadCount === 0` → already read but no reply sent (may need follow-up)
+- `lastActivityAt` → compare against `last_review_at` to detect new activity since last run
+- `threadId` → extract the `2-XXXXX` part for direct navigation: `https://www.linkedin.com/messaging/thread/<threadId>/`
+
+**Important:** The query ID (`messengerConversations.0d5e6781bbee71c3e51c8843c6519f48`) was valid as of Aug 2026. If the endpoint returns HTML instead of JSON, the query ID is stale. Re-extract it from `performance.getEntriesByType('resource')` after loading the messaging page.
+
+### Voyager send message endpoint (text only — no attachment)
+
+**Use this to send text messages without opening the compose UI.** One HTTP call sends the message and returns the conversation URN.
+
+**Script:** `scripts/linkedin-send-new.js` — edit `RECIPIENT_ID` and `MESSAGE_TEXT` inside, then:
+```bash
+node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send-new.js)"
+```
+
+**New conversation (first message to a connection):**
+- Endpoint: `POST /voyager/api/messaging/conversations?action=create`
+- Body: `{"keyVersion":"LEGACY_INBOX","conversationCreate":{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]}}}},"recipients":["<fsd_profile_id>"],"subtype":"MEMBER_TO_MEMBER"}}`
+- Returns: `{"data":{"value":{"createdAt":...,"conversationUrn":"urn:li:fs_conversation:2-...","backendConversationUrn":"urn:li:messagingThread:2-..."}}}`
+
+**Reply to existing conversation:**
+- Endpoint: `POST /voyager/api/messaging/conversations/{chatId}/events?action=create`
+- `chatId` = the `2-XXXXX` part of the threadId (URL-encoded)
+- Body: `{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]}}}}}`
+
+**Headers (same as inbox):** `csrf-token`, `x-restli-protocol-version: 2.0.0`, `accept: application/vnd.linkedin.normalized+json+2.1`, `content-type: application/json`
+
+**Recipient format:** `fsd_profile_id` (e.g. `ACoAA...`). Extract from profile page HTML: `document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g)` (most frequent match, excluding self).
+
+### Voyager upload attachment endpoint (works — but send with attachment does NOT)
+
+**Upload works. Sending a message with the uploaded attachment via HTTP endpoint does NOT work.** The UI send uses WebSocket which cannot be replicated via fetch/XHR. For attachments, use the UI flow (see "Attach file" section below).
+
+**Upload flow (2 steps):**
+
+Step 1 — Register upload:
+- Endpoint: `POST /voyager/api/voyagerVideoDashMediaUploadMetadata?action=upload`
+- Body: `{"mediaUploadType":"MESSAGING_FILE_ATTACHMENT","fileSize":<bytes>,"filename":"<name>"}`
+- Returns: `{"data":{"value":{"urn":"urn:li:digitalmediaAsset:...","mediaArtifactUrn":"urn:li:digitalmediaMediaArtifact:(...)","singleUploadUrl":"https://www.linkedin.com/dms-uploads/...","pollingUrl":"https://www.linkedin.com/dms/processStatus/..."}}}`
+
+Step 2 — Upload binary:
+- `PUT` to `singleUploadUrl` with `Content-Type: application/pdf` (or appropriate MIME) and raw file bytes as body
+- Returns HTTP 201 on success
+
+Step 3 — Poll status (optional):
+- `GET` the `pollingUrl` until `status["urn:li:digitalmediaRecipe:messaging-document"]` is `AVAILABLE`
+
+**What does NOT work (tested Aug 2026):**
+- `POST /voyager/api/messaging/conversations?action=create` with `attachments` array → 500 `UNKNOWN_MESSAGING_PLATFORM_DOWNSTREAM_EXCEPTION` regardless of attachment structure (tried: `MessageAttachment` wrapper, flat fields, URN string array, `mediaArtifactUrn` vs `urn`, `mediaType: FILE`, `content-type: text/plain`)
+- `POST /voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage` → 400 (requires WebSocket-based tracking, `conversationUrn` format is strict, `trackingId` must be binary)
+- The real UI send uses **WebSocket** — confirmed by intercepting all fetch/XHR POSTs during a UI send with attachment: no messaging endpoint call was captured
+
+**Conclusion:** For messages with attachments, use the UI flow. The endpoint is only useful for text-only messages.
+
+### Attach file (UI flow — REQUIRED for attachments)
+
+Since the endpoint cannot send attachments, use the UI:
+
+1. Navigate to the conversation thread
+2. Take snapshot, find `button "Attach a file to your conversation with <name>"` ref
+3. Click it → file chooser opens
+4. `node scripts/browser.js exec upload "<file_path>" --tab linkedin`
+5. Wait 3s for upload to process
+6. Fill the textbox with the message text
+7. Take snapshot, verify Send button is enabled (`[cursor=pointer]`)
+8. Click Send
+9. Verify message appears in the thread
+
+**Attach buttons only appear when a conversation is open** (not in the messaging overlay/list view). Navigate to a specific thread first.
+
+### Tiptap editor (compose message)
+
+- **`fill` with the textbox ref works** for writing text into tiptap. Example: `node scripts/browser.js exec fill e770 "message text" --tab linkedin`. This is the reliable method
+- **`type` without a ref does NOT work** — it types into whatever is focused but tiptap's contenteditable doesn't always receive it. Always use `fill <ref>` instead
+- **`type <text>` (positional, no ref) fails** with multiline text — playwright-cli parses it as multiple arguments. Never use `type` for LinkedIn messages
+- **The snapshot does NOT show typed text inline** — tiptap paragraphs appear empty (`paragraph [ref=eXXX]` with no text). To verify text was entered, use `eval`: `node scripts/browser.js exec eval --tab linkedin "document.querySelector('[contenteditable=true]')?.innerText?.substring(0,300)"`
+- **Send button**: starts `disabled`, becomes enabled (`[cursor=pointer]`) when there is text OR an attachment. Check with grep: `grep "button.*Send" page-snapshot.yml`
+- **Internal paragraph refs** inside the textbox (e.g. `e860`, `e861`) are NOT stable — they change after every action and clicking them often fails with "Ref not found". Always interact with the textbox ref itself, not its children
+
+### Attachments (CV / files)
+
+- **Attach a file**: click the "Attach a file" button → a file chooser opens (`[File chooser]: can be handled by upload`) → use `node scripts/browser.js exec upload "/path/to/file.pdf" --tab linkedin`
+- **Verify attachment**: after upload, the snapshot shows `figure "filename.pdf • XXX KB Attached"` with a heading and a remove button
+- **Attachment persists** across snapshots and text editing — no need to re-attach after writing the message
+- **Send with attachment**: the Send button enables with attachment alone (even before text). Always verify both text (via `eval`) and attachment (via snapshot grep) before clicking Send
+
+### Conversation list
+
+- **Filter by unread**: click the "Unread" button (ref changes per snapshot) to see only unread conversations. If "No unread messages" appears, there are none
+- **Search by name**: fill the "Search messages" searchbox with the sender name, press Enter, then click the matching conversation heading
+- **Conversation previews**: the list shows last message preview (`paragraph` under each `heading level=3`). "You:" prefix means German sent the last message (waiting for reply). Sender name without "You:" means they sent last (may need action)
+- **Thread URL pattern**: `https://www.linkedin.com/messaging/thread/2-XXXXX/` — the ID is stable per conversation and can be stored in DB for direct navigation
+
+### Verified send flow (Aug 2026)
+
+1. Navigate to conversation (click heading in list or goto thread URL)
+2. Take snapshot, find "Attach a file" button ref
+3. Click it → file chooser opens
+4. `exec upload "/path/to/file.pdf"` → attachment appears in snapshot
+5. Take new snapshot, find textbox ref (e.g. `e770`)
+6. `exec fill e770 "message text"` (use `\n` for line breaks, works in tiptap)
+7. Verify text via `eval` (innerText)
+8. Verify Send button is NOT `disabled`
+9. Click Send button
+10. Verify "German Aliprandi sent the following messages" appears in snapshot
