@@ -14,7 +14,8 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 ## Pre-flight (applies to ALL applications: LinkedIn Easy Apply AND direct career pages)
 
 - [ ] Verify active LinkedIn session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
+- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `playwright-cli open` directly, never open Chrome directly
+- [ ] **Parallel execution:** if running alongside other flows (e.g: `news` or `targets`), attach a session with `node scripts/browser.js attach --session apply-1` and pass `--session apply-1` to `linkedin-easy-apply.js` and all browser commands. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
@@ -44,9 +45,14 @@ node scripts/linkedin-easy-apply.js --dry-run --max 15
 
 # Apply to top N jobs
 node scripts/linkedin-easy-apply.js --max 10
+
+# Run in a specific browser session (for parallel execution with other agents)
+# First attach a session: node scripts/browser.js attach --session apply-1
+# Then run the script with --session:
+node scripts/linkedin-easy-apply.js --max 10 --session apply-1
 ```
 
-The script handles: search with Easy Apply filter, form filling with standard answers, radio/combobox/checkbox handling, DB registration, and captcha detection (stops on captcha).
+The script handles: search with Easy Apply filter, form filling with standard answers, radio/combobox/checkbox handling, DB registration, and captcha detection (stops on captcha). The `--session` flag allows running in parallel with other agents by using an attached session instead of the default one.
 
 **Manual fallback** (when script fails or forms have complex open-ended questions):
 

@@ -10,6 +10,7 @@
  *   node scripts/linkedin-invite.js <vanity>
  *   node scripts/linkedin-invite.js <vanity1> <vanity2> <vanity3>
  *   node scripts/linkedin-invite.js --from-search '"AI Engineer" "hiring" LATAM'
+ *   --session <name> Browser session name (default: "default". Use a different name for parallel agents)
  *
  * Exit codes:
  *   0 = invite sent (or already connected)
@@ -20,9 +21,12 @@
 
 const { execSync } = require('child_process');
 
+let SESSION = 'default';
+
 function cli(args, timeout = 30000) {
+  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${args}`, {
+    return execSync(`playwright-cli ${sessionFlag}${args}`, {
       encoding: 'utf-8',
       timeout,
       cwd: __dirname,
@@ -45,7 +49,8 @@ function click(ref) {
 }
 
 function goto(url) {
-  execSync(`node ${__dirname}/browser.js goto "${url}"`, { stdio: 'pipe', cwd: __dirname });
+  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
+  execSync(`node ${__dirname}/browser.js goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
 }
 
 function sendInvite(vanity) {
@@ -78,6 +83,10 @@ function sendInvite(vanity) {
 
 function main() {
   const args = process.argv.slice(2);
+  // Extract --session from args before processing
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; args.splice(i, 2); break; }
+  }
   if (args.length === 0) {
     console.error('Usage: node scripts/linkedin-invite.js <vanity> [<vanity2> ...]');
     console.error('       node scripts/linkedin-invite.js --from-search "<keywords>"');
@@ -93,8 +102,9 @@ function main() {
     }
     // Run linkedin-search.js and parse JSON
     try {
+      const sessionFlag = SESSION !== 'default' ? `--session ${SESSION}` : '';
       const output = execSync(
-        `node ${__dirname}/linkedin-search.js "${args[1]}" --json --scroll 3`,
+        `node ${__dirname}/linkedin-search.js "${args[1]}" --json --scroll 3 ${sessionFlag}`,
         { encoding: 'utf-8', timeout: 120000, cwd: __dirname }
       );
       const posts = JSON.parse(output);

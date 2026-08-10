@@ -21,6 +21,7 @@
  *   --no-cv             Don't attach CV
  *   --cc <emails>       CC recipients
  *   --bcc <emails>      BCC recipients
+ *   --session <name>    Browser session name (default: "default". Use a different name for parallel agents)
  *
  * Exit codes:
  *   0 = email sent
@@ -34,9 +35,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+let SESSION = 'default';
+
 function cli(args, timeout = 30000) {
+  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${args}`, {
+    return execSync(`playwright-cli ${sessionFlag}${args}`, {
       encoding: 'utf-8',
       timeout,
       cwd: __dirname,
@@ -63,7 +67,8 @@ function fill(ref, value) {
 }
 
 function goto(url) {
-  execSync(`node ${__dirname}/browser.js goto "${url}"`, { stdio: 'pipe', cwd: __dirname });
+  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
+  execSync(`node ${__dirname}/browser.js goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
 }
 
 function dbWrite(sql) {
@@ -114,6 +119,7 @@ function main() {
     else if (args[i] === '--no-cv') noCv = true;
     else if (args[i] === '--cc' && args[i + 1]) { cc = args[i + 1]; i++; }
     else if (args[i] === '--bcc' && args[i + 1]) { bcc = args[i + 1]; i++; }
+    else if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; i++; }
   }
 
   // Validate required args

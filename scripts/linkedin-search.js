@@ -15,6 +15,7 @@
  * Flags:
  *   --scroll <n>   Number of times to scroll down for more results (default: 2)
  *   --json         Output raw JSON (default: human-readable table)
+ *   --session <name> Browser session name (default: "default". Use a different name for parallel agents)
  *
  * Exit codes:
  *   0 = success (results found)
@@ -25,9 +26,12 @@
 
 const { execSync } = require('child_process');
 
+let SESSION = 'default';
+
 function cli(args) {
+  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${args}`, {
+    return execSync(`playwright-cli ${sessionFlag}${args}`, {
       encoding: 'utf-8',
       timeout: 30000,
       cwd: __dirname,
@@ -157,6 +161,7 @@ function main() {
       scrollCount = parseInt(args[i + 1], 10);
       i++;
     }
+    else if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; i++; }
     if (args[i] === '--json') jsonOutput = true;
   }
 
@@ -164,7 +169,8 @@ function main() {
   const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodedKeywords}&sortBy=%22date_posted%22`;
 
   // Navigate to search
-  execSync(`node ${__dirname}/browser.js goto "${searchUrl}"`, { stdio: 'pipe', cwd: __dirname });
+  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
+  execSync(`node ${__dirname}/browser.js goto "${searchUrl}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
   sleep(5000);
 
   // Collect posts from initial load + scrolls

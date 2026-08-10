@@ -17,7 +17,8 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
 
 ## Pre-flight
 
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly
+- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `playwright-cli open` directly
+- [ ] **Parallel execution:** if running alongside other flows (e.g: `apply` or `news`), attach a session with `node scripts/browser.js attach --session targets-1` and pass `--session targets-1` to all browser commands and scripts. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"

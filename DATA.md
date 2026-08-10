@@ -27,11 +27,14 @@ Single row. Structured columns + `data` JSONB for semi-structured profile info.
 | `style_profile` | object | Communication style: tone, language, length, greeting, closing, emojis, bullet_lists, characteristics, samples, preferences_confirmed | `profile` | `news` (drafting replies), all flows (language) |
 | `platforms` | object | Platform tier assignment (output of analysis, not user input): `tier_1`, `tier_2`, `tier_3`, `discarded`. Each tier is an array of `{name, reason}` | `profile` | `radar`, `apply`, `news` |
 | `target_companies` | object | Curated target companies by region: `latam`, `argentina`, etc. Each is an array of `{name, url, sector}` | `profile` or manual | `targets` (company list), `apply` (priority targets) |
-| `cv_path` | string | Absolute path to CV PDF on local machine | `onboarding` or manual | `targets` (upload to career sites) |
+| `cv_path` | string | Absolute path to CV PDF on local machine | `onboarding`, `polish` (updates with generated PDF), or manual | `targets` (upload to career sites), `apply`, `gmail-send.js` |
 | `photo_path` | string | Absolute path to profile photo on local machine | `onboarding` or manual | `targets` (upload to career sites) |
 | `strategy` | object | Job search strategy parameters: `level`, `apply_batch_size`, `targets_batch_size`, `daily_frequency`, `match_threshold`, `follow_up_days`, `relax_must_haves`, `cold_outreach`, `sources_active`. See AGENTS.md "Strategy levels" | `onboarding` (step 4b), `strategy` flow, `memory` (auto-update) | All flows (pre-flight) |
-| `linkedin_profile` | string | LinkedIn profile URL | `onboarding` | `apply`, `targets`, `news` |
+| `linkedin_profile` | string | LinkedIn profile URL | `onboarding` | `apply`, `targets`, `news`, `polish` |
 | `last_review_at` | string (ISO) | Timestamp of last `news` run. Used to filter emails since last review | `news` | `news`, `daily` |
+| `linkedin_snapshot` | object | Current LinkedIn profile state at last audit: headline, about, experience[], skills[], education[], open_to_work, languages[], certifications[] | `polish` | `polish` (compare before/after), `news` (context) |
+| `linkedin_polish_log` | array | Audit trail of LinkedIn changes applied: `[{section, before, after, applied_at}]` | `polish` | `polish` (re-audit) |
+| `cv_markdown` | string | Optimized CV in Markdown format (intermediate, used to generate PDF) | `polish` | `apply`, `targets` (future tailoring), `polish` (iteration) |
 
 Access:
 ```bash
