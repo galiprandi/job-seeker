@@ -315,31 +315,53 @@ waitForSelector('.msg-s-message-list-container', { timeout: 5000 });
 
 #### Send a message (contenteditable fix)
 
-The composer is `div[contenteditable]`. Setting `innerText` alone leaves the
-Send button disabled because the `input` event is not dispatched.
+The composer is `div[contenteditable]`. LinkedIn uses ProseMirror/tiptap which
+ignores `innerText`, `textContent`, `execCommand`, `playwright-cli fill`, and
+`playwright-cli type`. The only reliable way to trigger the framework's internal
+state and enable the Send button is to dispatch a `beforeinput` event with
+`inputType: 'insertFromPaste'` after setting `innerHTML`:
 
 ```js
 // 1. Focus the composer
 evalJS(`document.querySelector('div.msg-form__contenteditable').focus()`);
 
-// 2. Set text AND dispatch InputEvent (this enables Send)
+// 2. Set innerHTML with <p> tags (ProseMirror expects block elements) and
+//    dispatch beforeinput with insertFromPaste (this is what enables Send)
 evalJS(`(function(){
-  const el = document.querySelector('div.msg-form__contenteditable');
-  el.innerText = 'MESSAGE_TEXT';
-  el.dispatchEvent(new InputEvent('input', { bubbles: true, data: 'MESSAGE_TEXT' }));
-  el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-  return 'typed';
-})()`.replace(/MESSAGE_TEXT/g, message));
+  var el = document.querySelector('div.msg-form__contenteditable');
+  el.focus();
+  var paragraphs = MESSAGE_LINES; // array of strings, "" for blank lines
+  var html = paragraphs.map(function(p) { return "<p>" + p + "</p>"; }).join("");
+  el.innerHTML = html;
+  el.dispatchEvent(new InputEvent("beforeinput", {
+    bubbles: true, cancelable: true,
+    inputType: "insertFromPaste",
+    data: paragraphs.join("\\n"),
+    dataTransfer: new DataTransfer()
+  }));
+  el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }));
+  return el.textContent.substring(0, 50);
+})()`);
 
-// 3. Wait for Send button to be enabled
-waitFor(`!document.querySelector("button[type='submit'].msg-form__send-button")?.disabled`, { timeout: 5000 });
+// 3. Wait for Send button to be enabled (check via snapshot or eval)
+evalJS(`!document.querySelector("button[type='submit'].msg-form__send-button")?.disabled`);
 
 // 4. Click Send (via eval, not ref)
 evalJS(`document.querySelector("button[type='submit'].msg-form__send-button").click()`);
 
-// 5. Verify: look for "TODAY" + "sent" in message list
-waitForText('TODAY', { timeout: 5000 });
+// 5. Verify: check that the message text appears in the thread
+evalJS(`document.body.innerText.includes("MESSAGE_SNIPPET")`);
 ```
+
+**What does NOT work** (tested 2026-08-10):
+- `el.innerText = text` + `InputEvent('input')` — Send stays disabled
+- `el.textContent = text` + `InputEvent('input')` — Send stays disabled
+- `document.execCommand('insertText', false, text)` — Send stays disabled
+- `playwright-cli fill <ref> <text>` — Send stays disabled
+- `playwright-cli type <text>` (after click) — Send stays disabled
+
+**What DOES work:**
+- `el.innerHTML = '<p>...</p>'` + `InputEvent('beforeinput', {inputType: 'insertFromPaste'})` — Send enables
 
 #### Connect with note
 
