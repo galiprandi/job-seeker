@@ -309,34 +309,68 @@ node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.j
 
 **Important:** The query ID (`messengerConversations.0d5e6781bbee71c3e51c8843c6519f48`) was valid as of Aug 2026. If the endpoint returns HTML instead of JSON, the query ID is stale. Re-extract it from `performance.getEntriesByType('resource')` after loading the messaging page.
 
-### Voyager send message endpoint (text only — no attachment)
+### Voyager send message endpoint (text + attachments)
 
-**Use this to send text messages without opening the compose UI.** One HTTP call sends the message and returns the conversation URN.
+**Use this to send messages without opening the compose UI.** Supports text-only and text+attachment, new conversations and replies.
 
-**Script:** `scripts/linkedin-send-new.js` — edit `RECIPIENT_ID` and `MESSAGE_TEXT` inside, then:
+**Script:** `scripts/linkedin-send.js` — unified script. Edit `MODE`, `RECIPIENT_ID`/`THREAD_ID`, `MESSAGE_TEXT`, and `FILE_B64` (base64-encoded file, empty = no attachment), then:
 ```bash
-node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send-new.js)"
+node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send.js)"
 ```
 
-**New conversation (first message to a connection):**
+**Text-only — new conversation (legacy endpoint):**
 - Endpoint: `POST /voyager/api/messaging/conversations?action=create`
-- Body: `{"keyVersion":"LEGACY_INBOX","conversationCreate":{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]}}}},"recipients":["<fsd_profile_id>"],"subtype":"MEMBER_TO_MEMBER"}}`
+- Headers: `csrf-token`, `x-restli-protocol-version: 2.0.0`, `accept: application/vnd.linkedin.normalized+json+2.1`, `content-type: application/json`
+- Body: `{"keyVersion":"LEGACY_INBOX","conversationCreate":{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]},"attachments":[]}}},"recipients":["<fsd_profile_id>"],"subtype":"MEMBER_TO_MEMBER"}}`
 - Returns: `{"data":{"value":{"createdAt":...,"conversationUrn":"urn:li:fs_conversation:2-...","backendConversationUrn":"urn:li:messagingThread:2-..."}}}`
+- The `2-XXXXX` part of `conversationUrn` is the `THREAD_ID` for future replies
 
-**Reply to existing conversation:**
+**Text-only — reply (legacy endpoint):**
 - Endpoint: `POST /voyager/api/messaging/conversations/{chatId}/events?action=create`
 - `chatId` = the `2-XXXXX` part of the threadId (URL-encoded)
-- Body: `{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]}}}}}`
+- Body: `{"eventCreate":{"value":{"com.linkedin.voyager.messaging.create.MessageCreate":{"attributedBody":{"text":"...","attributes":[]},"attachments":[]}}}}`
 
-**Headers (same as inbox):** `csrf-token`, `x-restli-protocol-version: 2.0.0`, `accept: application/vnd.linkedin.normalized+json+2.1`, `content-type: application/json`
+**With attachment — dash endpoint (WORKS, tested Aug 2026):**
+- Endpoint: `POST /voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage`
+- Headers: `csrf-token`, `x-restli-protocol-version: 2.0.0`, `accept: application/json`, `content-type: text/plain;charset=UTF-8` (NOT application/json)
+- `conversationUrn` format: `urn:li:msg_conversation:(urn:li:fsd_profile:<self_id>,<thread_id>)`
+- `trackingId`: 16 random bytes as string (binary, NOT a string UUID)
+- `originToken`: standard UUID v4
+- Body:
+```json
+{
+  "message": {
+    "body": {"attributes": [], "text": "..."},
+    "renderContentUnions": [
+      {
+        "file": {
+          "assetUrn": "urn:li:digitalmediaAsset:...",
+          "byteSize": <bytes>,
+          "mediaType": "application/pdf",
+          "name": "filename.pdf",
+          "url": "blob:https://www.linkedin.com/<uuid>"
+        }
+      }
+    ],
+    "conversationUrn": "urn:li:msg_conversation:(urn:li:fsd_profile:<self_id>,<thread_id>)",
+    "originToken": "<uuid-v4>"
+  },
+  "mailboxUrn": "urn:li:fsd_profile:<self_id>",
+  "trackingId": "<16 binary bytes>",
+  "dedupeByClientGeneratedToken": false
+}
+```
+- The `url` field is a `blob:` URL created via `URL.createObjectURL(fileBlob)`. It is required by the API even though it's a client-side URL.
+- The attachment goes in `renderContentUnions`, NOT in `attachments`. The `attachments` field is silently dropped by the dash endpoint.
+- Returns: `{"value":{"entityUrn":"urn:li:msg_message:...","backendConversationUrn":"urn:li:messagingThread:...","deliveredAt":...,"renderContentUnions":[{"file":{...}}]}}`
 
 **Recipient format:** `fsd_profile_id` (e.g. `ACoAA...`). Extract from profile page HTML: `document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g)` (most frequent match, excluding self).
 
-### Voyager upload attachment endpoint (works — but send with attachment does NOT)
+**Self profile ID:** same regex, most frequent match in the page HTML.
 
-**Upload works. Sending a message with the uploaded attachment via HTTP endpoint does NOT work.** The UI send uses WebSocket which cannot be replicated via fetch/XHR. For attachments, use the UI flow (see "Attach file" section below).
+### Voyager upload attachment endpoint
 
-**Upload flow (2 steps):**
+**Upload flow (3 steps):**
 
 Step 1 — Register upload:
 - Endpoint: `POST /voyager/api/voyagerVideoDashMediaUploadMetadata?action=upload`
@@ -347,19 +381,15 @@ Step 2 — Upload binary:
 - `PUT` to `singleUploadUrl` with `Content-Type: application/pdf` (or appropriate MIME) and raw file bytes as body
 - Returns HTTP 201 on success
 
-Step 3 — Poll status (optional):
-- `GET` the `pollingUrl` until `status["urn:li:digitalmediaRecipe:messaging-document"]` is `AVAILABLE`
+Step 3 — Wait for processing:
+- Wait 2-3 seconds, or `GET` the `pollingUrl` until `status["urn:li:digitalmediaRecipe:messaging-document"]` is `AVAILABLE`
+- The asset does NOT need to be `AVAILABLE` before sending — the dash endpoint accepts it immediately after upload
 
-**What does NOT work (tested Aug 2026):**
-- `POST /voyager/api/messaging/conversations?action=create` with `attachments` array → 500 `UNKNOWN_MESSAGING_PLATFORM_DOWNSTREAM_EXCEPTION` regardless of attachment structure (tried: `MessageAttachment` wrapper, flat fields, URN string array, `mediaArtifactUrn` vs `urn`, `mediaType: FILE`, `content-type: text/plain`)
-- `POST /voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage` → 400 (requires WebSocket-based tracking, `conversationUrn` format is strict, `trackingId` must be binary)
-- The real UI send uses **WebSocket** — confirmed by intercepting all fetch/XHR POSTs during a UI send with attachment: no messaging endpoint call was captured
+**Script:** `scripts/linkedin-upload.js` — register-only script (step 1). For the full flow (register + upload + send), use `scripts/linkedin-send.js` with `FILE_B64` set.
 
-**Conclusion:** For messages with attachments, use the UI flow. The endpoint is only useful for text-only messages.
+### Attach file (UI flow — fallback)
 
-### Attach file (UI flow — REQUIRED for attachments)
-
-Since the endpoint cannot send attachments, use the UI:
+If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 
 1. Navigate to the conversation thread
 2. Take snapshot, find `button "Attach a file to your conversation with <name>"` ref
