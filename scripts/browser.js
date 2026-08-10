@@ -133,7 +133,8 @@ const AUTH_STATE_PATH = path.join(PROFILE_DIR, 'auth-state.json');
 
 const DEBUG = process.env.BROWSER_DEBUG === '1';
 const LOCK_TIMEOUT_MS = parseInt(process.env.BROWSER_LOCK_TIMEOUT_MS || '60000', 10);
-const HEALTH_CHECK_TIMEOUT_MS = 3000;
+const HEALTH_CHECK_TIMEOUT_MS = parseInt(process.env.BROWSER_HEALTH_CHECK_TIMEOUT_MS || '10000', 10);
+const HEALTH_CHECK_RETRIES = parseInt(process.env.BROWSER_HEALTH_CHECK_RETRIES || '2', 10);
 
 // --- logging ---
 
@@ -249,34 +250,66 @@ function getSession(name) {
 
 /**
  * Health check: verify a session is responsive by running a trivial command.
- * Returns true if the session is alive, false if it's a zombie.
+ * Retries before declaring zombie. Returns true if alive, false if zombie.
  */
 function isSessionHealthy(sessionName) {
-  try {
-    execFileSync('playwright-cli', [`-s=${sessionName}`, 'eval', '1+1'], {
-      encoding: 'utf8',
-      timeout: HEALTH_CHECK_TIMEOUT_MS,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    debug(`isSessionHealthy: ${sessionName} is healthy`);
-    return true;
-  } catch (e) {
-    debug(`isSessionHealthy: ${sessionName} is NOT healthy: ${e.message}`);
-    return false;
+  for (let attempt = 1; attempt <= HEALTH_CHECK_RETRIES + 1; attempt++) {
+    try {
+      execFileSync('playwright-cli', [`-s=${sessionName}`, 'eval', '1+1'], {
+        encoding: 'utf8',
+        timeout: HEALTH_CHECK_TIMEOUT_MS,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      debug(`isSessionHealthy: ${sessionName} is healthy (attempt ${attempt})`);
+      return true;
+    } catch (e) {
+      debug(`isSessionHealthy: ${sessionName} attempt ${attempt} failed: ${e.message}`);
+      if (attempt <= HEALTH_CHECK_RETRIES) {
+        const waitMs = 1000 * attempt;
+        debug(`isSessionHealthy: retrying in ${waitMs}ms...`);
+        execFileSync('sleep', [String(waitMs / 1000)], { stdio: 'ignore' });
+      }
+    }
   }
+  return false;
 }
 
 /**
  * Get a healthy session. If the named session exists but is a zombie,
- * kill all sessions and return null so the caller can open a fresh one.
+ * kill ONLY that session (not all) and return null so the caller can reopen.
  */
 function getHealthySession(name) {
   const session = getSession(name);
   if (!session) return null;
   if (isSessionHealthy(session)) return session;
-  // Zombie session — clean up
+  // Zombie session — try to close just this session first
   console.error(`[browser] Session '${session}' is unresponsive (zombie). Cleaning up.`);
-  killAllSessions();
+  try {
+    execFileSync('playwright-cli', ['-s=' + session, 'close'], { cwd: REPO_ROOT, stdio: 'pipe', timeout: 5000 });
+    debug(`getHealthySession: closed session '${session}'`);
+  } catch {
+    // Fallback: kill all only if targeted close fails
+    debug(`getHealthySession: targeted close failed, falling back to kill-all`);
+    killAllSessions();
+  }
+  return null;
+}
+
+/**
+ * Get any healthy session from the active list. Tries each one until
+ * a healthy session is found. Used by attach() to find any live parent.
+ * Prefers 'default' if it exists and is healthy.
+ */
+function getAnyHealthySession() {
+  const sessions = getActiveSessions();
+  if (sessions.length === 0) return null;
+  // Prefer 'default' first
+  if (sessions.includes('default') && isSessionHealthy('default')) return 'default';
+  // Try others
+  for (const s of sessions) {
+    if (s === 'default') continue;
+    if (isSessionHealthy(s)) return s;
+  }
   return null;
 }
 
@@ -932,8 +965,8 @@ function main() {
       const sessionName = options.session || positionals[0];
       if (!sessionName) fail('attach requires a session name: node scripts/browser.js attach --session <name>');
 
-      // The parent session must exist and be healthy
-      const parentSession = getHealthySession('default');
+      // Find any healthy session to attach to (not just 'default')
+      const parentSession = getAnyHealthySession();
       if (!parentSession) {
         fail('No active browser to attach to. Run `open` first.');
       }
