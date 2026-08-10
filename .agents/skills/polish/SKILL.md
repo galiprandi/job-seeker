@@ -24,13 +24,13 @@ Takes the user's captured profile (`users.data.profile`) and job preferences (`u
 
 ```bash
 node scripts/browser.js attach --session polish-1
-node scripts/linkedin/profile-snapshot.js --session polish-1 --json
-node scripts/linkedin/edit-section.js --section headline --data '{"text":"..."}' --session polish-1
+node scripts/browser.js goto <url> --session polish-1
+node scripts/browser.js exec eval '<code>' --session polish-1
 node scripts/generate-cv.js --session polish-1
 node scripts/browser.js detach --session polish-1
 ```
 
-All scripts in this flow accept `--session`. Use `detach` when done (never `close` — it's ref-counted and would refuse or kill the browser for other agents). See AGENTS.md "Parallel execution".
+All browser commands and `generate-cv.js` accept `--session`. Use `detach` when done (never `close` — it's ref-counted and would refuse or kill the browser for other agents). See AGENTS.md "Parallel execution".
 
 ## Gate de validacion (pre-flight obligatorio)
 
@@ -68,24 +68,42 @@ node scripts/db.js "SELECT data->'linkedin_profile' AS url FROM users WHERE id =
 
 1. Load from DB: `profile`, `job_preferences`, `linkedin_profile`, `style_profile`, `strategy` (for strategy_level)
 2. Navigate to the user's LinkedIn profile: `node scripts/browser.js goto <linkedin_profile_url>`
-3. Extract current state of each section using `scripts/linkedin/profile-snapshot.js`:
-   - Headline (title under photo)
-   - About (summary)
-   - Experience (each role: title, company, period, description)
-   - Education
-   - Skills (list + top 3 pinned)
-   - Featured (if any)
-   - Open to work (if active, which roles)
-   - Languages
-   - Certifications
-4. Save snapshot to DB: `users.data.linkedin_snapshot`
-5. **Gap analysis:** compare current state vs objectives:
+3. Take a snapshot to understand the current page structure: `node scripts/browser.js exec snapshot`
+4. Extract current state of each section using `eval` (adapt selectors to what you see in the snapshot):
+   ```bash
+   node scripts/browser.js exec eval '(function(){
+     // Adapt selectors based on current LinkedIn DOM.
+     // LinkedIn changes their UI frequently, so read the snapshot first
+     // and adjust these selectors as needed.
+     var headline = document.querySelector("h1")?.textContent?.trim() || "";
+     var about = document.querySelector("#about ~ * .display-text, #about + * .inline-show-more-text")?.textContent?.trim() || "";
+     // Experience: iterate over section entries
+     var expNodes = document.querySelectorAll("#experience ~ * .pvs-entity, [data-view-name*='experience'] .pvs-entity");
+     var experience = Array.from(expNodes).map(function(n) {
+       return {
+         title: n.querySelector(".t-14 .t-bold span")?.textContent?.trim() || "",
+         company: n.querySelector(".t-14:not(.t-bold) span")?.textContent?.trim() || "",
+         description: n.querySelector(".t-14.t-normal.t-black--light span")?.textContent?.trim() || ""
+       };
+     });
+     // Skills
+     var skillNodes = document.querySelectorAll("#skills ~ * .pvs-entity, [data-view-name*='skill'] .pvs-entity");
+     var skills = Array.from(skillNodes).map(function(n) {
+       return n.querySelector(".t-14 .t-bold span")?.textContent?.trim() || "";
+     }).filter(Boolean);
+     return JSON.stringify({ headline: headline, about: about, experience: experience, skills: skills });
+   })()'
+   ```
+   - The eval code above is a **starting point**. Always take a snapshot first and adapt selectors to the current DOM. LinkedIn changes their class names frequently.
+   - Extract: headline, about, experience (each role: title, company, period, description), education, skills (list + top 3 pinned), featured, open to work (if active, which roles), languages, certifications
+5. Save snapshot to DB: `users.data.linkedin_snapshot`
+6. **Gap analysis:** compare current state vs objectives:
    - Does headline reflect target role + AI focus?
    - Does About have a clear pitch aligned to `job_preferences.role_types` and `ai_focus`?
    - Does Experience have quantified achievements or just task descriptions?
    - Do Skills include those from `job_preferences.stack` and AI-related skills?
    - Is Open to Work active with the correct roles (if strategy is `active`/`aggressive`)?
-6. Present gap report to user with specific recommendations
+7. Present gap report to user with specific recommendations
 
 ### 1b. Apply improvements (with per-section approval)
 
@@ -100,7 +118,7 @@ For each section with gaps, **draft all changes** for that section and **show th
 **Per-section approval flow:**
 - Show all changes for the section (before → after for each field)
 - User approves the entire section, rejects it, or requests edits
-- If approved: navigate to the section's edit URL, apply all changes via `scripts/linkedin/edit-section.js`
+- If approved: navigate to the section's edit URL, apply changes via `eval` (see below)
 - Save each applied change to `users.data.linkedin_polish_log` (audit trail with before/after)
 
 ### LinkedIn edit URLs
@@ -112,7 +130,39 @@ LinkedIn uses direct URLs to edit each section:
 - Skills: `https://www.linkedin.com/in/<vanity>/edit/details/skills/`
 - Open to work: `https://www.linkedin.com/in/<vanity>/edit/details/recruiteroptin/`
 
-LinkedIn editors are contenteditable (tiptap/slate). Use `scripts/lib/playwright-helpers.js` patterns (`fillContenteditable`, `clickWithEvents`).
+### How to edit LinkedIn sections via eval
+
+LinkedIn editors are contenteditable (tiptap/slate). The agent interacts with them via `node scripts/browser.js exec eval '<code>'`. Always take a snapshot first to find the correct refs/selectors, then:
+
+1. **Click the edit button** (pencil icon) via eval:
+   ```bash
+   node scripts/browser.js exec eval 'document.querySelector("button[aria-label*=\"Edit\"]").click()'
+   ```
+2. **Fill the input/contenteditable** with the new text:
+   ```bash
+   # For text inputs (headline):
+   node scripts/browser.js exec eval '(function(){
+     var input = document.querySelector("input[type=\"text\"]");
+     input.value = "<new headline text>";
+     input.dispatchEvent(new Event("input", {bubbles: true}));
+     input.dispatchEvent(new Event("change", {bubbles: true}));
+   })()'
+
+   # For contenteditable (about, experience descriptions):
+   node scripts/browser.js exec eval '(function(){
+     var editor = document.querySelector("[contenteditable=\"true\"]");
+     editor.focus();
+     editor.textContent = "<new text>";
+     editor.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "insertText"}));
+     editor.dispatchEvent(new Event("change", {bubbles: true}));
+   })()'
+   ```
+3. **Click Save** via eval:
+   ```bash
+   node scripts/browser.js exec eval 'document.querySelector("button[type=\"submit\"], button[aria-label*=\"Save\"]").click()'
+   ```
+
+These are **starting points**. Always take a snapshot after navigating to the edit page and adapt selectors to what you see. LinkedIn's DOM changes frequently. The agent's advantage over a hardcoded script is that it can adapt to the current DOM in real time.
 
 ## Phase 2 — CV optimization
 
@@ -210,39 +260,17 @@ Existing keys that get updated:
 
 ## Scripts
 
-### `scripts/linkedin/profile-snapshot.js`
-
-Extracts the current LinkedIn profile state via browser automation. Returns JSON with all sections.
-
-```bash
-node scripts/linkedin/profile-snapshot.js [--session <name>] [--json]
-```
-
-Reads from the browser page (must be on the user's LinkedIn profile page). Outputs JSON to stdout.
-
-### `scripts/linkedin/edit-section.js`
-
-Edits a specific section of the LinkedIn profile. Handles navigation to edit URLs, contenteditable interaction, and save.
-
-```bash
-node scripts/linkedin/edit-section.js --section <headline|about|experience|skills|open-to-work> --data <json> [--session <name>]
-```
-
-`--data` is a JSON string with the new content for the section. Format depends on the section:
-- `headline`: `{"text": "<new headline>"}`
-- `about`: `{"text": "<new about text>"}`
-- `experience`: `{"roles": [{"id": "<role_id>", "description": "<new description>"}]}`
-- `skills`: `{"pinned": ["<skill1>", "<skill2>", "<skill3>"], "add": ["<skill4>"]}`
-
 ### `scripts/generate-cv.js`
 
 Converts `cv_markdown` from DB (or `--markdown <path>`) to a PDF via browser headless.
 
 ```bash
-node scripts/generate-cv.js [--output <path>] [--markdown <path>]
+node scripts/generate-cv.js [--output <path>] [--markdown <path>] [--session <name>]
 ```
 
 If `--markdown` is not provided, reads `users.data.cv_markdown` from DB. If `--output` is not provided, saves to `.browser-profile/cv-polished-<timestamp>.pdf`. Updates `users.data.cv_path` in DB after generating.
+
+This is the only script in the polish flow. LinkedIn profile audit and editing are done directly by the agent via `node scripts/browser.js exec eval` and `node scripts/browser.js exec snapshot`, which allows the agent to adapt to LinkedIn's DOM in real time rather than relying on hardcoded selectors.
 
 ## Dependencies
 

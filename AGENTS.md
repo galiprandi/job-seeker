@@ -290,7 +290,7 @@ Multiple flows can run in parallel by using **attached sessions**. Each parallel
 
 **Rules for parallel execution:**
 
-- Every script that touches the browser MUST accept and pass `--session`. All scripts in `scripts/` now do (linkedin-easy-apply, linkedin-search, linkedin-invite, gmail-send, linkedin/profile-snapshot, linkedin/edit-section, generate-cv)
+- Every script that touches the browser MUST accept and pass `--session`. All scripts in `scripts/` now do (linkedin-easy-apply, linkedin-search, linkedin-invite, gmail-send, generate-cv)
 - Never call `close` or `close-all` from a parallel agent — use `detach`. Close is ref-counted and will refuse unless you use `--force` (which kills the browser for all agents)
 - Use `node scripts/browser.js who` to check which agents are active before closing
 - Each session should use its own tab (`--tab <name>`) to avoid navigation conflicts within the same session
