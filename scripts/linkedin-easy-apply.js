@@ -12,6 +12,7 @@
  *   node scripts/linkedin-easy-apply.js --keywords '"AI Engineer" OR "GenAI"'
  *   node scripts/linkedin-easy-apply.js --max 5                  # limit to 5 jobs
  *   node scripts/linkedin-easy-apply.js --dry-run                # list jobs without applying
+ *   node scripts/linkedin-easy-apply.js --session apply-1         # use a specific browser session
  *
  * Flags:
  *   --keywords <q>   Search keywords (default: derived from DB profile.title + profile.skills)
@@ -19,6 +20,7 @@
  *   --max <n>        Max jobs to apply (default: 10)
  *   --dry-run        List matching jobs without applying
  *   --json           Output results as JSON
+ *   --session <name> Browser session name (default: "default". Use a different name to run in parallel with other agents via attach)
  *
  * Exit codes:
  *   0 = success
@@ -31,9 +33,12 @@ const { execSync } = require('child_process');
 
 // --- Helpers ---
 
+let SESSION = 'default'; // set by --session flag in main()
+
 function cli(args, timeout = 30000) {
+  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${args}`, {
+    return execSync(`playwright-cli ${sessionFlag}${args}`, {
       encoding: 'utf-8',
       timeout,
       cwd: __dirname,
@@ -71,7 +76,7 @@ function selectOption(ref, value) {
 }
 
 function goto(url) {
-  helperGoto(url);
+  helperGoto(url, { session: SESSION });
 }
 
 function dbQuery(sql) {
@@ -182,7 +187,7 @@ function findEasyApplyJobsFromDOM() {
         url: linkEl ? linkEl.href : '',
       };
     }).filter(j => j.role));
-  })()`) || [];
+  })()`, { session: SESSION }) || [];
 }
 
 function applyToJob(jobRef, userData) {
@@ -411,6 +416,7 @@ function main() {
     else if (args[i] === '--max' && args[i + 1]) { maxJobs = parseInt(args[i + 1], 10); i++; }
     else if (args[i] === '--dry-run') dryRun = true;
     else if (args[i] === '--json') jsonOutput = true;
+    else if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; i++; }
   }
 
   // Load user data and form answers from DB
@@ -434,7 +440,7 @@ function main() {
   goto(searchUrl);
 
   // Wait for job cards to load (in-page polling, not shell sleep)
-  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item").length > 0', { timeout: 10000 });
+  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item").length > 0', { timeout: 10000, session: SESSION });
 
   // Try DOM extraction first (more reliable, gets all cards)
   let jobs = findEasyApplyJobsFromDOM();

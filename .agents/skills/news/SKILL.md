@@ -55,11 +55,13 @@ Also runs in parallel when the user launches an application.
 └─────────────────────────────────────────────────────┘
 ```
 
-**Important:** subagents share the same browser session. To avoid conflicts:
-- Gmail subagent and LinkedIn subagent use **separate tabs** (`tab-new`) or the orchestrator opens Gmail in one tab and LinkedIn in another before dispatching
-- Alternatively, the orchestrator collects Gmail first (tab 0), then dispatches the LinkedIn subagent with instructions to open a new tab
+**Important:** subagents share the same browser. To avoid conflicts, use **attached sessions** with `--session` (see AGENTS.md "Parallel execution"):
+- Gmail subagent: `node scripts/browser.js attach --session news-gmail` then `node scripts/browser.js goto <url> --session news-gmail`
+- LinkedIn subagent: `node scripts/browser.js attach --session news-linkedin` then `node scripts/browser.js goto <url> --session news-linkedin`
+- Alternatively, use **separate tabs** within the same session (`tab-new`) if subagents can't use separate sessions
 - DB subagent doesn't need browser, only `scripts/db.js`
-- Scheduling link subagent opens each link in a new tab
+- Scheduling link subagent: `node scripts/browser.js attach --session news-sched` then opens each link with `--session news-sched`
+- When done: `node scripts/browser.js detach --session news-gmail` (never `close` — it's ref-counted and would refuse or kill the browser for other agents)
 
 **If subagents are NOT available** (e.g: tool not supported, single foreground agent constraint), fall back to sequential collection as before. The flow must work in both modes.
 

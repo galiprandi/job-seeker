@@ -166,6 +166,7 @@ The system has 9 flows + 1 cross-cutting behavior + 1 dashboard. Each flow has a
 | Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
 | Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel, stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
+| Polish | `.agents/skills/polish/` | `polish` | Optimizes LinkedIn profile (headline, about, experience, skills, open-to-work) and redacts an improved CV aligned to user's goals. Exports CV to PDF via headless browser. Per-section approval | After profile exists. User says `polish`, "mejorar mi linkedin", "pulir perfil", "alinear cv" |
 
 ### Sourcing pillars
 
@@ -185,6 +186,8 @@ onboarding → profile → strategy
             radar, apply, targets → news ← (consumes radar alerts)
                 ↓                       ↑
                 └─────── daily ─────────┘
+                          ↑
+                        polish (depends on profile + onboarding)
 ```
 
 - `onboarding` must run before anything else. Without `.env` and DB nothing works. Also sets `browser_mode`, `strategy_level`, and `availability` (interview time preferences).
@@ -195,6 +198,7 @@ onboarding → profile → strategy
 - `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages.
 - `apply` depends on `profile` (to filter by Must-haves) and `onboarding` (DB to register).
 - `daily` composes `news` + `apply`/`targets` with decision logic based on `SELECT max(applied_at) FROM applications`. Which pillars it activates depends on `strategy.sources_active`.
+- `polish` depends on `profile` (needs `users.data.profile` and `job_preferences`) and `onboarding` (DB, browser, LinkedIn session). Optimizes LinkedIn profile and CV. `apply`/`targets` can consume `cv_markdown` and `cv_path` from `polish` for future tailoring.
 - `memory` is cross-cutting: runs during every flow (detection) and at every pre-flight (injection). Depends on `onboarding` (DB). Implements Gold Rule 3. Can detect strategy-level changes ("me despidieron" → propose `active`).
 
 ### Tools
@@ -203,10 +207,10 @@ onboarding → profile → strategy
 |---|---|---|
 | `playwright-cli` | `.agents/skills/browser-ops/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `.agents/skills/browser-ops/SKILL.md` for full wrapper reference, patterns, and script documentation. |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
-| `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results |
-| `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command |
-| `linkedin-easy-apply` | `scripts/linkedin-easy-apply.js` | Search + apply to Easy Apply jobs automatically. Fills forms with standard answers, handles radios/comboboxes/checkboxes, registers in DB. `--dry-run` to preview, `--max <n>` to limit |
-| `gmail-send` | `scripts/gmail-send.js` | Send emails via Gmail web UI with CV attached. `--to`, `--subject`, `--body`/`--body-file`, `--cv`, `--no-cv`, `--cc`, `--bcc`. Supports ES/EN UI |
+| `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
+| `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command. `--session <name>` for parallel execution |
+| `linkedin-easy-apply` | `scripts/linkedin-easy-apply.js` | Search + apply to Easy Apply jobs automatically. Fills forms with standard answers, handles radios/comboboxes/checkboxes, registers in DB. `--dry-run` to preview, `--max <n>` to limit, `--session <name>` for parallel execution |
+| `gmail-send` | `scripts/gmail-send.js` | Send emails via Gmail web UI with CV attached. `--to`, `--subject`, `--body`/`--body-file`, `--cv`, `--no-cv`, `--cc`, `--bcc`. Supports ES/EN UI. `--session <name>` for parallel execution |
 | `pipeline` | `scripts/pipeline.js` | Kanban board CLI. Prints pipeline grouped by stage. `--move <id> <stage>`, `--funnel`, `--card <id>`, `--stage <stage>`, `--company <name>`, `--closed`. No dependencies beyond `pg` |
 
 ### Documentation reference matrix
@@ -236,6 +240,61 @@ onboarding → profile → strategy
 - `.env`, `.browser-profile/`, `.playwright-cli/` not tracked
 - Job platforms = output of analysis, never user input
 - **Consult `DATA.md` before assuming where data lives.** Never guess or discover by querying blindly. The data map is the source of truth for tables, JSONB keys, and flow ownership
+
+### Parallel execution
+
+Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `.agents/skills/browser-ops/SKILL.md`).
+
+**How to run flows in parallel:**
+
+1. The first agent opens the browser normally (creates the primary session):
+   ```bash
+   node scripts/browser.js open "https://www.linkedin.com" --headed
+   ```
+
+2. Each additional agent attaches a session with a unique name:
+   ```bash
+   node scripts/browser.js attach --session apply-1
+   node scripts/browser.js attach --session news-1
+   ```
+
+3. Each agent passes `--session <name>` to every script it runs:
+   ```bash
+   node scripts/linkedin-easy-apply.js --max 10 --session apply-1
+   node scripts/linkedin-search.js '"<Role>" "hiring"' --json --session news-1
+   node scripts/gmail-send.js --to <email> --subject "..." --body "..." --session news-1
+   ```
+
+4. All browser wrapper commands accept `--session`:
+   ```bash
+   node scripts/browser.js goto <url> --session apply-1
+   node scripts/browser.js exec snapshot --session apply-1
+   node scripts/browser.js exec eval '<code>' --session news-1
+   ```
+
+5. When done, detach (not close — close is ref-counted and refuses if other agents are active):
+   ```bash
+   node scripts/browser.js detach --session apply-1
+   ```
+
+**Which flows can run in parallel:**
+
+| Combination | Compatible? | Notes |
+|---|---|---|
+| `apply` + `news` | Yes | Different sites (LinkedIn Jobs vs Gmail/LinkedIn Messaging). Use `--session apply-1` and `--session news-1` |
+| `apply` + `targets` | Yes | Both use LinkedIn/career sites but different pages. Use separate sessions and tabs |
+| `news` + `polish` | Yes | Gmail/LinkedIn Messaging vs LinkedIn profile editing. No overlap |
+| `daily` + anything | No | `daily` composes `news` + `apply`/`targets` internally. Don't run it alongside its sub-flows |
+| `polish` + `apply` | Yes | Profile editing vs job search. Different LinkedIn pages |
+| `onboarding` + anything | No | Onboarding sets up the browser profile. Must complete first |
+
+**Rules for parallel execution:**
+
+- Every script that touches the browser MUST accept and pass `--session`. All scripts in `scripts/` now do (linkedin-easy-apply, linkedin-search, linkedin-invite, gmail-send, linkedin/profile-snapshot, linkedin/edit-section, generate-cv)
+- Never call `close` or `close-all` from a parallel agent — use `detach`. Close is ref-counted and will refuse unless you use `--force` (which kills the browser for all agents)
+- Use `node scripts/browser.js who` to check which agents are active before closing
+- Each session should use its own tab (`--tab <name>`) to avoid navigation conflicts within the same session
+- DB access is safe in parallel (Postgres handles concurrent connections)
 
 ### User job input mechanisms
 
