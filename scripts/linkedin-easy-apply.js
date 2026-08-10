@@ -43,6 +43,13 @@ function cli(args, timeout = 30000) {
   }
 }
 
+// Use helpers from lib/ for resilient browser operations
+const {
+  goto: helperGoto,
+  evalJSON,
+  waitFor,
+} = require('../lib/browser-helpers');
+
 function snapshot() {
   return cli('snapshot');
 }
@@ -64,7 +71,7 @@ function selectOption(ref, value) {
 }
 
 function goto(url) {
-  execSync(`node ${__dirname}/browser.js goto "${url}"`, { stdio: 'pipe', cwd: __dirname });
+  helperGoto(url);
 }
 
 function dbQuery(sql) {
@@ -132,14 +139,14 @@ function findEasyApplyJobs(snap) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Job title: "- strong [ref=fXXXX]: Job Title"
-    const strongMatch = line.match(/- strong \[ref=(f[0-9a-f]+)\]: (.+)/);
+    // Job title: "- strong [ref=eXXXX]: Job Title"
+    const strongMatch = line.match(/- strong \[ref=([a-z][0-9a-z]+)\]: (.+)/);
     if (strongMatch) {
       strongRefs[strongMatch[1]] = strongMatch[2].trim();
     }
 
     // Easy Apply button: "button "Easy Apply to <role> at <company>""
-    const btnMatch = line.match(/button "Easy Apply to (.+?) at (.+?)" \[ref=(f[0-9a-f]+)\]/);
+    const btnMatch = line.match(/button "Easy Apply to (.+?) at (.+?)" \[ref=([a-z][0-9a-z]+)\]/);
     if (btnMatch) {
       jobs.push({
         role: btnMatch[1],
@@ -150,6 +157,32 @@ function findEasyApplyJobs(snap) {
   }
 
   return jobs;
+}
+
+/**
+ * Extract jobs from the job list (left panel) using eval.
+ * More reliable than snapshot parsing: reads all cards, not just the expanded one.
+ * Returns [{role, company, easyApply, url}].
+ */
+function findEasyApplyJobsFromDOM() {
+  return evalJSON(`(function(){
+    const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item');
+    if (cards.length === 0) return JSON.stringify([]);
+    return JSON.stringify(Array.from(cards).map(c => {
+      const titleEl = c.querySelector('h3, .job-title, .job-card-list__title');
+      const companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name');
+      const linkEl = c.querySelector('a[href*="/jobs/view/"]');
+      // Easy Apply badge: check text, aria-label, and button class
+      const hasEasyApplyText = c.textContent.includes('Easy Apply') || c.textContent.includes('Solicitud sencilla');
+      const hasEasyApplyBtn = !!c.querySelector('button[aria-label*="Easy Apply"], button[aria-label*="Solicitud sencilla"], .job-card-container__easy-apply, .jobs-apply-button');
+      return {
+        role: titleEl ? titleEl.textContent.trim() : '',
+        company: companyEl ? companyEl.textContent.trim() : '',
+        easyApply: hasEasyApplyText || hasEasyApplyBtn,
+        url: linkEl ? linkEl.href : '',
+      };
+    }).filter(j => j.role));
+  })()`) || [];
 }
 
 function applyToJob(jobRef, userData) {
@@ -176,7 +209,7 @@ function applyToJob(jobRef, userData) {
     }
 
     // Fill required text fields
-    const textFields = snap.matchAll(/- textbox "(.+?)(\*)?"(?: \[ref=(f[0-9a-f]+)\])?(?:: "(.+)")?/g);
+    const textFields = snap.matchAll(/- textbox "(.+?)(\*)?"(?: \[ref=([a-z][0-9a-z]+)\])?(?:: "(.+)")?/g);
     for (const field of textFields) {
       const [, label, required, ref, existingValue] = field;
       if (!ref || existingValue) continue; // skip if already filled or no ref
@@ -213,7 +246,7 @@ function applyToJob(jobRef, userData) {
     }
 
     // Select required comboboxes (only if "Select an option" is selected)
-    const comboMatches = [...snap.matchAll(/- combobox "(.+?)(\*)?" \[ref=(f[0-9a-f]+)\]:?\n((?:.+\n){0,10})/g)];
+    const comboMatches = [...snap.matchAll(/- combobox "(.+?)(\*)?" \[ref=([a-z][0-9a-z]+)\]:?\n((?:.+\n){0,10})/g)];
     for (const combo of comboMatches) {
       const [, label, required, ref, optionsBlock] = combo;
       if (!optionsBlock.includes('Select an option')) continue; // already has a selection
@@ -252,7 +285,7 @@ function applyToJob(jobRef, userData) {
     }
 
     // Click required radio buttons (Yes/No groups)
-    const radioGroups = [...snap.matchAll(/- group "(.+?)(\*)?" \[ref=(f[0-9a-f]+)\]:[\s\S]*?(?=- group |- heading |- paragraph)/g)];
+    const radioGroups = [...snap.matchAll(/- group "(.+?)(\*)?" \[ref=([a-z][0-9a-z]+)\]:[\s\S]*?(?=- group |- heading |- paragraph)/g)];
     for (const group of radioGroups) {
       const [, label, required, groupRef] = group;
       const block = group[0];
@@ -277,7 +310,7 @@ function applyToJob(jobRef, userData) {
       if (labelLower.includes('consent') || labelLower.includes('future job')) targetLabel = ANSWERS.consent_future_jobs || 'Yes';
 
       // Find the generic label ref for the target option
-      const targetRegex = new RegExp(`- generic \\[ref=(f[0-9a-f]+)\\]: "?${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?`);
+      const targetRegex = new RegExp(`- generic \\[ref=([a-z][0-9a-z]+)\\]: "?${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?`);
       const targetMatch = block.match(targetRegex);
       if (targetMatch) {
         click(targetMatch[1]);
@@ -286,7 +319,7 @@ function applyToJob(jobRef, userData) {
     }
 
     // Check required checkboxes and click them
-    const checkboxMatches = [...snap.matchAll(/- generic \[ref=(f[0-9a-f]+)\]:\s*\n\s*- checkbox "(.+?)"/g)];
+    const checkboxMatches = [...snap.matchAll(/- generic \[ref=([a-z][0-9a-z]+)\]:\s*\n\s*- checkbox "(.+?)"/g)];
     for (const cb of checkboxMatches) {
       const [block, ref, label] = cb;
       if (block.includes('[checked]')) continue;
@@ -297,11 +330,11 @@ function applyToJob(jobRef, userData) {
     // Find and click Continue/Review/Submit button
     let actionRef = null;
     if (snap.includes('Submit application')) {
-      actionRef = extractRef(snap, /button "Submit application" \[ref=(f[0-9a-f]+)\]/);
+      actionRef = extractRef(snap, /button "Submit application" \[ref=([a-z][0-9a-z]+)\]/);
     } else if (snap.includes('Review your application')) {
-      actionRef = extractRef(snap, /button "Review your application" \[ref=(f[0-9a-f]+)\]/);
+      actionRef = extractRef(snap, /button "Review your application" \[ref=([a-z][0-9a-z]+)\]/);
     } else if (snap.includes('Continue to next step')) {
-      actionRef = extractRef(snap, /button "Continue to next step" \[ref=(f[0-9a-f]+)\]/);
+      actionRef = extractRef(snap, /button "Continue to next step" \[ref=([a-z][0-9a-z]+)\]/);
     }
 
     if (actionRef) {
@@ -399,10 +432,18 @@ function main() {
   const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&f_AL=true&f_WT=2&sortBy=DD`;
 
   goto(searchUrl);
-  sleep(5000);
 
-  const snap = snapshot();
-  const jobs = findEasyApplyJobs(snap);
+  // Wait for job cards to load (in-page polling, not shell sleep)
+  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item").length > 0', { timeout: 10000 });
+
+  // Try DOM extraction first (more reliable, gets all cards)
+  let jobs = findEasyApplyJobsFromDOM();
+
+  // Fallback to snapshot parsing if DOM extraction failed
+  if (jobs.length === 0) {
+    const snap = snapshot();
+    jobs = findEasyApplyJobs(snap);
+  }
 
   if (jobs.length === 0) {
     if (jsonOutput) console.log('[]');
@@ -432,7 +473,7 @@ function main() {
 
     // Click the job title first to load it, then click Easy Apply
     const currentSnap = snapshot();
-    const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=(f[0-9a-f]+)\\]: ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     if (titleRef) {
       click(titleRef);
       sleep(3000);
@@ -440,7 +481,7 @@ function main() {
 
     // Re-find the Easy Apply button (refs change after navigation)
     const jobSnap = snapshot();
-    const easyApplyRef = extractRef(jobSnap, new RegExp(`button "Easy Apply to ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?" \\[ref=(f[0-9a-f]+)\\]`));
+    const easyApplyRef = extractRef(jobSnap, new RegExp(`button "Easy Apply to ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?" \\[ref=([a-z][0-9a-z]+)\\]`));
     if (!easyApplyRef) {
       console.log('NO EASY APPLY BUTTON');
       results.push({ ...job, status: 'no_button' });
