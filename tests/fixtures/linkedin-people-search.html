@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LinkedIn People Search Fixture</title>
+</head>
+<body>
+<!--
+  Fixture built from real LinkedIn People search DOM snapshots
+  (see .playwright-cli/page-2026-08-04T03-15-59-786Z.yml and
+   .playwright-cli/page-2026-08-04T03-15-08-676Z.yml).
+
+  Structure per result listitem:
+    <li role="listitem">
+      <div>
+        <a href="/in/<vanity>/"><figure><img/></figure></a>  <!-- profile photo link -->
+        <div>
+          <a href="/in/<vanity>/"></a>                       <!-- empty profile link -->
+          <div>
+            <a href="/in/<vanity>/"></a>                     <!-- another wrapper link -->
+            <div>
+              <a href="/in/<vanity>/"><figure><img/></figure></a>  <!-- avatar link -->
+              <div>
+                <a href="/in/<vanity>/"></a>
+                <p>
+                  <a href="/in/<vanity>/"></a>
+                  <a href="/in/<vanity>/" class="name-link">Jane Doe</a>  <!-- name -->
+                  <span>&bull; 2nd</span>                                  <!-- degree -->
+                </p>
+                <p>Staff Engineer at Stripe</p>                            <!-- title/headline -->
+                <p>San Francisco, CA</p>                                   <!-- location -->
+              </div>
+            </div>
+            <div>
+              <figure></figure>
+              <figure></figure>
+              <div>
+                <p>
+                  <span>
+                    <a href="/in/mutual1/">Mutual One</a>,
+                    <a href="/in/mutual2/">Mutual Two</a>
+                    &amp;<a href="/search/results/people/?origin=SHARED_CONNECTIONS">23 other mutual connections</a>
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+-->
+<main>
+  <region aria-label="Primary content">
+    <ul role="list">
+      <!-- Result 1: 2nd degree, full title -->
+      <li role="listitem">
+        <div>
+          <a href="https://www.linkedin.com/in/jane-doe/"><figure><img alt="View Jane Doe's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+          <div>
+            <a href="https://www.linkedin.com/in/jane-doe/"></a>
+            <div>
+              <a href="https://www.linkedin.com/in/jane-doe/"></a>
+              <div>
+                <a href="https://www.linkedin.com/in/jane-doe/"><figure><img alt="View Jane Doe's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+                <div>
+                  <a href="https://www.linkedin.com/in/jane-doe/"></a>
+                  <p>
+                    <a href="https://www.linkedin.com/in/jane-doe/"></a>
+                    <a href="https://www.linkedin.com/in/jane-doe/">Jane Doe</a>
+                    <span>&bull; 2nd</span>
+                  </p>
+                  <p>Staff Engineer at Stripe</p>
+                  <p>San Francisco, CA</p>
+                </div>
+              </div>
+              <div>
+                <figure></figure>
+                <figure></figure>
+                <div>
+                  <p>
+                    <span>
+                      <a href="https://www.linkedin.com/in/mutual-one/">Mutual One</a>,
+                      <a href="https://www.linkedin.com/in/mutual-two/">Mutual Two</a>
+                      &amp;<a href="https://www.linkedin.com/search/results/people/?origin=SHARED_CONNECTIONS">15 other mutual connections</a>
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <!-- Result 2: 3rd+ degree, recruiter title -->
+      <li role="listitem">
+        <div>
+          <a href="https://www.linkedin.com/in/john-smith/"><figure><img alt="View John Smith's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+          <div>
+            <a href="https://www.linkedin.com/in/john-smith/"></a>
+            <div>
+              <a href="https://www.linkedin.com/in/john-smith/"></a>
+              <div>
+                <a href="https://www.linkedin.com/in/john-smith/"><figure><img alt="View John Smith's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+                <div>
+                  <a href="https://www.linkedin.com/in/john-smith/"></a>
+                  <p>
+                    <a href="https://www.linkedin.com/in/john-smith/"></a>
+                    <a href="https://www.linkedin.com/in/john-smith/">John Smith</a>
+                    <span>&bull; 3rd+</span>
+                  </p>
+                  <p>Senior Technical Recruiter at Stripe</p>
+                  <p>New York, NY</p>
+                </div>
+              </div>
+              <div>
+                <figure></figure>
+                <figure></figure>
+                <div>
+                  <p>
+                    <span>
+                      <a href="https://www.linkedin.com/in/mutual-three/">Mutual Three</a>
+                      &amp;<a href="https://www.linkedin.com/search/results/people/?origin=SHARED_CONNECTIONS">5 other mutual connections</a>
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <!-- Result 3: 1st degree, hiring manager title -->
+      <li role="listitem">
+        <div>
+          <a href="https://www.linkedin.com/in/alice-wonder/"><figure><img alt="View Alice Wonder's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+          <div>
+            <a href="https://www.linkedin.com/in/alice-wonder/"></a>
+            <div>
+              <a href="https://www.linkedin.com/in/alice-wonder/"></a>
+              <div>
+                <a href="https://www.linkedin.com/in/alice-wonder/"><figure><img alt="View Alice Wonder's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+                <div>
+                  <a href="https://www.linkedin.com/in/alice-wonder/"></a>
+                  <p>
+                    <a href="https://www.linkedin.com/in/alice-wonder/"></a>
+                    <a href="https://www.linkedin.com/in/alice-wonder/">Alice Wonder</a>
+                    <span>&bull; 1st</span>
+                  </p>
+                  <p>Engineering Manager at Stripe</p>
+                  <p>San Francisco, CA</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <!-- Result 4: 2nd degree, no degree marker (edge case) -->
+      <li role="listitem">
+        <div>
+          <a href="https://www.linkedin.com/in/bob-builder/"><figure><img alt="View Bob Builder's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+          <div>
+            <div>
+              <div>
+                <a href="https://www.linkedin.com/in/bob-builder/"><figure><img alt="View Bob Builder's profile" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></figure></a>
+                <div>
+                  <a href="https://www.linkedin.com/in/bob-builder/"></a>
+                  <p>
+                    <a href="https://www.linkedin.com/in/bob-builder/">Bob Builder</a>
+                  </p>
+                  <p>Director of Engineering at Stripe</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <!-- Non-result listitem (navigation) — should be filtered out by vanity+name check -->
+      <li role="listitem">
+        <button>For Business</button>
+      </li>
+    </ul>
+  </region>
+</main>
+</body>
+</html>

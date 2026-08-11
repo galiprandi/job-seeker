@@ -102,9 +102,9 @@ The job search has configurable aggressiveness. The agent asks the user about th
 | Level | Situation | apply_batch | targets_batch | daily_freq | match_threshold | follow_up_days | relax_must_haves | cold_outreach | sources |
 |---|---|---|---|---|---|---|---|---|---|
 | `passive` | Employed, open to opportunities | 0 | 0 | on-demand | Must only | 7 | none | false | radar, news |
-| `selective` | Employed, looking for better | 5 | 5 | 1x/day | Must only | 5 | none | false | radar, apply, targets, news |
-| `active` | Unemployed or about to be | 10 | 10 | 2x/day | Must+Strong | 3 | manager (accept IC if AI focus strong) | true | radar, apply, targets, news |
-| `aggressive` | Needs a job now | 15 | all | 2x/day | Must+Strong+Nice | 2 | manager + remote (accept hybrid if project is great) | true | radar, apply, targets, news |
+| `selective` | Employed, looking for better | 5 | 5 | 1x/day | Must only | 5 | none | false | radar, apply, targets, referrals, news |
+| `active` | Unemployed or about to be | 10 | 10 | 2x/day | Must+Strong | 3 | manager (accept IC if AI focus strong) | true | radar, apply, targets, referrals, news |
+| `aggressive` | Needs a job now | 15 | all | 2x/day | Must+Strong+Nice | 2 | manager + remote (accept hybrid if project is great) | true | radar, apply, targets, referrals, news |
 
 ### Parameters
 
@@ -119,7 +119,7 @@ Each level sets these parameters. The user can customize individual ones after c
 | `follow_up_days` | int | Days before sending a follow-up on an application |
 | `relax_must_haves` | array | Which Must-haves to relax: `manager`, `remote`, `salary`, `ai_focus` |
 | `cold_outreach` | bool | Whether to send cold messages to recruiters at target companies |
-| `sources_active` | array | Which sourcing pillars to use: `radar`, `apply`, `targets`, `news` |
+| `sources_active` | array | Which sourcing pillars to use: `radar`, `apply`, `targets`, `referrals`, `news` |
 
 ### Storage
 
@@ -143,8 +143,9 @@ node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
 Then adjusts behavior:
 - `apply`: `apply_batch_size` limits applications per session. `match_threshold` filters which jobs to apply. `relax_must_haves` loosens Must-have filtering
 - `targets`: `targets_batch_size` limits companies per session. Same match/relax logic
+- `referrals`: runs as step 0 of `apply`/`targets` only if `referrals` is in `sources_active`. The recruiter-outreach branch (Strategy #4) additionally requires `cold_outreach = true`; the referral-request branch (Strategy #1) runs regardless of `cold_outreach` since it targets warm contacts
 - `daily`: `daily_frequency` controls how often it runs. `sources_active` controls which pillars to activate
-- `news`: `follow_up_days` controls follow-up timing. `cold_outreach` enables cold messages
+- `news`: `follow_up_days` controls follow-up timing. `cold_outreach` enables cold messages. Also surfaces staged referral/outreach drafts from `messages` table for user approval
 - If a source is not in `sources_active`, the flow skips it entirely
 - If `apply_batch_size = 0`, `apply` doesn't auto-apply, only presents matches for manual approval
 
@@ -161,33 +162,35 @@ The system has 9 flows + 1 cross-cutting behavior + 1 dashboard. Each flow has a
 | Strategy | `.agents/skills/strategy/` | `strategy` | Configure job search aggressiveness level. Interrogates user, proposes level, saves to DB. All flows respect it | After onboarding. User says `strategy`, "cambiar estrategia", "more aggressive". Also set during onboarding |
 | Radar | `.agents/skills/radar/` | `radar` | Register user on job boards, configure alerts with profile keywords, set up career site alerts, create Gmail filter to route alerts to `Job Alerts` folder | After profile exists. User says `radar`, "set up alerts", "register on platforms" |
 | Targets | `.agents/skills/targets/` | `targets` | Active direct sourcing: register and create standout profiles on the 40 target companies' career sites, then apply to matching positions | After profile exists. User says `targets`, "register on companies", "apply to target companies" |
-| News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications + LinkedIn Saved Jobs. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
+| News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications + LinkedIn Saved Jobs + staged referral/outreach drafts. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
+| Referrals | `.agents/skills/referrals/` | `referrals` | Warm sourcing: discover internal contacts, alumni, ex-colleagues, and recruiters at target companies, stage referral requests/outreach DMs, and micro-align CV keywords to JD | User says `referrals`, "warm sourcing", "buscar contactos". Also runs as step 0 of `apply` and `targets` |
 | Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
-| Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel, stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
+| Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
 | Polish | `.agents/skills/polish/` | `polish` | Optimizes LinkedIn profile (headline, about, experience, skills, open-to-work) and redacts an improved CV aligned to user's goals. Exports CV to PDF via headless browser. Per-section approval | After profile exists. User says `polish`, "mejorar mi linkedin", "pulir perfil", "alinear cv" |
 
 ### Sourcing pillars
 
-Three complementary sourcing strategies:
+Four complementary sourcing strategies:
 
 | Pillar | Flow | Strategy | Reach |
 |---|---|---|---|
 | Passive | `radar` | Platforms send alerts to Gmail `Job Alerts` folder | Broad (Otta, Torre, Built In, etc.) |
 | Active (LinkedIn) | `apply` | Search and Easy Apply on LinkedIn | Broad (LinkedIn's entire job board) |
 | Active (direct) | `targets` | Go directly to 40 target companies' career sites | Deep (specific companies, tailored profiles) |
+| Warm / High-ROI | `referrals` | Internal connections, alumni, ex-colleagues, recruiters | High conversion (40% hire rate vs 2% cold apply) |
 
 ### Flow dependencies
 
 ```
 onboarding → profile → strategy
                 ↓          ↓
-            radar, apply, targets → news ← (consumes radar alerts)
-                ↓                       ↑
-                └─────── daily ─────────┘
-                          ↑
-                        polish (depends on profile + onboarding)
+    radar, apply, targets, referrals → news ← (consumes radar alerts & warm DMs)
+                ↓                          ↑
+                └───────── daily ──────────┘
+                            ↑
+                          polish (depends on profile + onboarding)
 ```
 
 - `onboarding` must run before anything else. Without `.env` and DB nothing works. Also sets `browser_mode`, `strategy_level`, and `availability` (interview time preferences).
@@ -195,10 +198,11 @@ onboarding → profile → strategy
 - `strategy` depends on `onboarding` (DB). Sets the aggressiveness level that all flows respect.
 - `radar` depends on `profile`. Alerts use profile keywords.
 - `targets` depends on `profile` (Must-haves to filter, profile data to fill forms) and `onboarding` (browser profile with Gmail + LinkedIn sessions for login). Consumes `users.data.target_companies` for the company list.
-- `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages.
+- `referrals` depends on `profile` (uses education & past experience to find alumni/ex-colleagues) and `onboarding` (browser session). Integrated into `apply` and `targets`.
+- `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages + staged referral drafts.
 - `apply` depends on `profile` (to filter by Must-haves) and `onboarding` (DB to register).
 - `daily` composes `news` + `apply`/`targets` with decision logic based on `SELECT max(applied_at) FROM applications`. Which pillars it activates depends on `strategy.sources_active`.
-- `polish` depends on `profile` (needs `users.data.profile` and `job_preferences`) and `onboarding` (DB, browser, LinkedIn session). Optimizes LinkedIn profile and CV. `apply`/`targets` can consume `cv_markdown` and `cv_path` from `polish` for future tailoring.
+- `polish` depends on `profile` (needs `users.data.profile` and `job_preferences`) and `onboarding` (DB, browser, LinkedIn session). Optimizes LinkedIn profile and CV. `apply`/`targets`/`referrals` can consume `cv_markdown` and `cv_path` from `polish` for future tailoring.
 - `memory` is cross-cutting: runs during every flow (detection) and at every pre-flight (injection). Depends on `onboarding` (DB). Implements Gold Rule 3. Can detect strategy-level changes ("me despidieron" → propose `active`).
 
 ### Tools
@@ -208,6 +212,7 @@ onboarding → profile → strategy
 | `playwright-cli` | `.agents/skills/browser-ops/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `.agents/skills/browser-ops/SKILL.md` for full wrapper reference, patterns, and script documentation. |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 | `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
+| `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies. `--json` for piping, `--session <name>` for parallel execution, `--pages <n>` for pagination |
 | `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command. `--session <name>` for parallel execution |
 | `linkedin-easy-apply` | `scripts/linkedin-easy-apply.js` | Search + apply to Easy Apply jobs automatically. Fills forms with standard answers, handles radios/comboboxes/checkboxes, registers in DB. `--dry-run` to preview, `--max <n>` to limit, `--session <name>` for parallel execution |
 | `gmail-send` | `scripts/gmail-send.js` | Send emails via Gmail web UI with CV attached. `--to`, `--subject`, `--body`/`--body-file`, `--cv`, `--no-cv`, `--cc`, `--bcc`. Supports ES/EN UI. `--session <name>` for parallel execution |

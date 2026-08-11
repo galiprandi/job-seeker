@@ -64,6 +64,7 @@ Decision logic respects strategy:
 - Which pillar to run depends on `strategy.sources_active`:
   - If `apply` in sources_active and `apply_batch_size > 0` → run `apply` with N = `apply_batch_size`
   - If `targets` in sources_active and `targets_batch_size > 0` → run `targets` with batch = `targets_batch_size`
+  - **Note:** `apply` and `targets` internally run `referrals` as step 0 (warm sourcing pre-check) if `referrals` is in `sources_active`. No separate `daily` step is needed for referrals — it is embedded. Staged referral/outreach drafts are surfaced by the `news` step above.
 - If `last_application` is recent enough → done. Report: "Last application: X. No need to apply today."
 
 ### 4. Final summary
@@ -78,8 +79,10 @@ Present the user with a consolidated session summary:
 
 ## Dependencies
 
-- Depends on `news` (check updates)
+- Depends on `news` (check updates, surface staged referral/outreach drafts)
 - Depends on `apply` (apply if no recent activity)
+- Depends on `targets` (alternative to apply for direct sourcing)
+- Depends on `referrals` (embedded as step 0 of `apply`/`targets` when in `sources_active`)
 - Depends on `onboarding` (DB to query last_application)
 - Depends on `profile` (Must-haves for apply)
 

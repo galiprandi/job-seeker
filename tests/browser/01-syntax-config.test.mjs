@@ -12,6 +12,39 @@ describe('browser.js syntax and help', () => {
     expect(result).toBeDefined();
   });
 
+  it('linkedin-warm-sourcing.js has valid JavaScript syntax', () => {
+    const result = execSync('node -c scripts/linkedin-warm-sourcing.js', { cwd: REPO_ROOT, encoding: 'utf8' });
+    expect(result).toBeDefined();
+  });
+
+  it('linkedin-warm-sourcing.js exits 2 without --company', () => {
+    try {
+      execSync('node scripts/linkedin-warm-sourcing.js', { cwd: REPO_ROOT, encoding: 'utf8', stdio: 'pipe' });
+      throw new Error('Expected exit code 2 but process exited successfully');
+    } catch (err) {
+      expect(err.status).toBe(2);
+    }
+  });
+
+  it('linkedin-warm-sourcing.js exits 2 when browser not running', () => {
+    // Ensure no browser session is active
+    try { execSync('node scripts/browser.js close-all --force', { cwd: REPO_ROOT, encoding: 'utf8', stdio: 'pipe', timeout: 10000 }); } catch {}
+    try {
+      execSync('node scripts/linkedin-warm-sourcing.js --company "Test"', { cwd: REPO_ROOT, encoding: 'utf8', stdio: 'pipe', timeout: 15000 });
+      throw new Error('Expected exit code 2 but process exited successfully');
+    } catch (err) {
+      expect(err.status).toBe(2);
+      expect((err.stderr || err.stdout || '').toString()).toContain('not active');
+    }
+  });
+
+  it('linkedin-warm-sourcing.js --help exits 0', () => {
+    const result = execSync('node scripts/linkedin-warm-sourcing.js --help', { cwd: REPO_ROOT, encoding: 'utf8' });
+    expect(result).toContain('--company');
+    expect(result).toContain('--role');
+    expect(result).toContain('--json');
+  });
+
   it('--help exits 0', () => {
     const result = run(['--help']);
     expect(result.exitCode).toBe(0);
