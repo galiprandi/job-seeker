@@ -9,6 +9,16 @@
 
 **If this helps you find your next role, [give it a star](https://github.com/galiprandi/job-seeker).** It helps other devs discover it.
 
+## First time here? No coding experience needed
+
+If you use an AI coding agent like **[Claude Code](https://claude.com/product/claude-code)**, **[Codex](https://openai.com/codex)**, or **[Antigravity](https://antigravity.google/)** (download one if you don't have it yet, all have free options) and aren't sure how to get started, copy and paste this prompt into your agent:
+
+```text
+Clone the repository https://github.com/galiprandi/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
+```
+
+The agent will clone the repo, install dependencies, and start onboarding, which sets up your browser, database, and profile. You'll only be asked to log into LinkedIn and Gmail manually and to provide a Postgres connection string (Neon's free tier works).
+
 Job Seeker is a set of **markdown skills** that any coding agent (Devin, Claude, Cursor, opencode) consumes to automate the entire job search:
 
 - Searches LinkedIn with your Must-have filters
