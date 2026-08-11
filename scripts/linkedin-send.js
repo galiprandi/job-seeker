@@ -1,11 +1,27 @@
+#!/usr/bin/env node
 /**
- * LinkedIn Send Message — unified script for sending messages with optional attachments.
+ * linkedin-send.js — Send LinkedIn messages with optional attachments.
  *
  * Supports:
- *   - New conversation (first message to a connection)
- *   - Reply to existing conversation
+ *   - Reply to existing conversation (by thread ID)
+ *   - New conversation (first message to a connection, by recipient fsd_profile_id)
  *   - Text only
  *   - Text + file attachment (PDF, etc.)
+ *
+ * Usage:
+ *   # Reply (text only)
+ *   node scripts/linkedin-send.js --thread "2-XXXX==" --text "Hello"
+ *
+ *   # Reply with attachment
+ *   node scripts/linkedin-send.js --thread "2-XXXX==" --text "Here is my CV" --file /path/to/cv.pdf
+ *
+ *   # New conversation (text only)
+ *   node scripts/linkedin-send.js --recipient "ACoAA123" --text "Hi, nice to connect"
+ *
+ *   # New conversation with attachment
+ *   node scripts/linkedin-send.js --recipient "ACoAA123" --text "Here is my CV" --file /path/to/cv.pdf
+ *
+ * Requires: browser open with LinkedIn tab (node scripts/browser.js open "https://www.linkedin.com")
  *
  * Endpoints:
  *   New conversation:  POST /voyager/api/messaging/conversations?action=create
@@ -13,31 +29,168 @@
  *   With attachment:   POST /voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage
  *   Upload register:   POST /voyager/api/voyagerVideoDashMediaUploadMetadata?action=upload
  *   Upload binary:     PUT {singleUploadUrl}
- *
- * Usage:
- *   node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send.js)"
- *
- * Before running: set MODE, RECIPIENT_ID or THREAD_ID, MESSAGE_TEXT, and FILE_B64 (if attachment).
- *
- * For attachments, the file must be base64-encoded because page.evaluate() only accepts strings.
- * Encode with: base64 -i <file> | tr -d '\n'
  */
+'use strict';
 
-(function () {
+const { execSync, execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const BROWSER_JS = path.join(__dirname, 'browser.js');
+
+function fail(msg, code = 1) {
+  console.error(`[linkedin-send] ${msg}`);
+  process.exit(code);
+}
+
+function usage() {
+  console.log(`Usage:
+  node scripts/linkedin-send.js --thread "2-XXXX==" --text "Hello"
+  node scripts/linkedin-send.js --thread "2-XXXX==" --text "Here is my CV" --file /path/to/cv.pdf
+  node scripts/linkedin-send.js --recipient "ACoAA123" --text "Hi, nice to connect"
+  node scripts/linkedin-send.js --recipient "ACoAA123" --text "Hi" --file /path/to/cv.pdf
+  node scripts/linkedin-send.js --tab linkedin --thread "2-XXXX==" --text "Hello"
+
+Options:
+  --thread <id>       Thread ID for reply (format: 2-XXXXX==)
+  --recipient <id>    Recipient fsd_profile_id for new conversation (format: ACoAA...)
+  --text <message>    Message text (required)
+  --file <path>       File to attach (optional)
+  --tab <name>        Browser tab name (default: linkedin)
+  --help, -h          Show this help
+
+Requires: browser open with LinkedIn loaded on the specified tab.`);
+}
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const opts = { tab: null };
+  for (let i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--thread': opts.thread = args[++i]; break;
+      case '--recipient': opts.recipient = args[++i]; break;
+      case '--text': opts.text = args[++i]; break;
+      case '--file': opts.file = args[++i]; break;
+      case '--tab': opts.tab = args[++i]; break;
+      case '--help': case '-h': usage(); process.exit(0);
+      default: fail(`Unknown argument: ${args[i]}`);
+    }
+  }
+  if (!opts.text) fail('--text is required');
+  if (!opts.thread && !opts.recipient) fail('Either --thread or --recipient is required');
+  if (opts.thread && opts.recipient) fail('Use --thread OR --recipient, not both');
+  if (!opts.tab) opts.tab = getDefaultTab();
+  return opts;
+}
+
+function browserExec(cmd) {
+  return execSync(`node ${BROWSER_JS} ${cmd}`, {
+    cwd: path.resolve(__dirname, '..'),
+    encoding: 'utf8',
+    timeout: 60000,
+    stdio: 'pipe',
+  });
+}
+
+function browserEval(js, tab) {
+  // Use execFileSync directly with playwright-cli to avoid shell escaping issues.
+  // First select the tab (if specified), then run eval.
+  const repoRoot = path.resolve(__dirname, '..');
+
+  // Get session from browser.js lock file
+  let session = 'default';
+  try {
+    const lockContent = fs.readFileSync(path.join(repoRoot, '.browser-profile', '.lock'), 'utf8');
+    const lock = JSON.parse(lockContent);
+    session = lock.session || 'default';
+  } catch {}
+
+  // Get tab index if tab is specified
+  let tabIndex = null;
+  if (tab && tab !== 'default') {
+    try {
+      const tabsState = JSON.parse(fs.readFileSync(path.join(repoRoot, '.playwright-cli', 'tabs-state.json'), 'utf8'));
+      if (tabsState.tabs[tab]) tabIndex = tabsState.tabs[tab].index;
+    } catch {}
+  }
+
+  const args = [`-s=${session}`];
+  if (tabIndex !== null) {
+    args.push('tab-select', String(tabIndex));
+    execFileSync('playwright-cli', [`-s=${session}`, 'tab-select', String(tabIndex)], {
+      cwd: repoRoot, stdio: 'pipe', timeout: 10000,
+    });
+  }
+
+  args.push('eval', js);
+
+  const out = execFileSync('playwright-cli', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: 60000,
+    stdio: 'pipe',
+  });
+
+  const m = out.match(/### Result\s*\n([\s\S]*?)(?:\n###|$)/);
+  if (m) return m[1].trim();
+  return out.trim();
+}
+
+function getDefaultTab() {
+  try {
+    const out = browserExec('tab-list');
+    const m = out.match(/^\s*\d+:\s*(\S+)/m);
+    return m ? m[1] : 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+function main() {
+  const opts = parseArgs();
+  const hasAttachment = !!opts.file;
+
+  // Read and encode file if provided
+  let fileB64 = '';
+  let fileName = 'document.pdf';
+  let fileMime = 'application/pdf';
+  if (hasAttachment) {
+    if (!fs.existsSync(opts.file)) fail(`File not found: ${opts.file}`);
+    const buf = fs.readFileSync(opts.file);
+    fileB64 = buf.toString('base64');
+    fileName = path.basename(opts.file);
+    const ext = path.extname(opts.file).toLowerCase();
+    const mimeMap = {
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.txt': 'text/plain',
+    };
+    fileMime = mimeMap[ext] || 'application/octet-stream';
+  }
+
+  // Build the eval script
+  const mode = opts.thread ? 'reply' : 'new';
+  const threadId = opts.thread || '';
+  const recipientId = opts.recipient || '';
+
+  const evalScript = `(async function () {
   var csrf = document.cookie
     .split('; ')
     .find(function (c) { return c.indexOf('JSESSIONID=') === 0; });
   csrf = csrf ? csrf.split('=')[1].replace(/"/g, '') : '';
 
-  // === CONFIGURE THESE ===
-  var MODE = 'reply'; // 'new' | 'reply'
-  var RECIPIENT_ID = 'REPLACE_WITH_RECIPIENT_FSD_ID'; // for MODE='new'
-  var THREAD_ID = 'REPLACE_WITH_THREAD_ID'; // for MODE='reply' (format: 2-XXXXX==)
-  var MESSAGE_TEXT = 'REPLACE_WITH_MESSAGE';
-  var FILE_B64 = ''; // base64-encoded file content, empty string = no attachment
-  var FILE_NAME = 'document.pdf';
-  var FILE_MIME = 'application/pdf';
-  // === END CONFIG ===
+  var MODE = ${JSON.stringify(mode)};
+  var RECIPIENT_ID = ${JSON.stringify(recipientId)};
+  var THREAD_ID = ${JSON.stringify(threadId)};
+  var MESSAGE_TEXT = ${JSON.stringify(opts.text)};
+  var FILE_B64 = ${JSON.stringify(fileB64)};
+  var FILE_NAME = ${JSON.stringify(fileName)};
+  var FILE_MIME = ${JSON.stringify(fileMime)};
 
   var SELF_ID = (document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g) || [])
     .sort(function (a, b) {
@@ -85,7 +238,7 @@
       },
     };
 
-    return fetch('/voyager/api/messaging/conversations?action=create', {
+    var r = await fetch('/voyager/api/messaging/conversations?action=create', {
       method: 'POST',
       headers: {
         'accept': 'application/vnd.linkedin.normalized+json+2.1',
@@ -95,9 +248,9 @@
         'content-type': 'application/json',
       },
       body: JSON.stringify(body),
-    })
-      .then(function (r) { return r.text(); })
-      .then(function (t) { return t.substring(0, 1500); });
+    });
+    var t = await r.text();
+    return r.status + ' ' + r.statusText + ' ' + t.substring(0, 500);
   }
 
   // --- Text-only: reply (legacy endpoint) ---
@@ -113,7 +266,7 @@
       },
     };
 
-    return fetch('/voyager/api/messaging/conversations/' + encodeURIComponent(THREAD_ID) + '/events?action=create', {
+    var r2 = await fetch('/voyager/api/messaging/conversations/' + encodeURIComponent(THREAD_ID) + '/events?action=create', {
       method: 'POST',
       headers: {
         'accept': 'application/vnd.linkedin.normalized+json+2.1',
@@ -123,15 +276,12 @@
         'content-type': 'application/json',
       },
       body: JSON.stringify(replyBody),
-    })
-      .then(function (r) { return r.text(); })
-      .then(function (t) { return t.substring(0, 1500); });
+    });
+    var t2 = await r2.text();
+    return r2.status + ' ' + r2.statusText + ' ' + t2.substring(0, 500);
   }
 
-  // --- With attachment: use dash endpoint (works for both new and reply) ---
-  // For new conversations, first create the conversation via legacy endpoint, then send with attachment.
-  // For replies, use the existing THREAD_ID directly.
-
+  // --- With attachment: use dash endpoint ---
   function sendWithAttachment(fileBlob, fileSize, mediaUrn) {
     var blobUrl = URL.createObjectURL(fileBlob);
     var convUrn = 'urn:li:msg_conversation:(urn:li:fsd_profile:' + SELF_ID + ',' + THREAD_ID + ')';
@@ -168,9 +318,7 @@
         'content-type': 'text/plain;charset=UTF-8',
       },
       body: dashBody,
-    })
-      .then(function (r) { return r.text(); })
-      .then(function (t) { return t.substring(0, 1500); });
+    }).then(function (r) { return r.text(); }).then(function (t) { return t.substring(0, 1500); });
   }
 
   var fileBlob = b64ToBlob(FILE_B64, FILE_MIME);
@@ -183,7 +331,7 @@
     filename: FILE_NAME,
   });
 
-  return fetch('/voyager/api/voyagerVideoDashMediaUploadMetadata?action=upload', {
+  var regRes = await fetch('/voyager/api/voyagerVideoDashMediaUploadMetadata?action=upload', {
     method: 'POST',
     headers: {
       'accept': 'application/vnd.linkedin.normalized+json+2.1',
@@ -193,27 +341,40 @@
       'content-type': 'application/json',
     },
     body: registerBody,
-  })
-    .then(function (r) { return r.json(); })
-    .then(function (regData) {
-      var uploadUrl = regData.data.value.singleUploadUrl;
-      var mediaUrn = regData.data.value.urn;
+  });
+  var regData = await regRes.json();
+  var uploadUrl = regData.data.value.singleUploadUrl;
+  var mediaUrn = regData.data.value.urn;
 
-      // Step 2: Upload binary
-      return fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'content-type': FILE_MIME },
-        body: fileBlob,
-      }).then(function () { return mediaUrn; });
-    })
-    .then(function (mediaUrn) {
-      // Step 3: Wait for processing
-      return new Promise(function (resolve) {
-        setTimeout(function () { resolve(mediaUrn); }, 2000);
-      });
-    })
-    .then(function (mediaUrn) {
-      // Step 4: Send message with attachment
-      return sendWithAttachment(fileBlob, fileSize, mediaUrn);
-    });
-})()
+  // Step 2: Upload binary
+  await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'content-type': FILE_MIME },
+    body: fileBlob,
+  });
+
+  // Step 3: Wait for processing
+  await new Promise(function (resolve) { setTimeout(resolve, 2000); });
+
+  // Step 4: Send message with attachment
+  var result = await sendWithAttachment(fileBlob, fileSize, mediaUrn);
+  return result;
+})()`;
+
+  console.log(`[linkedin-send] Sending ${hasAttachment ? 'message with attachment' : 'text-only message'}...`);
+  console.log(`[linkedin-send] Mode: ${mode}, Tab: ${opts.tab}`);
+
+  try {
+    const result = browserEval(evalScript, opts.tab);
+    console.log(`[linkedin-send] Result: ${result}`);
+    if (result.includes('201') || result.includes('200') || result.includes('entityUrn')) {
+      console.log('[linkedin-send] ✓ Message sent successfully');
+    } else {
+      console.log('[linkedin-send] ⚠ Unexpected response, verify manually');
+    }
+  } catch (e) {
+    fail(`Failed to send: ${e.message}`);
+  }
+}
+
+main();
