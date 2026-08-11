@@ -1,5 +1,17 @@
 # Quick Start
 
+::: tip No coding experience needed
+If you use an AI coding agent like **[Claude Code](https://claude.com/product/claude-code)**, **[Codex](https://openai.com/codex)**, or **[Antigravity](https://antigravity.google/)** (download one if you don't have it yet, all have free options) and aren't sure how to get started, copy and paste this prompt into your agent:
+
+```text
+Clone the repository https://github.com/galiprandi/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
+```
+
+The agent will clone the repo, install dependencies, and start onboarding, which sets up your browser, database, and profile. You'll only be asked to log into LinkedIn and Gmail manually and to provide a Postgres connection string (Neon's free tier works).
+:::
+
+Prefer to do it yourself? Follow the steps below.
+
 ## 1. Clone and install
 
 ```bash
