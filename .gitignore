@@ -11,3 +11,4 @@ orca/
 assets/*.html
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+.browser-config.json

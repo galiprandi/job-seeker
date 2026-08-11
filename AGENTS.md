@@ -83,7 +83,7 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Why:** The wrapper guarantees:
 1. The `.browser-profile` directory is always used (isolated work sessions)
-2. Browser mode preference (`headed_logins_only`, `headless`, `headed`) is respected automatically
+2. Browser mode preference (`headed_logins_only`, `headless`, `headed`) is respected automatically (read from `.browser-config.json` or `BROWSER_MODE` env var)
 3. Session management (prevent multiple instances, proper cleanup)
 4. Cookie/state isolation between work and personal browsing
 
@@ -91,7 +91,9 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
 
-**Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see browser-ops skill).
+**Browser knowledge:** The reusable browser skills live in the `skills` repo (`browser-core`, `linkedin`, `gmail`). The local `.agents/skills/browser-ops/` skill contains job-seeker-specific patterns (ATS, form answers, pipeline) plus a copy of the generic knowledge. Prefer the global skills for generic browser patterns; use `browser-ops` only for job-seeker-specific flows.
+
+**Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see `gmail` skill in the `skills` repo, or `browser-ops` for job-seeker-specific compose patterns).
 
 ## Strategy levels
 
@@ -209,7 +211,7 @@ onboarding → profile → strategy
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `.agents/skills/browser-ops/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from DB + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `.agents/skills/browser-ops/SKILL.md` for full wrapper reference, patterns, and script documentation. |
+| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-ops/SKILL.md`. |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 | `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
 | `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies. `--json` for piping, `--session <name>` for parallel execution, `--pages <n>` for pagination |
@@ -228,27 +230,29 @@ onboarding → profile → strategy
 | **What data lives where (tables, JSONB keys, ownership)** | **`DATA.md`** |
 | Job platforms | `PLATFORMS.md` |
 | **Job search & networking strategies (ordered by effectiveness)** | **`STRATEGIES.md`** |
-| Browser automation | `.agents/skills/browser-ops/SKILL.md` |
-| LinkedIn & Gmail patterns, scripts reference | `.agents/skills/browser-ops/SKILL.md` |
-| Email delivery (SMTP + browser fallback) | `.agents/skills/browser-ops/SKILL.md` |
+| Browser automation (generic) | `skills` repo: `browser-core/SKILL.md` |
+| LinkedIn patterns | `skills` repo: `linkedin/SKILL.md` |
+| Gmail patterns | `skills` repo: `gmail/SKILL.md` |
+| Job-seeker browser patterns (ATS, form answers, pipeline, scripts ref) | `.agents/skills/browser-ops/SKILL.md` |
+| Email delivery (SMTP + browser fallback) | `skills` repo: `gmail/SKILL.md` (SMTP snippet) + `.agents/skills/browser-ops/SKILL.md` (job-seeker compose) |
 | DB access (CLI) | `.agents/skills/db/SKILL.md` |
 | Preference memory | `.agents/skills/memory/SKILL.md` |
 | Each flow's detail | `.agents/skills/<flow>/SKILL.md` |
 
 ## Operational constraints
 
-- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see `.agents/skills/browser-ops/SKILL.md`). Never call `playwright-cli open` directly
-- Browser visibility controlled by `preferences.tooling.browser_mode` (`headless`, `headed`, `headed_logins_only`, `ask_each_time`). Default: `headed_logins_only`. Set during onboarding, loaded at every pre-flight. Manual login/2FA is always headed (Gold Rule 5)
+- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see `skills` repo: `browser-core/SKILL.md`). Never call `playwright-cli open` directly
+- Browser visibility controlled by `.browser-config.json` (`browser_mode`: `headless`, `headed`, `headed_logins_only`). Default: `headless`. Set during onboarding. Can also be overridden via `BROWSER_MODE` env var. Manual login/2FA is always headed (Gold Rule 5). The DB `preferences.tooling.browser_mode` value is synced to `.browser-config.json` during onboarding
 - Custom DB schema: create tables as needed
 - JSONB for semi-structured data in `users.data`
 - Single user (repo owner)
-- `.env`, `.browser-profile/`, `.playwright-cli/` not tracked
+- `.env`, `.browser-profile/`, `.playwright-cli/`, `.browser-config.json` not tracked
 - Job platforms = output of analysis, never user input
 - **Consult `DATA.md` before assuming where data lives.** Never guess or discover by querying blindly. The data map is the source of truth for tables, JSONB keys, and flow ownership
 
 ### Parallel execution
 
-Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `.agents/skills/browser-ops/SKILL.md`).
+Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `skills` repo: `browser-core/references/parallel-agents.md`).
 
 **How to run flows in parallel:**
 
