@@ -78,6 +78,7 @@ Your profile, preferences, writing style and history live in Postgres (Neon). Yo
 | `targets` | `targets` | Active direct sourcing: register and create standout profiles on target companies' career sites, then apply to matching positions |
 | `news` | `news` | Review updates in Gmail, LinkedIn and platforms. Prepare drafts, executive summary by priority, hybrid validation and auto-send |
 | `apply` | `apply` | Search jobs on LinkedIn, filter by Must-haves, apply via Easy Apply, register in DB |
+| `referrals` | `referrals` | Warm sourcing: discover internal contacts, alumni, ex-colleagues, and recruiters at target companies, stage referral requests/outreach DMs, and micro-align CV keywords to JD |
 | `daily` | `daily` | Periodic routine: runs `news` -> inbox cleanup -> applies if no recent activity |
 | `memory` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to DB, loads active ones at the start of every flow |
 | `dashboard` | `dashboard` | Opens a local web dashboard with kanban, funnel, stats, messages, and target companies. Auto-refreshes every 30s |
@@ -88,6 +89,7 @@ Your profile, preferences, writing style and history live in Postgres (Neon). Yo
 |---|---|---|
 | `playwright-cli` | `scripts/browser.js` wrapper | Browser automation: open/close/goto/tabs/sessions via wrapper. Other commands (click, fill, snapshot) via `exec` or direct call |
 | `db` | `scripts/db.js` | Safe Postgres CLI. Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes) |
+| `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies |
 | `pipeline` | `scripts/pipeline.js` | Kanban board CLI for application tracking. Print board, move cards, view funnel, card details |
 | `dashboard` | `scripts/dashboard.js` | Local web dashboard. Serves at `http://localhost:7531`. The agent opens it at the end of a round |
 
@@ -152,12 +154,14 @@ After onboarding, try:
   onboarding/SKILL.md        # Onboarding
   profile/SKILL.md           # Profiling
   radar/SKILL.md             # Passive sourcing (alerts)
+  referrals/SKILL.md         # Warm sourcing & referral request staging
   strategy/SKILL.md          # Search aggressiveness configuration
   targets/SKILL.md           # Active direct sourcing
 scripts/                     # Automation scripts
   browser.js                 # Browser wrapper (open/close/goto/tabs/sessions)
   db.js                      # Safe Postgres CLI
   linkedin-search.js         # Search LinkedIn posts for job openings
+  linkedin-warm-sourcing.js  # Discover internal contacts, alumni, ex-colleagues, recruiters
   linkedin-invite.js         # Send LinkedIn connection requests
   linkedin-easy-apply.js     # Search + apply to Easy Apply jobs
   gmail-send.js              # Send emails via Gmail web UI with CV attached

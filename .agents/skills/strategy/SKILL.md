@@ -38,7 +38,7 @@ Current strategy: selective
 - Follow-up: 5 days
 - Relax Must-haves: none
 - Cold outreach: no
-- Active sources: radar, apply, targets, news
+- Active sources: radar, apply, targets, referrals, news
 ```
 
 ### 2. Ask about current situation
@@ -98,7 +98,7 @@ The strategy JSON contains all parameters (see AGENTS.md "Strategy levels"). Exa
   "follow_up_days": 3,
   "relax_must_haves": ["manager"],
   "cold_outreach": false,
-  "sources_active": ["radar", "apply", "targets", "news"]
+  "sources_active": ["radar", "apply", "targets", "referrals", "news"]
 }
 ```
 
@@ -114,7 +114,7 @@ Strategy saved: active (customized)
 - Follow-up: 3 days
 - Relaxed: Manager (IC roles accepted if AI focus strong)
 - Cold outreach: disabled
-- Sources: radar, apply, targets, news
+- Sources: radar, apply, targets, referrals, news
 
 All flows will respect this. Say "strategy" again to change it.
 ```

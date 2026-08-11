@@ -95,6 +95,11 @@ Sources to collect (dispatch as parallel subagents when possible, sequential oth
 - [ ] **LinkedIn Saved Jobs:** navigate to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: check if still open, evaluate fit against profile (Must/Strong/Nice), check if already applied (query DB by URL or company+role). Present Must/Strong matches in summary as `new_job_must`/`new_job_strong`. If user already applied, skip. If job is closed, mark as `closed` and remove from saved
 - [ ] **Platforms:** only if there are pending applications in DB. Navigate to each platform, check status of existing applications
 - [ ] **Pending follow-ups:** query DB for applications without response after X days (contextual: 3 days for urgent, 5 for normal, 7 for cold)
+- [ ] **Staged referral & outreach drafts:** query DB for drafts staged by the `referrals` flow (or by step 2.5 of `apply`/`targets`) that are still pending user approval:
+  ```bash
+  node scripts/db.js "SELECT id, channel, sender, subject, draft, data FROM messages WHERE user_id = 1 AND status = 'draft' AND direction = 'outbound' AND (data->>'category') IN ('referral_request', 'recruiter_outreach') ORDER BY received_at DESC"
+  ```
+  For each staged draft: present it in the summary under its category (`referral_request` or `recruiter_outreach`) with the contact name, company, and the draft text. User can approve (send via LinkedIn DM), edit, or reject. This is where warm-sourcing drafts become actionable — the `referrals` flow stages them, `news` surfaces them for approval and sends them.
 - [ ] **Scheduling links (parallel subagent):** if any email or message contains a scheduling link (Calendly, SmartRecruiters self-schedule, Workable, HubSpot meetings, etc.), dispatch a background subagent (`subagent_general`) to open each link, read available slots, and filter them against `users.data.availability` (preferred_hours, timezone, blocked days). The subagent returns a filtered list of slots that match the user's preferences. This runs in parallel with the rest of the news flow so the user doesn't wait. The subagent prompt must include:
   - The scheduling URL(s) found
   - The user's availability preferences from DB (load before dispatching)
@@ -111,6 +116,8 @@ Each item is classified into a category and assigned contextual priority:
 | `offer` | Job offer, salary proposal | High |
 | `recruiter_new` | New recruiter outreach (no prior application) | Medium |
 | `recruiter_reply` | Recruiter reply to an application | Medium |
+| `referral_request` | Staged referral request draft awaiting approval (from `referrals` flow) | Medium-High |
+| `recruiter_outreach` | Staged cold recruiter outreach DM awaiting approval (from `referrals` flow) | Medium |
 | `follow_up` | Application without response, needs following up | Medium-Low |
 | `rejected` | Application rejection | Low |
 | `new_job_must` | New job matching Must-have | Medium-High |
@@ -141,6 +148,8 @@ Draft types:
 - [ ] **offer:** thank + ask for details (salary, benefits, equity, start date) before negotiating
 - [ ] **recruiter_new:** express interest or decline based on profile fit. If interested, share availability. Mention something specific about the researched company
 - [ ] **recruiter_reply:** respond based on context (schedule, send additional info, negotiate)
+- [ ] **referral_request:** draft already staged by `referrals` flow — present as-is for approval. If user edits, update the `messages.draft` field before sending. Send via LinkedIn DM to the contact's vanity. Pass Gold Rule 7 checklist before showing.
+- [ ] **recruiter_outreach:** draft already staged by `referrals` flow — present as-is for approval. If user edits, update `messages.draft` before sending. Send via LinkedIn DM. Pass Gold Rule 7 checklist before showing.
 - [ ] **follow_up:** brief message reminding about the application and reiterating interest
 - [ ] **rejected:** thank + keep door open (optional, only if company is of interest)
 - [ ] **new_job_must:** prepare complete application (cover letter + CV) for auto-apply

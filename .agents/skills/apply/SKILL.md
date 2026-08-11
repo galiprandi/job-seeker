@@ -76,6 +76,25 @@ For each job, verify against profile Must-haves. Discard if:
 
 Keep 10-15 matching positions.
 
+### 2.5. Warm Sourcing & Referral Pre-Check (Strategy #1 & #4)
+
+**Gate:** only run this step if `referrals` is in `strategy.sources_active`. If not, skip to Step 3.
+
+For each selected position, before submitting a cold application:
+
+1. **Run warm sourcing discovery:**
+   ```bash
+   node scripts/linkedin-warm-sourcing.js --company "<Company>" --role "<Role>" --json
+   ```
+2. **If an internal contact, alumni, or ex-colleague is found:**
+   - Prioritize **Strategy #1 (Internal Referral)** over cold apply.
+   - Stage a personalized referral request draft in `messages` table (following Gold Rule 7 & user style profile).
+   - Register card in pipeline as `discovered`.
+3. **If NO internal contact exists:**
+   - If `strategy.cold_outreach = false` → skip recruiter outreach, proceed to Step 3 (cold apply only).
+   - If `strategy.cold_outreach = true` → extract Recruiter / Hiring Manager info for the position, stage a recruiter outreach DM draft (Strategy #4 Multi-channel combo).
+   - Perform ATS micro-alignment (tailor CV keywords to JD if applying directly/email) and proceed to Step 3.
+
 ### 3. Apply via Easy Apply
 
 For each selected job:

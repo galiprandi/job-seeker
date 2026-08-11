@@ -138,12 +138,17 @@ For each company with `registration_status = 'registered'` and `applied_jobs_cou
 3. **Filter by Must-haves** (see above). For each matching job:
    - Check dedup against `applications` table
    - If already applied → skip
-4. **Apply** following the ATS-specific flow (see ATS guide below)
-5. **Register each application in DB:**
+4. **Warm Sourcing & Referral Pre-Check (Strategy #1 & #4):**
+   - **Gate:** only run if `referrals` is in `strategy.sources_active`. If not, skip to step 5.
+   - Run `node scripts/linkedin-warm-sourcing.js --company "<Company>" --role "<Role>" --json`
+   - If internal contact/alumni/ex-colleague found: stage referral request in `messages` and set card status to `discovered` (Strategy #1).
+   - If NO internal contact found: if `strategy.cold_outreach = true`, extract recruiter info and stage recruiter outreach DM in `messages` (Strategy #4). If `cold_outreach = false`, skip outreach. Either way, micro-align CV keywords to JD via `scripts/generate-cv.js` and proceed to ATS application.
+5. **Apply** following the ATS-specific flow (see ATS guide below)
+6. **Register each application in DB:**
    ```bash
    node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, '<company_lowercase>', '<company>', '<role>', '<url>', 'applied', '<json with match_reason, ats_type, location, salary_if_known>'::jsonb)" --write
    ```
-6. **Update company registration:**
+7. **Update company registration:**
    ```bash
    node scripts/db.js "UPDATE company_registrations SET applied_jobs_count = applied_jobs_count + <N>, last_applied_at = NOW(), updated_at = NOW() WHERE id = <id>" --write
    ```
