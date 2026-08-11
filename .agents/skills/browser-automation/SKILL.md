@@ -18,6 +18,8 @@ Before automating a specific web app, **read the corresponding guide** in `apps/
 | LinkedIn | `apps/linkedin.md` | Before any LinkedIn operation (messaging, connections, jobs, Easy Apply, notifications) |
 | Microsoft Teams | `apps/teams.md` | Before any Teams operation (send/delete messages via chatsvc API, token extraction) |
 | Jira | `apps/jira.md` | Before any Jira operation (create issue, add comment, transition status) |
+| Teamtailor | `apps/teamtailor.md` | Before applying to jobs on Teamtailor-based career sites |
+| Humand.co | `apps/humand.md` | Before applying to jobs on Humand.co-based career sites |
 
 **How to load:** read the file with your read tool. Example: `read .agents/skills/browser-automation/apps/gmail.md`
 
@@ -771,6 +773,8 @@ When automating a specific web app, load the corresponding guide for validated s
 | LinkedIn | [apps/linkedin.md](apps/linkedin.md) | Voyager API messaging, bulk inbox, tiptap editor fix, connection requests, notifications, saved jobs, Easy Apply, post search |
 | Microsoft Teams | [apps/teams.md](apps/teams.md) | chatsvc API (send/delete messages), token extraction from localStorage (ic3 + chatsvcagg fallback), chatId formats, UI fallback, request capture pattern |
 | Jira | [apps/jira.md](apps/jira.md) | Create issue (form fill + snapshot before submit), custom dropdowns, add comment, transition status, SSO login |
+| Teamtailor | [apps/teamtailor.md](apps/teamtailor.md) | Apply with LinkedIn (auto-fill), custom questions, email verification, Connect profile, HTTP API POST |
+| Humand.co | [apps/humand.md](apps/humand.md) | Guest session apply, S3 CV upload, POST /api/jobs/apply, required fields, thank you verification |
 
 **When to load an app guide:** when the agent needs to interact with that specific app (read inbox, send message, apply to job, etc.). The core skill (this file) is enough for generic browser operations. The app guides are loaded on demand to save tokens.
 
