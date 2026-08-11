@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 /**
- * browser.js — Safe browser wrapper for agents.
+ * browser.js — Generic safe browser wrapper for agents.
  *
  * Guarantees the Chrome profile (.browser-profile) is always used.
- * Reads browser_mode preference from DB to decide headed/headless automatically.
+ * Reads browser_mode from config file or env var (NO database dependency).
  * Prevents opening a second instance when one is already running (lockfile).
  * Manages named tabs for parallel subagent work.
  * Provides atomic tab-select + command execution via --tab flag + file lock.
+ *
+ * Config resolution for browser_mode (headed vs headless):
+ *   1. --headed / --headless flag passed to `open`
+ *   2. .browser-config.json in the repo root: { "browser_mode": "headed" }
+ *   3. BROWSER_MODE environment variable
+ *   4. Default: headless
  *
  * Usage:
  *   node scripts/browser.js open <url> [--headed|--headless] [--session <name>]
@@ -25,11 +31,11 @@
  *     Navigate current session (or specific tab) to <url>.
  *     With --tab: atomically selects the tab then navigates (lock-protected).
  *
- *   node scripts/browser.js close [--session <name>]
- *     Close current session. Fails if no session is active.
+ *   node scripts/browser.js close [--session <name>] [--force]
+ *     Close current session. Refuses if other agents are active (use --force).
  *
- *   node scripts/browser.js close-all
- *     Close all sessions.
+ *   node scripts/browser.js close-all [--force]
+ *     Close all sessions. Refuses if other agents are active (use --force).
  *
  *   node scripts/browser.js ensure [--session <name>] [--headed]
  *     Idempotent: if a healthy session exists, no-op. If not, fails with a
@@ -41,8 +47,7 @@
  *     Example: node scripts/browser.js exec snapshot --tab gmail
  *
  *   node scripts/browser.js tab-new <url> --name <name> [--session <name>]
- *     Create a new tab with a human-readable name. The name→index mapping
- *     is persisted in .browser-profile/tabs.json.
+ *     Create a new tab with a human-readable name.
  *
  *   node scripts/browser.js tab-select <name> [--session <name>]
  *     Select a tab by name.
@@ -59,16 +64,13 @@
  *   node scripts/browser.js save-state [--filename <path>] [--session <name>]
  *     Save browser auth state (cookies, localStorage) to a file.
  *     Defaults to .browser-profile/auth-state.json.
- *     Use after manual login to persist sessions across browser restarts.
  *
  *   node scripts/browser.js load-state [--filename <path>] [--session <name>]
  *     Load browser auth state from a file.
  *     Defaults to .browser-profile/auth-state.json.
- *     Use after opening to restore sessions without re-login.
  *
  *   node scripts/browser.js dashboard
  *     Open the visual dashboard to monitor all running sessions.
- *     Useful when subagents are running in parallel and you want to observe.
  *
  *   node scripts/browser.js trace-start [--session <name>]
  *     Start trace recording for debugging.
@@ -84,7 +86,6 @@
  *
  *   node scripts/browser.js console [level] [--session <name>]
  *     List console messages (level: error, warning, info, debug).
- *     Useful for detecting page errors without taking a full snapshot.
  *
  *   node scripts/browser.js requests [--session <name>]
  *     List all network requests since page load.
@@ -96,7 +97,10 @@
  *     List active playwright-cli sessions.
  *
  *   node scripts/browser.js status
- *     Show browser_mode pref + active sessions + tab mapping.
+ *     Show browser_mode config + active sessions + tab mapping.
+ *
+ *   node scripts/browser.js who
+ *     List agents currently holding a ref-count on the browser.
  *
  *   node scripts/browser.js -h|--help
  *     This help.
@@ -104,17 +108,10 @@
  * For all other playwright-cli commands (click, fill, snapshot, eval, etc.)
  * use `exec` or call `playwright-cli` directly AFTER opening via the wrapper.
  *
- * If --headed or --headless is not passed to `open`, the wrapper reads
- * preferences.tooling.browser_mode from the DB:
- *   headless            → always headless (except manual login, but that's the caller's job)
- *   headed              → always headed
- *   headed_logins_only  → headless (default; caller passes --headed for logins)
- *   ask_each_time       → headless (caller must pass --headed explicitly when needed)
- * Default if no DB or no preference: headless
- *
  * Environment variables:
  *   BROWSER_DEBUG=1     Verbose logging to stderr.
  *   BROWSER_LOCK_TIMEOUT_MS  Max wait for browser lock (default 60000).
+ *   BROWSER_MODE         Override browser mode (headed, headless, headed_logins_only).
  *   PLAYWRIGHT_CLI_SESSION  Default session name (used by playwright-cli directly).
  */
 'use strict';
@@ -123,9 +120,12 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const REPO_ROOT = path.resolve(__dirname, '..');
+// REPO_ROOT is the consuming repo's root (CWD), NOT the script's location.
+// This allows the script to be copied into any repo and work with that repo's
+// .browser-profile directory.
+const REPO_ROOT = process.cwd();
+const CONFIG_PATH = path.join(REPO_ROOT, '.browser-config.json');
 const PROFILE_DIR = path.join(REPO_ROOT, '.browser-profile');
-const ENV_PATH = path.join(REPO_ROOT, '.env');
 const LOCK_PATH = path.join(PROFILE_DIR, '.lock');
 const TABS_PATH = path.join(PROFILE_DIR, 'tabs.json');
 const STATE_PATH = path.join(PROFILE_DIR, 'session-state.json');
@@ -156,52 +156,33 @@ function fail(msg, code = 1) {
   process.exit(code);
 }
 
-function loadEnv(envPath) {
-  if (!fs.existsSync(envPath)) return {};
-  const raw = fs.readFileSync(envPath, 'utf8');
-  const out = {};
-  for (const line of raw.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
 /**
- * Read browser_mode preference from DB.
+ * Read browser_mode from config file or env var.
  * Returns one of: 'headless', 'headed', 'headed_logins_only', 'ask_each_time', or null.
- * If DB is not available or query fails, returns null (caller defaults to headless).
+ * Resolution order:
+ *   1. .browser-config.json: { "browser_mode": "..." }
+ *   2. BROWSER_MODE env var
+ *   3. null (caller defaults to headless)
  */
 function getBrowserMode() {
-  const env = loadEnv(ENV_PATH);
-  if (!env.DATABASE_URL) {
-    debug('getBrowserMode: no DATABASE_URL in .env');
-    return null;
+  // 1. Config file
+  if (fs.existsSync(CONFIG_PATH)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+      if (config.browser_mode) {
+        debug(`getBrowserMode: from config file = ${config.browser_mode}`);
+        return config.browser_mode;
+      }
+    } catch (e) {
+      debug(`getBrowserMode: config file parse failed: ${e.message}`);
+    }
   }
-  let result;
-  try {
-    result = execFileSync('node', [
-      path.join(__dirname, 'db.js'),
-      "SELECT value FROM preferences WHERE user_id = 1 AND category = 'tooling' AND key = 'browser_mode' AND status = 'active'",
-    ], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] });
-  } catch (e) {
-    debug(`getBrowserMode: DB query failed: ${e.message}`);
-    return null;
+  // 2. Env var
+  if (process.env.BROWSER_MODE) {
+    debug(`getBrowserMode: from env = ${process.env.BROWSER_MODE}`);
+    return process.env.BROWSER_MODE;
   }
-  try {
-    const rows = JSON.parse(result);
-    if (Array.isArray(rows) && rows.length > 0) return rows[0].value;
-  } catch {
-    debug('getBrowserMode: DB result not JSON');
-  }
+  debug('getBrowserMode: no config found, returning null');
   return null;
 }
 
@@ -232,7 +213,6 @@ function getActiveSessions() {
     }
   } catch {
     debug('getActiveSessions: list output not JSON, falling back to text parse');
-    // Fallback: parse text output
     const sessions = [];
     for (const line of out.split('\n')) {
       const m = line.match(/^\s*-\s+(\S+):\s*$/);
@@ -289,13 +269,11 @@ function getHealthySession(name) {
   const session = getSession(name);
   if (!session) return null;
   if (isSessionHealthy(session)) return session;
-  // Zombie session — try to close just this session first
   console.error(`[browser] Session '${session}' is unresponsive (zombie). Cleaning up.`);
   try {
     execFileSync('playwright-cli', ['-s=' + session, 'close'], { cwd: REPO_ROOT, stdio: 'pipe', timeout: 5000 });
     debug(`getHealthySession: closed session '${session}'`);
   } catch {
-    // Fallback: kill all only if targeted close fails
     debug(`getHealthySession: targeted close failed, falling back to kill-all`);
     killAllSessions();
   }
@@ -310,9 +288,7 @@ function getHealthySession(name) {
 function getAnyHealthySession() {
   const sessions = getActiveSessions();
   if (sessions.length === 0) return null;
-  // Prefer 'default' first
   if (sessions.includes('default') && isSessionHealthy('default')) return 'default';
-  // Try others
   for (const s of sessions) {
     if (s === 'default') continue;
     if (isSessionHealthy(s)) return s;
@@ -353,16 +329,12 @@ function killAllSessions() {
   } catch {
     // Ignore — best effort cleanup
   }
-  // Clean up lock and state
   removeLock();
   clearTabsState();
 }
 
 // --- lock management ---
 
-/**
- * Check if a process with the given PID is alive.
- */
 function isProcessAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -379,7 +351,6 @@ function isProcessAlive(pid) {
  */
 function acquireLock(timeoutMs = LOCK_TIMEOUT_MS) {
   const start = Date.now();
-  // Ensure profile dir exists
   if (!fs.existsSync(PROFILE_DIR)) {
     fs.mkdirSync(PROFILE_DIR, { recursive: true });
   }
@@ -390,31 +361,25 @@ function acquireLock(timeoutMs = LOCK_TIMEOUT_MS) {
       return;
     } catch (e) {
       if (e.code !== 'EEXIST') throw e;
-      // Check if the lock is stale
       try {
         const lockPid = parseInt(fs.readFileSync(LOCK_PATH, 'utf8').trim(), 10);
         if (lockPid && !isProcessAlive(lockPid)) {
           debug(`acquireLock: stale lock from dead PID ${lockPid}, removing`);
           fs.unlinkSync(LOCK_PATH);
-          continue; // Retry immediately
+          continue;
         }
       } catch {
-        // Can't read lock file, try to remove it
         try { fs.unlinkSync(LOCK_PATH); } catch {}
         continue;
       }
       if (Date.now() - start > timeoutMs) {
         fail(`Timeout waiting for browser lock at ${LOCK_PATH} (PID ${process.pid}). Another process may be using the browser.`);
       }
-      // Sleep 50ms
       try { execFileSync('sleep', ['0.05']); } catch {}
     }
   }
 }
 
-/**
- * Release the file lock if we own it.
- */
 function releaseLock() {
   removeLock();
 }
@@ -445,7 +410,6 @@ function getLiveAttachedSessions() {
   const live = [];
   for (const [name, info] of Object.entries(state.sessions)) {
     if (!info.attached) continue;
-    // Check if this session is actually alive
     if (isSessionHealthy(name)) {
       live.push(name);
     }
@@ -455,8 +419,6 @@ function getLiveAttachedSessions() {
 
 /**
  * Count live attached sessions (excluding a specific session if provided).
- * @param {string|null} excludeSession - session name to exclude from count
- * @returns {number} number of other live attached sessions
  */
 function refcountActiveCount(excludeSession = null) {
   const live = getLiveAttachedSessions();
@@ -488,10 +450,6 @@ function refcountList() {
 
 // --- tab state management ---
 
-/**
- * Load the tab name→index mapping from tabs.json.
- * Returns { tabs: {}, current: null } if file doesn't exist.
- */
 function loadTabsState() {
   try {
     const data = JSON.parse(fs.readFileSync(TABS_PATH, 'utf8'));
@@ -501,9 +459,6 @@ function loadTabsState() {
   }
 }
 
-/**
- * Save the tab name→index mapping to tabs.json.
- */
 function saveTabsState(state) {
   if (!fs.existsSync(PROFILE_DIR)) {
     fs.mkdirSync(PROFILE_DIR, { recursive: true });
@@ -511,25 +466,17 @@ function saveTabsState(state) {
   fs.writeFileSync(TABS_PATH, JSON.stringify(state, null, 2));
 }
 
-/**
- * Clear the tab state (after closing all tabs or browser).
- */
 function clearTabsState() {
   saveTabsState({ tabs: {}, current: null });
 }
 
 /**
  * Parse playwright-cli tab-list output to extract tab indices and URLs.
- * Output format examples:
- *   "- 0: (current) [Example Domain](https://example.com/)"
- *   "- 1: [](about:blank)"
- *   "- 0: [Page Title](https://gmail.com)"
  * Returns array of { index, current, url, title }.
  */
 function parseTabList(output) {
   const tabs = [];
   for (const line of output.split('\n')) {
-    // Match: "- <index>: (current) [<title>](<url>)" — title can be empty
     const m = line.match(/^\s*-\s+(\d+):\s*(\(current\)\s*)?\[([^\]]*)\]\((.+)\)\s*$/);
     if (m) {
       tabs.push({
@@ -543,15 +490,11 @@ function parseTabList(output) {
   return tabs;
 }
 
-/**
- * Get the current tab list from playwright-cli (parsed).
- */
 function getTabList(sessionName) {
   const sessionArgs = sessionName ? [`-s=${sessionName}`] : [];
   try {
     const out = runPwCliCapture([...sessionArgs, 'tab-list', '--json'], 5000);
     const data = JSON.parse(out);
-    // tab-list --json returns { "result": "- 0: ..." }
     const text = data.result || data.output || out;
     return parseTabList(text);
   } catch (e) {
@@ -560,16 +503,12 @@ function getTabList(sessionName) {
   }
 }
 
-/**
- * Normalize a URL for comparison (strip trailing slash, lowercase scheme+host).
- */
 function normalizeUrlForCompare(url) {
   try {
     const u = new URL(url);
-    // Strip trailing slash from pathname if it's just "/"
-    let path = u.pathname;
-    if (path === '/') path = '';
-    return `${u.protocol}//${u.host.toLowerCase()}${path}${u.search}${u.hash}`;
+    let p = u.pathname;
+    if (p === '/') p = '';
+    return `${u.protocol}//${u.host.toLowerCase()}${p}${u.search}${u.hash}`;
   } catch {
     return url.replace(/\/$/, '');
   }
@@ -578,13 +517,11 @@ function normalizeUrlForCompare(url) {
 /**
  * Sync the tab state with the actual browser tabs.
  * Rebuilds the name→index mapping by matching URLs (normalized).
- * If URL matching fails, falls back to index matching for existing names.
  */
 function syncTabsState(sessionName) {
   const state = loadTabsState();
   const realTabs = getTabList(sessionName);
   const newTabs = {};
-  // For each real tab, try to find a matching name by URL
   for (const tab of realTabs) {
     let name = null;
     for (const [n, info] of Object.entries(state.tabs)) {
@@ -593,7 +530,6 @@ function syncTabsState(sessionName) {
         break;
       }
     }
-    // Fallback: match by index if no URL match
     if (!name) {
       for (const [n, info] of Object.entries(state.tabs)) {
         if (info.index === tab.index) {
@@ -606,7 +542,6 @@ function syncTabsState(sessionName) {
       newTabs[name] = { index: tab.index, url: tab.url };
     }
   }
-  // Update current tab
   const currentReal = realTabs.find((t) => t.current);
   let currentName = null;
   if (currentReal) {
@@ -623,9 +558,6 @@ function syncTabsState(sessionName) {
 
 // --- session state persistence ---
 
-/**
- * Load persisted session state.
- */
 function loadSessionState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
@@ -634,9 +566,6 @@ function loadSessionState() {
   }
 }
 
-/**
- * Save session state.
- */
 function saveSessionState(state) {
   if (!fs.existsSync(PROFILE_DIR)) {
     fs.mkdirSync(PROFILE_DIR, { recursive: true });
@@ -644,9 +573,6 @@ function saveSessionState(state) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
-/**
- * Record a session in the persisted state.
- */
 function recordSession(name, url, headed) {
   const state = loadSessionState();
   if (!state.sessions) state.sessions = {};
@@ -659,9 +585,6 @@ function recordSession(name, url, headed) {
   saveSessionState(state);
 }
 
-/**
- * Remove a session from persisted state.
- */
 function removeSessionState(name) {
   const state = loadSessionState();
   if (state.sessions && state.sessions[name]) {
@@ -670,10 +593,6 @@ function removeSessionState(name) {
   }
 }
 
-/**
- * Record an attached session in the persisted state.
- * Attached sessions share the browser but have their own active tab.
- */
 function recordAttachedSession(name, parentSession) {
   const state = loadSessionState();
   if (!state.sessions) state.sessions = {};
@@ -685,10 +604,6 @@ function recordAttachedSession(name, parentSession) {
   saveSessionState(state);
 }
 
-/**
- * Check if a session is an attached session (not the primary browser owner).
- * Attached sessions have their own active tab context and don't need tab locks.
- */
 function isAttachedSession(name) {
   const state = loadSessionState();
   return !!(state.sessions && state.sessions[name] && state.sessions[name].attached);
@@ -696,13 +611,8 @@ function isAttachedSession(name) {
 
 // --- screenshot on failure ---
 
-/**
- * Take a screenshot before failing, for debugging.
- * Only works if a session is active.
- */
 function screenshotOnFailure(sessionName) {
   const sessionArgs = sessionName ? [`-s=${sessionName}`] : [];
-  const screenshotPath = path.join(PROFILE_DIR, `failure-${Date.now()}.png`);
   try {
     execFileSync('playwright-cli', [...sessionArgs, 'screenshot'], {
       cwd: REPO_ROOT,
@@ -710,10 +620,9 @@ function screenshotOnFailure(sessionName) {
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    // playwright-cli saves screenshot to a default location; we note it
     console.error(`[browser] Screenshot may have been saved. Check ${PROFILE_DIR}/ for recent screenshots.`);
   } catch {
-    // Best effort — don't fail harder
+    // Best effort
   }
 }
 
@@ -721,7 +630,6 @@ function screenshotOnFailure(sessionName) {
 
 function normalizeUrl(url) {
   if (!url) return null;
-  // Add https:// if no scheme
   if (!url.match(/^https?:\/\//) && !url.match(/^about:/) && !url.match(/^file:/)) {
     url = 'https://' + url;
   }
@@ -733,15 +641,8 @@ function normalizeUrl(url) {
   }
 }
 
-// --- arg parsing (sequential, not filter-based) ---
+// --- arg parsing ---
 
-/**
- * Parse args sequentially. Handles --flag=value and --flag value forms.
- * Flags that consume a value: --session, --tab, --name, --timeout
- * Boolean flags: --headed, --headless, --json, --help
- * Everything else is positional.
- * For `exec` command, all positionals after the first are passthrough args.
- */
 function parseArgs(argv) {
   const result = {
     command: null,
@@ -759,7 +660,7 @@ function parseArgs(argv) {
       name: null,
       filename: null,
     },
-    execArgs: [], // for exec command: passthrough args to playwright-cli
+    execArgs: [],
   };
 
   const valueFlags = new Set(['--session', '--tab', '--name', '--timeout', '--filename']);
@@ -772,7 +673,6 @@ function parseArgs(argv) {
     const arg = argv[i];
 
     if (inExecPassthrough) {
-      // After exec command, check for --tab and --session which are wrapper flags
       if (arg === '--session' || arg === '--tab') {
         i++;
         if (i < argv.length) {
@@ -788,7 +688,6 @@ function parseArgs(argv) {
         i++;
         continue;
       }
-      // First non-flag arg is the subcommand (positionals[0]), rest are passthrough
       if (result.positionals.length === 0) {
         result.positionals.push(arg);
       } else {
@@ -798,7 +697,6 @@ function parseArgs(argv) {
       continue;
     }
 
-    // Check for --flag=value form
     if (arg.startsWith('--') && arg.includes('=')) {
       const eqIdx = arg.indexOf('=');
       const flagName = arg.slice(0, eqIdx);
@@ -807,7 +705,6 @@ function parseArgs(argv) {
       if (flagName === '--tab') { result.options.tab = flagValue; i++; continue; }
       if (flagName === '--name') { result.options.name = flagValue; i++; continue; }
       if (flagName === '--filename') { result.options.filename = flagValue; i++; continue; }
-      // Unknown --flag=value, treat as passthrough if in exec context
     }
 
     if (boolFlags.has(arg)) {
@@ -832,18 +729,13 @@ function parseArgs(argv) {
       continue;
     }
 
-    // Positional
     if (result.command === null) {
       result.command = arg;
-      // If command is exec, next positional is the subcommand, rest are passthrough
       if (arg === 'exec') {
         inExecPassthrough = true;
       }
     } else {
       result.positionals.push(arg);
-      if (result.command === 'exec' && result.positionals.length === 1) {
-        // First positional after exec is the subcommand — keep collecting passthrough
-      }
     }
     i++;
   }
@@ -869,10 +761,10 @@ function usage() {
     Navigate to <url>. With --tab: atomically selects tab then navigates.
 
   node scripts/browser.js close [--session <name>] [--force]
-    Close current session. Refuses if other agents are active (use --force to override).
+    Close current session. Refuses if other agents are active (use --force).
 
   node scripts/browser.js close-all [--force]
-    Close all sessions. Refuses if other agents are active (use --force to override).
+    Close all sessions. Refuses if other agents are active (use --force).
 
   node scripts/browser.js who
     List agents currently holding a ref-count on the browser.
@@ -934,19 +826,22 @@ function usage() {
     List active playwright-cli sessions.
 
   node scripts/browser.js status
-    Show browser_mode pref + active sessions + tab mapping.
+    Show browser_mode config + active sessions + tab mapping.
 
   node scripts/browser.js -h|--help
     This help.
 
 The wrapper always passes --profile=.browser-profile. You cannot omit it.
-If --headed/--headless is not passed to 'open', the wrapper reads
-preferences.tooling.browser_mode from the DB to decide.
-Default: headless.
+Config resolution for browser_mode (headed vs headless):
+  1. --headed / --headless flag
+  2. .browser-config.json: { "browser_mode": "headed" }
+  3. BROWSER_MODE env var
+  4. Default: headless
 
 Environment:
   BROWSER_DEBUG=1              Verbose logging to stderr.
-  BROWSER_LOCK_TIMEOUT_MS      Max wait for browser lock (default 10000).
+  BROWSER_LOCK_TIMEOUT_MS      Max wait for browser lock (default 60000).
+  BROWSER_MODE                 Override browser mode.
 
 For click, fill, snapshot, eval, etc. use 'exec' or call 'playwright-cli' directly.`);
 }
@@ -975,15 +870,12 @@ function main() {
 
       const sessionName = options.session || 'default';
 
-      // Acquire lock to prevent race conditions
       acquireLock();
 
-      // Check if a healthy session already exists with the SAME name
       const existing = getHealthySession(sessionName);
       if (existing) {
         console.error(`[browser] Session '${existing}' already active, navigating with goto instead of opening a new one.`);
         runPwCli([`-s=${existing}`, 'goto', normalizedUrl]);
-        // Update tab state for the current tab
         const state = loadTabsState();
         const currentName = state.current || 'default';
         state.tabs[currentName] = { index: 0, url: normalizedUrl };
@@ -993,20 +885,14 @@ function main() {
         return;
       }
 
-      // PROBLEMA 3 fix: if a browser is already running with the same profile
-      // (any session exists), do NOT call playwright-cli open — it would kill
-      // the existing browser. Instead, attach a new session to it and create
-      // a new tab so the attached session has its own isolated tab context.
+      // If a browser is already running with the same profile, attach instead
+      // of opening a second instance (which would kill the existing one).
       const anySession = getAnyHealthySession();
       if (anySession && sessionName !== 'default') {
         console.error(`[browser] Browser already running (session '${anySession}'). Attaching '${sessionName}' instead of opening a new instance.`);
         try {
           runPwCli(['attach', anySession, `--session=${sessionName}`]);
           recordAttachedSession(sessionName, anySession);
-          // Create a new tab for this session so it doesn't interfere with
-          // the primary session's active tab. Attached sessions share the
-          // same browser, so without a new tab, goto would navigate the
-          // shared active tab and clobber the primary session's URL.
           runPwCli([`-s=${sessionName}`, 'tab-new', normalizedUrl]);
           console.log(`[browser] Session '${sessionName}' attached to '${anySession}' with new tab at ${normalizedUrl}.`);
         } catch (e) {
@@ -1026,22 +912,19 @@ function main() {
       } else {
         const mode = getBrowserMode();
         useHeaded = mode === 'headed';
-        debug(`open: browser_mode from DB = ${mode}, useHeaded = ${useHeaded}`);
+        debug(`open: browser_mode = ${mode}, useHeaded = ${useHeaded}`);
       }
 
       const pwArgs = ['open', '--profile=.browser-profile', normalizedUrl];
       if (useHeaded) pwArgs.push('--headed');
 
-      // Use session name if not default
       if (sessionName !== 'default') {
         pwArgs.unshift(`-s=${sessionName}`);
       }
 
       try {
         runPwCli(pwArgs);
-        // Record session state
         recordSession(sessionName, normalizedUrl, useHeaded);
-        // Initialize tab state with the first tab
         saveTabsState({ tabs: { default: { index: 0, url: normalizedUrl } }, current: 'default' });
       } catch (e) {
         screenshotOnFailure(sessionName);
@@ -1055,20 +938,17 @@ function main() {
       const sessionName = options.session || positionals[0];
       if (!sessionName) fail('attach requires a session name: node scripts/browser.js attach --session <name>');
 
-      // Find any healthy session to attach to (not just 'default')
       const parentSession = getAnyHealthySession();
       if (!parentSession) {
         fail('No active browser to attach to. Run `open` first.');
       }
 
-      // If the session already exists, no-op
       const existing = getSession(sessionName);
       if (existing) {
         console.log(`[browser] Session '${sessionName}' already exists.`);
         return;
       }
 
-      // Attach to the running browser with a new session name
       try {
         runPwCli(['attach', parentSession, `--session=${sessionName}`]);
         recordAttachedSession(sessionName, parentSession);
@@ -1109,8 +989,6 @@ function main() {
       }
 
       if (options.tab) {
-        // Attached sessions have independent tab contexts — no lock needed.
-        // Primary session shares tab context — lock for atomicity.
         const attached = isAttachedSession(sessionName);
         if (!attached) acquireLock();
         try {
@@ -1121,7 +999,6 @@ function main() {
           }
           runPwCli([`-s=${session}`, 'tab-select', String(tabInfo.index)]);
           runPwCli([`-s=${session}`, 'goto', normalizedUrl]);
-          // Update tab URL in state (only for primary session)
           if (!attached) {
             tabInfo.url = normalizedUrl;
             state.current = options.tab;
@@ -1144,26 +1021,20 @@ function main() {
       }
       acquireLock();
       try {
-        // PROBLEMA 2 fix: check if other agents are actively using the browser.
-        // If so, detach this session instead of killing the browser.
         const others = refcountActiveCount(sessionName);
         if (others > 0) {
           const attached = isAttachedSession(sessionName);
           if (attached) {
-            // Attached session: detach safely
             try {
               execFileSync('playwright-cli', [`-s=${session}`, 'detach'], { cwd: REPO_ROOT, stdio: 'inherit' });
               console.error(`[browser] Session '${sessionName}' detached (not closed): ${others} other agent(s) still using the browser.`);
             } catch {
-              // detach failed — try close just this session
               try { execFileSync('playwright-cli', [`-s=${session}`, 'close'], { cwd: REPO_ROOT, stdio: 'inherit' }); } catch {}
             }
             removeSessionState(sessionName);
             releaseLock();
             return;
           } else {
-            // Primary session: closing it would kill the browser for everyone.
-            // Warn and refuse unless --force is passed.
             if (!flags.force) {
               console.error(`[browser] WARNING: ${others} attached agent(s) are using the browser. Closing the primary session would kill it for everyone.`);
               console.error(`[browser] Active agents:`);
@@ -1175,12 +1046,9 @@ function main() {
               releaseLock();
               fail(`Refusing to close primary session with ${others} active agent(s). Use --force to override.`, 1);
             }
-            // --force: proceed with close
             console.error(`[browser] Force-closing primary session despite ${others} active agent(s).`);
           }
         }
-        // Try graceful close of this session. If it fails (e.g. attached
-        // sessions prevent closing the primary), fall back to close-all.
         try {
           execFileSync('playwright-cli', [`-s=${session}`, 'close'], { cwd: REPO_ROOT, stdio: 'inherit' });
         } catch {
@@ -1204,7 +1072,6 @@ function main() {
     case 'close-all': {
       acquireLock();
       try {
-        // PROBLEMA 2 fix: check if other agents are actively using the browser.
         const others = refcountActiveCount(null);
         if (others > 0 && !flags.force) {
           console.error(`[browser] WARNING: ${others} attached agent(s) are using the browser. close-all would kill it for everyone.`);
@@ -1219,16 +1086,12 @@ function main() {
         if (others > 0) {
           console.error(`[browser] Force-closing all sessions despite ${others} active agent(s).`);
         }
-        let closed = false;
         try {
           execFileSync('playwright-cli', ['close-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
-          closed = true;
         } catch {
           try {
             execFileSync('playwright-cli', ['kill-all'], { cwd: REPO_ROOT, stdio: 'inherit' });
-            closed = true;
           } catch {
-            // Both failed — likely no sessions to close. That's OK.
             debug('close-all: both close-all and kill-all failed (probably no sessions)');
           }
         }
@@ -1265,8 +1128,6 @@ function main() {
       }
 
       if (options.tab) {
-        // Attached sessions have independent tab contexts — no lock needed.
-        // Primary session shares tab context — lock for atomicity.
         const attached = isAttachedSession(sessionName);
         if (!attached) acquireLock();
         try {
@@ -1275,11 +1136,8 @@ function main() {
           if (!tabInfo) {
             fail(`Tab '${options.tab}' not found. Run 'tab-list' to see available tabs.`);
           }
-          // Select the tab first
           runPwCli([`-s=${session}`, 'tab-select', String(tabInfo.index)]);
-          // Then run the command with passthrough args
           runPwCli([`-s=${session}`, subcommand, ...parsed.execArgs]);
-          // Update current tab (only for primary session)
           if (!attached) {
             state.current = options.tab;
             saveTabsState(state);
@@ -1291,7 +1149,6 @@ function main() {
           if (!attached) releaseLock();
         }
       } else {
-        // No tab specified — just passthrough
         try {
           runPwCli([`-s=${session}`, subcommand, ...parsed.execArgs]);
         } catch (e) {
@@ -1318,16 +1175,12 @@ function main() {
 
       acquireLock();
       try {
-        // Create new tab
         runPwCli([`-s=${session}`, 'tab-new', normalizedUrl || url]);
-        // Get the updated tab list to find the new tab's index
         const realTabs = getTabList(session);
-        // The new tab is the last one (highest index) or the one marked current
         const newTab = realTabs.find((t) => t.current) || realTabs[realTabs.length - 1];
         if (!newTab) {
           fail('Failed to create new tab: could not determine tab index.');
         }
-        // Save to state
         const state = loadTabsState();
         state.tabs[tabName] = { index: newTab.index, url: normalizedUrl || url };
         state.current = tabName;
@@ -1352,14 +1205,12 @@ function main() {
       const attached = isAttachedSession(sessionName);
       if (!attached) acquireLock();
       try {
-        // Sync state first in case indices changed (only for primary session)
         const synced = attached ? { tabs: loadTabsState().tabs, current: null } : syncTabsState(session);
         const tabInfo = synced.tabs[tabName];
         if (!tabInfo) {
           fail(`Tab '${tabName}' not found. Available: ${Object.keys(synced.tabs).join(', ') || '(none)'}`);
         }
         runPwCli([`-s=${session}`, 'tab-select', String(tabInfo.index)]);
-        // Update current (only for primary session)
         if (!attached) {
           saveTabsState({ tabs: synced.tabs, current: tabName });
         }
@@ -1387,10 +1238,8 @@ function main() {
           fail(`Tab '${tabName}' not found. Available: ${Object.keys(state.tabs).join(', ') || '(none)'}`);
         }
         runPwCli([`-s=${session}`, 'tab-close', String(tabInfo.index)]);
-        // Remove from state and re-sync indices
         delete state.tabs[tabName];
         saveTabsState(state);
-        // Re-sync to fix indices after close
         syncTabsState(session);
         console.log(`[browser] Tab '${tabName}' closed.`);
       } finally {
@@ -1409,12 +1258,10 @@ function main() {
       acquireLock();
       try {
         const realTabs = getTabList(session);
-        // Close all tabs except the first one (index 0)
         for (let i = realTabs.length - 1; i >= 1; i--) {
           runPwCli([`-s=${session}`, 'tab-close', String(realTabs[i].index)]);
         }
         clearTabsState();
-        // Re-initialize with the remaining tab
         const remaining = getTabList(session);
         if (remaining.length > 0) {
           saveTabsState({ tabs: { default: { index: 0, url: remaining[0].url } }, current: 'default' });
@@ -1433,11 +1280,9 @@ function main() {
         fail(`No active session '${sessionName}'. Run 'open' first.`);
       }
 
-      // Sync state with reality
       const synced = syncTabsState(session);
 
       if (flags.json) {
-        // Build output with names
         const realTabs = synced.realTabs;
         const output = realTabs.map((t) => {
           let name = null;
@@ -1492,6 +1337,7 @@ function main() {
       const holders = refcountList();
       const output = {
         browser_mode: mode || '(not set, default: headless)',
+        config_file: fs.existsSync(CONFIG_PATH) ? CONFIG_PATH : '(not found)',
         active_sessions: sessions,
         profile: PROFILE_DIR,
         tabs: tabsState.tabs,
@@ -1632,7 +1478,6 @@ function main() {
   }
 }
 
-// Clean up lock on exit
 process.on('exit', () => {
   removeLock();
 });
