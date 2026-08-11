@@ -4,7 +4,8 @@
  * Endpoint: /voyager/api/voyagerMessagingGraphQL/graphql
  * Query ID: messengerConversations.0d5e6781bbee71c3e51c8843c6519f48
  *
- * Usage: node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.js)"
+ * Usage: node scripts/browser.js exec eval "$(cat scripts/linkedin-inbox.js)"
+ *        (run from any LinkedIn page — the script auto-detects the profile ID)
  *
  * Returns: JSON array of conversations with participants, unread count, last message, last activity.
  */
@@ -15,9 +16,12 @@
     .find(function (c) { return c.indexOf('JSESSIONID=') === 0 });
   csrf = csrf ? csrf.split('=')[1].replace(/"/g, '') : '';
 
-  // Self fsd_profile_id — extract from profile page HTML at runtime
-  // document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g) (most frequent match)
-  var selfId = '<YOUR_FSD_PROFILE_ID>';
+  // Auto-detect self fsd_profile_id from page HTML (most frequent ACoAA... match)
+  var ids = document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g) || [];
+  var counts = {};
+  ids.forEach(function (id) { counts[id] = (counts[id] || 0) + 1; });
+  var selfId = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+  if (!selfId) return JSON.stringify({ error: 'Could not detect profile ID. Navigate to a LinkedIn page first.' });
   var mailbox = 'urn%3Ali%3Afsd_profile%3A' + selfId;
   var vars = '(mailboxUrn:' + mailbox + ')';
 
