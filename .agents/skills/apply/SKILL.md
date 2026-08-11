@@ -167,3 +167,77 @@ When applying directly to a company career page (not via LinkedIn Easy Apply), t
 - Depends on `onboarding` (DB to register)
 - Depends on `profile` (Must-haves to filter)
 - Consumed by `daily`
+
+## Easy Apply form answers (DB keys)
+
+All personal data lives in the DB, never in scripts or docs. The agent and scripts read form answers from:
+
+| Data | DB location |
+|---|---|
+| Name, email, phone, CV path | `users.data.profile` (full_name, email, phone, cv_path) |
+| Address, city, country | `users.data.personal_info` (address, city, state, country, postal_code) |
+| Salary, availability, preferences | `users.data.job_preferences` (salary, availability, modalities, etc.) |
+| Easy Apply form answers | `users.data.form_answers` (see keys below) |
+| LinkedIn URL, blog URL | `users.data.form_answers.linkedin_url`, `form_answers.blog_url` |
+
+**Common Easy Apply question types and where to get the answers:**
+- Years of experience with [tech]: `users.data.form_answers.<tech>_experience`
+- Language level: `users.data.form_answers.english_level` / `spanish_level`
+- Current location: `users.data.form_answers.location`
+- Current company: `users.data.form_answers.current_company`
+- LinkedIn URL: `users.data.form_answers.linkedin_url`
+- Salary expectation: `users.data.form_answers.salary_usd` / `salary_cop` / `salary_usd_max`
+- Availability: `users.data.form_answers.notice_period` / `availability_date`
+- Consent/privacy: always accept
+- Diversity/accessibility: `users.data.form_answers.diversity_*` (accessibility, gender, ethnicity)
+- Disability: `users.data.form_answers.disability`
+- GenAI tools experience: `users.data.form_answers.genai_tools`
+- AWS experience: `users.data.form_answers.aws_experience`
+- English comfort (open text): `users.data.form_answers.english_comfort`
+
+**If a key doesn't exist in `form_answers`:** the script skips the field (doesn't invent it). The agent must stop, ask the user, save the answer to DB (`jsonb_set` on `users.data.form_answers`), then continue. Gold Rule 5c.
+
+## Script reference
+
+### `scripts/linkedin-easy-apply.js` -- Apply via Easy Apply
+
+Searches jobs with Easy Apply filter, clicks, fills forms with standard answers, submits, registers in DB.
+
+```bash
+# Apply to the first 10 jobs (default)
+node scripts/linkedin-easy-apply.js
+
+# Keywords custom + limit
+node scripts/linkedin-easy-apply.js --keywords '"<Role>" OR "<Skill>"' --max 5
+
+# List only, don't apply
+node scripts/linkedin-easy-apply.js --dry-run
+
+# Output JSON
+node scripts/linkedin-easy-apply.js --json
+```
+
+**Flags:** `--keywords <q>` (default: derived from DB profile.title + profile.skills), `--location <loc>` (default: from DB job_preferences.location), `--max <n>` (default 10), `--dry-run`, `--json`, `--session <name>` (for parallel execution)
+**Auto-fill:** all values are read from `users.data.form_answers` (DB). The script fills: years of experience per tech, language level, location, current company, LinkedIn URL, salary, availability, GenAI tools, AWS, etc. Radios: Yes for skills, No for disability/sponsorship (configurable values in DB). Comboboxes: English/Spanish level, seniority (from DB).
+**Captcha:** detects and stops with exit 1 + message. Never attempts to solve.
+**DB:** registers each application with `platform='linkedin'`, `status='applied'`.
+
+### `scripts/linkedin-search.js` -- Search posts for job openings
+
+Searches LinkedIn posts, extracts author + vanity + email + content preview. Filters by relevance (AI/ML keywords) and dedupes.
+
+```bash
+# Basic search (human-readable output)
+node scripts/linkedin-search.js '"<Role>" "hiring" LATAM'
+
+# Search with more scrolls and JSON output (to pipe to other scripts)
+node scripts/linkedin-search.js '"<Role>" "<City>" "hiring"' --scroll 3 --json
+
+# Validated queries:
+#   '"<Role>" "hiring" LATAM'               (most productive)
+#   '"<Role>" "<City>" "hiring"'      (geo-specific)
+#   '"ingeniero IA" "buscamos"'                  (Spanish)
+```
+
+**Flags:** `--scroll <n>` (default 2), `--json` (raw JSON output)
+**Output JSON:** `[{author, vanity, email, content}, ...]`

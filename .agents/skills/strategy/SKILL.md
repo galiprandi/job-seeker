@@ -145,3 +145,21 @@ See AGENTS.md "Strategy levels" for the full table. Summary:
 - Depends on `onboarding` (DB must exist)
 - Read by all flows at pre-flight
 - Memory skill can trigger this flow when situation changes are detected
+
+## Timing and batch sizes
+
+Practical limits per session (validated empirically):
+
+- An apply session can process 7-10 Easy Apply jobs in ~30 min
+- Connection requests: 8-10 per session (avoid LinkedIn limits)
+- Direct emails: 4-5 per session (each takes ~2 min with attachment)
+- Effective total per session: 15-20 application/contact actions
+- Some companies have very long forms that take ~10 min each. The rest take 2-5 min each
+
+These limits interact with strategy levels:
+- `passive`: 0 applications, 0 targets (on-demand only)
+- `selective`: 5 applications, 5 targets per session
+- `active`: 10 applications, 10 targets per session
+- `aggressive`: 15 applications, all targets per session
+
+**LinkedIn limits:** custom notes on connection requests have a weekly cap. When exhausted, send invites without a note. Don't retry with a note.

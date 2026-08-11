@@ -447,3 +447,74 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 8. Verify Send button is NOT `disabled`
 9. Click Send button
 10. Verify "German Aliprandi sent the following messages" appears in snapshot
+
+## Email delivery
+
+### SMTP is preferred (reliability + speed)
+
+SMTP via `nodemailer` is the **preferred** method for sending outbound email. It has no UI dependency, is faster, and more reliable than browser automation.
+
+1. Generate an app password in the provider (e.g., Gmail: https://myaccount.google.com/apppasswords)
+2. Add to `.env` (never commit `.env`):
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_SECURE=true
+   SMTP_USER=you@example.com
+   SMTP_PASS=your-app-password
+   ```
+3. Send:
+   ```
+   node scripts/send-email.js --to someone@example.com --subject "Subject" --body "Message"
+   ```
+4. For outreach to contacts in the DB, build on top of `sendEmail()` from `scripts/send-email.js` and mark `outreach_contacts.status = 'contacted'` after successful delivery.
+
+### Browser is a fallback (when SMTP is not configured)
+
+The browser **CAN** send emails. Compose is `div[role=dialog]` in the main document and all elements are accessible via `playwright-cli`.
+
+**When to use browser email:**
+- SMTP is not configured (no `.env` app password)
+- SMTP fails and a fallback is needed
+- The flow requires attaching a CV from the browser session
+
+**When NOT to use browser email:**
+- SMTP is available (always prefer SMTP for reliability and speed)
+- Bulk sending (SMTP is much faster, no UI rendering per message)
+
+## Script reference
+
+### `scripts/send-email.js` -- Send emails via SMTP (preferred)
+
+Uses `nodemailer` with SMTP app password. No browser dependency. Faster and more reliable than `gmail-send.js`.
+
+```bash
+node scripts/send-email.js --to someone@example.com --subject "Subject" --body "Message"
+```
+
+Requires SMTP credentials in `.env` (see "Email delivery" section above).
+
+### `scripts/gmail-send.js` -- Send emails with CV attached (browser fallback)
+
+Opens Gmail compose, fills To/Subject/Body, attaches CV, sends. Supports CC/BCC and body from file.
+
+```bash
+# Basic email with CV attached
+node scripts/gmail-send.js \
+  --to recruiter@company.com \
+  --subject "Application - <Role> - <Your Name>" \
+  --body "Hi, I saw your post on LinkedIn..."
+
+# Email without CV
+node scripts/gmail-send.js --to email@x.com --subject "..." --body "..." --no-cv
+
+# Body from file
+node scripts/gmail-send.js --to email@x.com --subject "..." --body-file templates/email-ai-engineer.txt
+
+# Multiple recipients + CC
+node scripts/gmail-send.js --to a@x.com,b@x.com --cc c@x.com --subject "..." --body "..."
+```
+
+**Flags:** `--to <emails>` (required, comma-separated), `--subject <text>` (required), `--body <text>`, `--body-file <path>`, `--cv <path>` (default: from DB profile.cv_path), `--no-cv`, `--cc <emails>`, `--bcc <emails>`
+**UI:** supports Gmail in Spanish (Redactar/Asunto/Cuerpo/Enviar/Adjuntar) and English (Compose/Subject/Body/Send/Attach)
+**CV path:** read from DB (users.data.profile.cv_path or personal_info.cv_pdf_path)

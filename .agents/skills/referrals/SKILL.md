@@ -96,3 +96,23 @@ Present the warm sourcing results to the user:
 - Depends on `onboarding` (DB to register)
 - Depends on `profile` (education & past experience data for alumni/ex-colleague matching)
 - Integrated into `apply` and `targets` flows
+
+## Script reference
+
+### `scripts/linkedin-invite.js` -- Send connection requests
+
+Navigates to `/preload/custom-invite/?vanityName=<vanity>`, clicks "Send without a note". Anti-ban delay of 3s between invites.
+
+```bash
+# Invite one or more vanities
+node scripts/linkedin-invite.js <vanity-name>
+
+# Invite multiple
+node scripts/linkedin-invite.js vanity1 vanity2 vanity3
+
+# Search + invite in one command (pipe search -> invite)
+node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" LATAM'
+```
+
+**Flags:** `--from-search "<keywords>"` (searches and invites all found)
+**Exit codes:** 0 = at least one sent, 1 = all failed, 2 = error
