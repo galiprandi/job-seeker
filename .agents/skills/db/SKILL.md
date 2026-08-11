@@ -49,6 +49,71 @@ Tables live in `public`. Discover with `--tables` and `--schema <table>`. Known 
 - `applications` — `user_id, platform, company, role, url, status, applied_at, data`.
 - `messages` — recruiter / contact messages.
 
+### `applications` table
+
+**Columns:** `id, user_id, platform, company, role, url, status, applied_at, data`
+
+**Platforms used:**
+- `linkedin` = Easy Apply jobs
+- `linkedin_invite` = connection requests
+- `email` = direct emails to recruiters
+- `teamtailor` = applications via Teamtailor (with LinkedIn auth, email verification, Connect)
+- `humand` = applications via Humand.co
+- `<company>_career_site`, etc. = specific career sites
+
+**Status values (pipeline stages, canonical):**
+
+Active stages (left to right in the kanban):
+- `discovered` = found but no action taken
+- `contacted` = invite/email sent, no formal application
+- `applied` = application submitted
+- `in_review` = company reviewing, no response
+- `screening` = screening call scheduled/done
+- `interview` = technical interview in progress
+- `offer` = offer received, negotiating
+- `hired` = accepted, starting
+
+Closed stages (shown with `--closed`):
+- `rejected` = company rejected
+- `withdrawn` = user withdrew
+- `skipped` = decided not to apply / not a fit
+
+**`data` JSONB:** include `source`, `match` (high/medium/low), `location`, `tech` array, `stage_history` array (audit trail of status changes), and any relevant metadata.
+
+## Helper library
+
+`lib/browser-helpers.js` provides atomic helpers that prevent session death between browser calls:
+
+```js
+const {
+  goto, evalJS, evalJSON, clickByText,
+  waitFor, waitForSelector, waitForText,
+  snapshotReliable, dismissModals,
+  dbQuery, dbWrite,
+  // Atomic helpers (prevent session death between calls)
+  openAndEval, openAndEvalJSON,
+  gotoAndEval, gotoAndEvalJSON,
+} = require('./lib/browser-helpers');
+```
+
+**Atomic helpers** chain `open/goto + eval` in a single shell command to prevent session death between calls:
+
+```js
+// Open browser + extract in one call (no session death risk)
+const jobs = openAndEvalJSON(
+  'https://www.linkedin.com/jobs/search/?keywords=...',
+  `(function(){ ... return JSON.stringify(...); })()`,
+  { session: 'my-session', headed: true }
+);
+
+// Navigate + extract in one call (browser already open)
+const emails = gotoAndEvalJSON(
+  'https://mail.google.com/mail/u/0/#all',
+  `(function(){ ... return JSON.stringify(...); })()`,
+  { session: 'my-session' }
+);
+```
+
 ## Dependencies
 
 - Depends on `onboarding` (`.env` + DB must exist).
