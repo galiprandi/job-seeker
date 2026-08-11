@@ -91,9 +91,9 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
 
-**Browser knowledge:** The reusable browser skills live in the `skills` repo (`browser-core`, `linkedin`, `gmail`). The local `.agents/skills/browser-ops/` skill contains job-seeker-specific patterns (ATS, form answers, pipeline) plus a copy of the generic knowledge. Prefer the global skills for generic browser patterns; use `browser-ops` only for job-seeker-specific flows.
+**Browser knowledge:** The reusable browser skills live in the `skills` repo (`browser-core`, `linkedin`, `gmail`). The local `.agents/skills/browser-automation/` skill contains the browser automation patterns (wrapper, golden rules, tab parallelization, snapshots, eval). Prefer the global skills for generic browser patterns; use `browser-automation` for job-seeker-specific flows.
 
-**Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see `gmail` skill in the `skills` repo, or `browser-ops` for job-seeker-specific compose patterns).
+**Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see `gmail` skill in the `skills` repo, or `browser-automation` for job-seeker-specific compose patterns).
 
 ## Strategy levels
 
@@ -211,7 +211,7 @@ onboarding → profile → strategy
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-ops/SKILL.md`. |
+| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-automation/SKILL.md`. |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 | `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
 | `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies. `--json` for piping, `--session <name>` for parallel execution, `--pages <n>` for pagination |
@@ -233,8 +233,8 @@ onboarding → profile → strategy
 | Browser automation (generic) | `skills` repo: `browser-core/SKILL.md` |
 | LinkedIn patterns | `skills` repo: `linkedin/SKILL.md` |
 | Gmail patterns | `skills` repo: `gmail/SKILL.md` |
-| Job-seeker browser patterns (ATS, form answers, pipeline, scripts ref) | `.agents/skills/browser-ops/SKILL.md` |
-| Email delivery (SMTP + browser fallback) | `skills` repo: `gmail/SKILL.md` (SMTP snippet) + `.agents/skills/browser-ops/SKILL.md` (job-seeker compose) |
+| Job-seeker browser patterns (ATS, form answers, pipeline, scripts ref) | `.agents/skills/browser-automation/SKILL.md` |
+| Email delivery (SMTP + browser fallback) | `skills` repo: `gmail/SKILL.md` (SMTP snippet) + `.agents/skills/browser-automation/SKILL.md` (job-seeker compose) |
 | DB access (CLI) | `.agents/skills/db/SKILL.md` |
 | Preference memory | `.agents/skills/memory/SKILL.md` |
 | Each flow's detail | `.agents/skills/<flow>/SKILL.md` |
