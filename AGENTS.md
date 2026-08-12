@@ -95,6 +95,29 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 
 **Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see `gmail` skill in the `skills` repo, or `browser-automation` for job-seeker-specific compose patterns).
 
+### Gold Rule 11 — Gmail scope: read-only for non-job-related emails
+The agent must **never delete, archive, mark as read, move, label, or modify any email that is not directly related to job search activity**. This includes personal emails, GitHub notifications, Windows updates, Mercado Pago statements, Google account alerts, newsletter subscriptions, course platforms, and any other non-job-related communication.
+
+**What the agent CAN do with job-related emails:**
+- Read and extract content from any email (job-related or not) to find job leads, recruiter contacts, interview invitations, etc.
+- Reply to recruiter/job-related emails (with user approval per Gold Rule 6)
+- Archive/delete/move **only** job-related emails that have been fully processed (and only if the user explicitly approves)
+
+**What the agent must NEVER do:**
+- Archive or delete non-job-related emails (GitHub, Windows, Mercado Pago, Google alerts, newsletters, personal emails, etc.)
+- Bulk-archive inbox items "to clean up" without explicit per-category user approval
+- Modify read status of non-job-related emails
+- Move or label non-job-related emails
+- Assume that unread non-job-related emails are "clutter" to be cleaned
+
+**The inbox cleanup step in `daily` is limited to:**
+1. Identifying job-related emails that need action (replies, registrations, follow-ups)
+2. Surfacing them in the summary
+3. Asking the user which job-related items they want to archive (never non-job-related)
+4. Only archiving what the user explicitly approves, one by one or by explicitly approved category
+
+**Enforcement:** Before any archive/delete/move action on an email, the agent must verify the email is job-related AND the user has explicitly approved that specific action. If unsure whether an email is job-related, treat it as non-job-related (do not modify).
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
@@ -167,7 +190,7 @@ The system has 9 flows + 1 cross-cutting behavior + 1 dashboard. Each flow has a
 | News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications + LinkedIn Saved Jobs + staged referral/outreach drafts. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
 | Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
 | Referrals | `.agents/skills/referrals/` | `referrals` | Warm sourcing: discover internal contacts, alumni, ex-colleagues, and recruiters at target companies, stage referral requests/outreach DMs, and micro-align CV keywords to JD | User says `referrals`, "warm sourcing", "buscar contactos". Also runs as step 0 of `apply` and `targets` |
-| Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
+| Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup (job-related only, Gold Rule 11) → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
 | Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
 | Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
 | Polish | `.agents/skills/polish/` | `polish` | Optimizes LinkedIn profile (headline, about, experience, skills, open-to-work) and redacts an improved CV aligned to user's goals. Exports CV to PDF via headless browser. Per-section approval | After profile exists. User says `polish`, "mejorar mi linkedin", "pulir perfil", "alinear cv" |
