@@ -81,10 +81,10 @@ Job Seeker is free and open source. If it helps you, here are three ways to supp
 
 <CTACard
   icon="💬"
-  title="Leave a comment or idea"
-  description="Found a bug, have a question, or want to suggest a feature? Open an issue or join the discussion."
-  href="https://github.com/galiprandi/job-seeker/issues"
-  cta="Comment"
+  title="Join the discussion"
+  description="Ask a question, share an idea, or tell us how you're using Job Seeker. The community is here."
+  href="https://github.com/galiprandi/job-seeker/discussions"
+  cta="Discuss"
 />
 
 <CTACard
