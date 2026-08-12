@@ -38,13 +38,28 @@ node scripts/browser.js load-state
 
 ### Bulk inbox fetch (PREFERRED over UI scraping)
 
-One HTTP call returns ALL conversations with participants, unread count, last message, and timestamp. Avoids opening conversations one by one.
+One HTTP call returns ALL conversations with thread IDs, participant names, unread count, last message, and timestamp. Avoids opening conversations one by one. **This is the foundation of safe messaging: always fetch thread IDs via API before sending, never rely on UI clicks.**
+
+**Response structure (validated 2026-08-12):**
+
+The GraphQL response uses a normalized format with two top-level keys:
+- `data.data.messengerConversationsBySyncToken['*elements']` — array of conversation URNs
+- `included` — flat map of all objects keyed by numeric index or URN
+
+Object types in `included`:
+- `com.linkedin.messenger.Conversation` — has `backendUrn` (contains thread ID), `*conversationParticipants` (refs to participants), `unreadCount`, `lastActivityAt`, `messages`
+- `com.linkedin.messenger.MessagingParticipant` — has `entityUrn`, `participantType.member.firstName.text`, `participantType.member.lastName.text`, `participantType.member.profileUrl`
+- `com.linkedin.messenger.Message` — individual messages
+
+**Thread ID extraction:** the `backendUrn` field contains the thread ID as `2-XXXXX==`. Extract with regex: `backendUrn.match(/2-[A-Za-z0-9_-]+/)`.
+
+**Participant name resolution:** `*conversationParticipants` contains refs to `MessagingParticipant` objects. The refs are URN strings (e.g: `urn:li:msg_messagingParticipant:urn:li:fsd_profile:ACoAA...`). Look up each ref in `included` by matching `entityUrn`, then read `participantType.member.firstName.text` and `participantType.member.lastName.text`.
 
 ```bash
 # Navigate to messaging first (loads required cookies)
 node scripts/browser.js goto "https://www.linkedin.com/messaging/"
 
-# Fetch all conversations via Voyager GraphQL
+# Fetch all conversations with participant names and thread IDs
 playwright-cli eval "(function(){
   var csrf = document.cookie.split('; ').find(function(c){return c.indexOf('JSESSIONID=')===0});
   csrf = csrf ? csrf.split('=')[1].replace(/\"/g,'') : '';
@@ -63,8 +78,50 @@ playwright-cli eval "(function(){
       'x-li-lang': 'en_US',
       'csrf-token': csrf
     }
-  }).then(function(r){return r.text()}).then(function(t){return t.substring(0,3000)});
+  }).then(function(r){return r.json()}).then(function(data){
+    var included = data.included || {};
+
+    // Build participant map: entityUrn -> 'FirstName LastName'
+    var participantMap = {};
+    for (var key in included) {
+      var obj = included[key];
+      if (obj.\$type === 'com.linkedin.messenger.MessagingParticipant') {
+        var member = obj.participantType && obj.participantType.member;
+        if (member && member.firstName && member.lastName) {
+          participantMap[obj.entityUrn] = member.firstName.text + ' ' + member.lastName.text;
+        }
+      }
+    }
+
+    // Build conversation list with thread IDs and participant names
+    var results = [];
+    for (var key in included) {
+      var conv = included[key];
+      if (conv.\$type !== 'com.linkedin.messenger.Conversation') continue;
+      var threadMatch = (conv.backendUrn || '').match(/2-[A-Za-z0-9_-]+/);
+      var refs = conv['*conversationParticipants'] || [];
+      var names = refs.map(function(r) { return participantMap[r] || 'unknown'; });
+      results.push({
+        threadId: threadMatch ? threadMatch[0] : '',
+        participants: names,
+        unreadCount: conv.unreadCount || 0,
+        lastActivityAt: conv.lastActivityAt || ''
+      });
+    }
+    return JSON.stringify(results);
+  });
 })()"
+```
+
+**Find a conversation by participant name:**
+
+```bash
+# Filter the results array by participant name
+# Example: find thread with 'María'
+var maria = results.filter(function(r) {
+  return r.participants.some(function(p) { return p.includes('María'); });
+});
+# Returns: [{ threadId: '2-YjFm...', participants: ['German Aliprandi', 'María de los Angeles Celiz'], ... }]
 ```
 
 **Query ID changes over time.** If the endpoint returns HTML instead of JSON, find the current query ID:
@@ -79,16 +136,97 @@ playwright-cli eval "(function(){
 
 **Decision logic after fetch:**
 - `unreadCount > 0` → open that thread to read and respond
-- `lastMessage.isFromSelf === true` → waiting for reply, no action needed
+- `participants` includes target name → use that `threadId` for sending via API or URL navigation
 - `lastActivityAt` → compare against your last review timestamp to detect new activity
 
-### Open a conversation by name (UI)
+### Send reply via Voyager API (SAFE: by thread ID)
 
+**This is the only safe way to send a message.** The thread ID is obtained from the bulk inbox fetch above. No UI interaction needed — the API call works from any LinkedIn page.
+
+```bash
+playwright-cli eval "(function(){
+  var csrf = document.cookie.split('; ').find(function(c){return c.indexOf('JSESSIONID=')===0});
+  csrf = csrf ? csrf.split('=')[1].replace(/\"/g,'') : '';
+
+  var THREAD_ID = '2-XXXXX==';
+  var MESSAGE_TEXT = 'your message';
+
+  var body = {
+    eventCreate: {
+      value: {
+        'com.linkedin.voyager.messaging.create.MessageCreate': {
+          attributedBody: {text: MESSAGE_TEXT, attributes: []},
+          attachments: []
+        }
+      }
+    }
+  };
+
+  return fetch('/voyager/api/messaging/conversations/' + encodeURIComponent(THREAD_ID) + '/events?action=create', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/vnd.linkedin.normalized+json+2.1',
+      'x-restli-protocol-version': '2.0.0',
+      'x-li-lang': 'en_US',
+      'csrf-token': csrf,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  }).then(function(r){return r.text()}).then(function(t){return t.substring(0, 500)});
+})()"
 ```
-URL: https://www.linkedin.com/messaging/
-Strategy: eval click on <li> by person name
-Verify: msg-s-message-list-container exists + <h2> matches name
+
+**Verification:** the response contains `conversationUrn` with the thread ID. Confirm it matches the intended `THREAD_ID` before reporting success. If the response contains an error or the thread ID doesn't match, STOP and retry.
+
+**Complete safe messaging flow (API-first, no UI clicks):**
+1. Navigate to `https://www.linkedin.com/messaging/` (loads cookies)
+2. Bulk inbox fetch → get all conversations with thread IDs + participant names
+3. Filter by participant name → get the target `threadId`
+4. Send via Voyager API with that exact `threadId`
+5. Verify: response `conversationUrn` matches the `threadId`
+6. (Optional) Navigate to `/messaging/thread/<threadId>/` to visually confirm in headed mode
+
+This flow eliminates the entire class of "wrong recipient" errors. The thread ID comes from the API, not from a UI click that may or may not navigate.
+
+### Open a conversation (SAFE: by thread ID)
+
+**This is the only safe way to open a conversation for sending.** Navigate directly to the thread URL. Never open `/messaging/` and click a name in the sidebar — LinkedIn redirects to the last active thread, and sidebar clicks can be intercepted by the global nav header or search overlay, leaving the composer attached to the wrong thread.
+
+**How to get the thread ID:**
+1. Use the bulk inbox fetch above to get all conversations with their thread IDs and participant names
+2. Match the participant name to find the thread ID (`2-XXXXX==`)
+
+```bash
+# Navigate directly to the thread by ID
+node scripts/browser.js goto "https://www.linkedin.com/messaging/thread/2-XXXXX==/"
+
+# Wait for the conversation to load
+playwright-cli eval "(async function(){
+  for (let i = 0; i < 50; i++) {
+    if (document.querySelector('.msg-s-message-list-container')) return 'ready';
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return 'timeout';
+})()"
+
+# Verify the correct thread is loaded (check URL, not just header text)
+playwright-cli eval "(function(){
+  var url = location.pathname;
+  var threadId = url.match(/thread\/(2-[^/]+)/);
+  if (!threadId) return 'no_thread_in_url';
+  var header = document.querySelector('h2');
+  return JSON.stringify({
+    threadId: threadId[1],
+    header: header ? header.textContent.trim() : 'no_header'
+  });
+})()"
+# Confirm the thread ID in the output matches the one you intended.
+# Only then proceed to type and send.
 ```
+
+### Open a conversation by name (FALLBACK: use only if thread ID is unknown)
+
+**Warning:** This method is unreliable. LinkedIn redirects `/messaging/` to the last active thread, and sidebar clicks may not navigate. Always prefer the thread ID method above. If you must use this, verify the thread ID in the URL after clicking — do not trust the header text alone.
 
 ```bash
 node scripts/browser.js goto "https://www.linkedin.com/messaging/"
@@ -114,13 +252,24 @@ playwright-cli eval "(function(){
   return 'not_found';
 })()"
 
-# Verify (Browser Automation Rule 5: check DOM, not URL)
+# CRITICAL: Verify the thread URL changed to the expected thread ID
+# Do NOT trust header text — the composer belongs to whatever thread is in the URL
 playwright-cli eval "(function(){
-  const panel = document.querySelector('.msg-s-message-list-container');
-  const header = document.querySelector('h2');
-  if (panel && header && header.textContent.includes('PERSON_NAME')) return 'ok';
-  return 'not_loaded';
+  var url = location.pathname;
+  var threadId = url.match(/thread\/(2-[^/]+)/);
+  if (!threadId) return 'ERROR: no thread in URL — click may have failed';
+  var panel = document.querySelector('.msg-s-message-list-container');
+  var header = document.querySelector('h2');
+  return JSON.stringify({
+    threadId: threadId[1],
+    header: header ? header.textContent.trim() : 'no_header',
+    panelLoaded: !!panel
+  });
 })()"
+# If threadId doesn't match the expected conversation, STOP.
+# Do not type or send anything. Retry with eval .click() on the <h3>
+# element directly, or use the bulk inbox fetch to get the thread ID
+# and navigate by URL.
 ```
 
 ### Send text-only message (new conversation, via Voyager API)
@@ -622,6 +771,8 @@ csrf = csrf ? csrf.split('=')[1].replace(/"/g,'') : '';
 
 ## Anti-patterns
 
+- **Don't** open `/messaging/` and click a sidebar name to send a message — LinkedIn redirects to the last active thread and sidebar clicks may not navigate. The composer belongs to whatever thread is in the URL, not the name you clicked. Use the bulk inbox fetch to get the thread ID, then navigate directly to `/messaging/thread/<thread_id>/` or use the Voyager API with the thread ID. A message sent to the wrong thread cannot be unsent.
+- **Don't** verify a sent message with `hasMyMsg:true` alone — that only confirms the text exists somewhere on the page (could be the sidebar preview of the wrong conversation). Verify the thread ID in the URL matches the intended recipient AND the input is empty AND the message appears in the conversation pane.
 - **Don't** open conversations one by one when you can use the bulk inbox fetch
 - **Don't** put attachments in `attachments[]` field — use `renderContentUnions`
 - **Don't** use `content-type: application/json` for the dash endpoint — use `text/plain`
