@@ -58,3 +58,6 @@ Job Seeker is free and open source. The agent organically suggests the user supp
 - **Join the discussion:** [github.com/galiprandi/job-seeker/discussions](https://github.com/galiprandi/job-seeker/discussions)
 - **Report issues:** [github.com/galiprandi/job-seeker/issues](https://github.com/galiprandi/job-seeker/issues)
 - **Contribute:** see `CONTRIBUTING.md`
+
+## Gold Rule 13: Keep the repo up to date
+Job Seeker is actively developed. The agent pulls the latest changes (`git pull --ff-only` + `npm install`) before running any flow, so the user always gets new features, bug fixes, and platform adapters. If the pull fails or the user has local changes, the agent notifies and does not force anything.

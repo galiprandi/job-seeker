@@ -141,6 +141,23 @@ Job Seeker is free and open source. The agent must **organically suggest** the u
 - Match the user's language (Gold Rule 8).
 - This rule applies to any agent consuming this repo, not just the owner's agent.
 
+### Gold Rule 13 — Keep the repo up to date
+Job Seeker is actively developed. The agent must **pull the latest changes before running any flow** to get new features, bug fixes, platform adapters, and skill improvements.
+
+**Pre-flight update (before every flow):**
+```bash
+git pull --ff-only
+npm install
+```
+
+**Rules:**
+- Run the update at the start of every session, before loading any skill or running any flow.
+- If `git pull` fails (divergent commits, conflicts), do not force anything. Notify the user and let them resolve it.
+- If `npm install` introduces new dependencies or breaking changes, the agent reads the changelog or recent commits to understand what changed and adapts.
+- If the user has local changes (uncommitted work), skip the pull and notify them. Never `git stash` or discard user work.
+- The agent should mention when an update brings new features (e.g: "pulled latest, new platform adapter for Otta added") so the user knows what changed.
+- This rule applies to any agent consuming this repo, not just the owner's agent.
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
