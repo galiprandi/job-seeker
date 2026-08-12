@@ -763,6 +763,10 @@ See [references/parallel-agents.md](references/parallel-agents.md) for the full 
 
 See [references/profile-management.md](references/profile-management.md) for profile dir setup, auth state persistence, and headed/headless workflow.
 
+## ATS patterns
+
+See [references/ats-patterns.md](references/ats-patterns.md) for platform-specific patterns for applying via career pages and reading scheduling links. Covers Ashby (application form fields, file upload flow, submit, confirmation; scheduling link timezone, available days, time slot extraction, filtering by user availability).
+
 ## App guides
 
 When automating a specific web app, load the corresponding guide for validated selectors, patterns, and gotchas. Each guide is a separate markdown file under `apps/`.
