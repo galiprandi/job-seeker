@@ -29,7 +29,7 @@ Job Seeker is a set of **markdown skills** that any coding agent (Devin, Claude,
 
 Your data stays in your own DB. The repo is candidate-agnostic: clone it, run onboarding, and go.
 
-**Full documentation: https://galiprandi.github.io/job-seeker/**
+**Full documentation: [https://galiprandi.github.io/job-seeker/](https://galiprandi.github.io/job-seeker/)**
 
 ## Demo
 
@@ -142,7 +142,7 @@ After onboarding, try:
 
 ## Platforms
 
-`PLATFORMS.md` is a catalog of 35 platforms in 5 categories (general, tech, AI, executive, latam), community-maintained. The agent consults it to decide where to search based on your profile. You don't choose platforms, the agent deduces them.
+`PLATFORMS.md` is a catalog of 35 platforms in 5 categories (general, tech, AI, executive, latam), community-maintained. The agent consults it to decide where to search based on your profile. You don't choose platforms, the agent deduces them. See the [platforms reference](https://galiprandi.github.io/job-seeker/reference/platforms) in the docs.
 
 ## Stack
 
@@ -211,7 +211,7 @@ LICENSE                      # MIT
 
 ## Key decisions
 
-See `ADR.md` for details. Summary:
+See `ADR.md` for details, or the [architecture reference](https://galiprandi.github.io/job-seeker/reference/architecture) in the docs. Summary:
 
 - **playwright-cli** over MCP: native CLI, no JSON config, token-efficient
 - **Postgres** over Mongo: 70% of data is relational. JSONB for semi-structured
@@ -226,7 +226,7 @@ See `ADR.md` for details. Summary:
 
 ## Contributing
 
-Contributions are welcome. See `CONTRIBUTING.md` for guidelines.
+Contributions are welcome. See `CONTRIBUTING.md` for guidelines, or the [contributing guide](https://galiprandi.github.io/job-seeker/reference/contributing) in the docs.
 
 Areas where help is most useful:
 
