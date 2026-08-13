@@ -198,6 +198,57 @@ Returns:
 - `conversationUrn` format: `urn:li:msg_conversation:(urn:li:fsd_profile:<self_id>,<thread_id>)`
 - Attachments go in `renderContentUnions`, NOT in `attachments` (silently dropped)
 
+### Fetch messages from a specific thread
+
+*Validated 2026-08-12 against live API.*
+
+```
+GET /voyager/api/messaging/conversations/{chatId}/events?start=0&count=20
+```
+
+Headers: `accept: application/vnd.linkedin.normalized+json+2.1`, `x-restli-protocol-version: 2.0.0`, `x-li-lang: en_US`, `csrf-token`
+
+`chatId` = the `2-XXXXX==` thread ID (URL-encoded). Obtain it from the bulk inbox fetch above.
+
+Returns normalized JSON with:
+- `data['*elements']` — array of event URN strings
+- `included` — flat map keyed by numeric index (`"0"`, `"1"`, `"2"`...), NOT by URN
+
+Object types in `included`:
+- `com.linkedin.voyager.messaging.Event` — has `eventContent`, `*from` (ref), `createdAt`
+- `com.linkedin.voyager.identity.shared.MiniProfile` — has `firstName`, `lastName`
+- `com.linkedin.voyager.messaging.MessagingMember` — links `*from` to a MiniProfile
+
+**Important:** `*elements` contains URN strings, but `included` is keyed numerically. Do NOT look up `included[elementUrn]` — iterate `included` by `$type` instead.
+
+**Message body extraction:** `eventContent.attributedBody.text` for text messages. Other event types (attachments, reactions) have different `eventContent` shapes.
+
+**Sender resolution:** `*from` is a ref to a `MessagingMember` or `MiniProfile` object. Look it up in `included` and read `firstName` + `lastName`.
+
+```js
+// Extract all messages from a thread
+var included = data.included || {};
+var messages = [];
+for (var key in included) {
+  var evt = included[key];
+  if (!evt || evt.$type !== 'com.linkedin.voyager.messaging.Event') continue;
+  var fromRef = evt['*from'] || '';
+  var senderObj = included[fromRef];
+  var sender = '';
+  if (senderObj) sender = (senderObj.firstName || '') + ' ' + (senderObj.lastName || '');
+  var body = '';
+  var ec = evt.eventContent;
+  if (ec) {
+    if (ec.attributedBody) body = ec.attributedBody.text || '';
+    else if (ec.body) body = ec.body || '';
+  }
+  messages.push({ sender: sender.trim(), body: body, createdAt: evt.createdAt || 0 });
+}
+messages.sort(function(a,b){ return a.createdAt - b.createdAt; });
+```
+
+**Verification:** the response `data['*elements']` array length should match the number of `Event` objects found in `included`. If `included` has 0 `Event` objects, the thread ID may be wrong or the conversation may be empty.
+
 ## What does NOT work
 
 - `POST /voyager/api/messaging/conversations?action=create` with `attachments` array → 500 (regardless of attachment structure)

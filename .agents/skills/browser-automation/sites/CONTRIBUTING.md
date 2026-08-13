@@ -1,4 +1,4 @@
-# Contributing to apps/
+# Contributing to sites/
 
 This directory contains automation guides for specific web applications. Each guide documents validated selectors, API endpoints, flows, and gotchas for automating a particular site with `playwright-cli`.
 
@@ -85,26 +85,38 @@ Use placeholders: `<THREAD_ID>`, `<RECIPIENT_NAME>`, `<company>.teamtailor.com`,
 
 ## File structure
 
-Each app guide is a single markdown file named after the platform:
+Each app has its own directory named after the domain slug (underscore-separated, no dots or hyphens). The main guide is always `guide.md`. Additional reference files live alongside it in the same directory.
 
 ```
-apps/
-  linkedin.md          # LinkedIn automation
-  gmail.md             # Gmail automation
-  jira.md              # Jira automation
-  teamtailor.md        # Teamtailor ATS automation
-  CONTRIBUTING.md      # This file
+sites/
+  gmail_com/
+    guide.md              # Gmail automation guide
+  linkedin_com/
+    guide.md              # LinkedIn automation guide
+    voyager-api.md        # Detailed API endpoint documentation
+  jira_com/
+    guide.md
+  teamtailor_com/
+    guide.md
+  CONTRIBUTING.md         # This file
 ```
 
-If an app needs sub-references (API docs, selector catalogs), create a directory:
+### Domain slug convention
 
-```
-apps/
-  linkedin.md
-  linkedin-references/
-    voyager-api.md     # Detailed API endpoint documentation
-    selectors.md       # Validated selector catalog
-```
+Derive the directory name from the site's canonical domain:
+- Lowercase, replace `.` and `-` with `_`
+- Strip `www.` prefix
+- Example: `mail.google.com` → `gmail_com`, `www.linkedin.com` → `linkedin_com`, `humand.co` → `humand_co`
+
+### Learnings vs guides
+
+- **`guide.md`** is the curated, validated guide for the app. It documents selectors, API endpoints, flows, and gotchas that have been tested against the live site.
+- **Other `.md` files** in the same directory (e.g. `login-bypass.md`, `2fa-flow.md`) are **learnings** — smaller, topic-specific files that document a single shortcut, workaround, or failure recovery discovered during real automation.
+- Learnings are documentation only. They are never auto-applied by the agent. A human must review and promote useful learnings into `guide.md` or the core `SKILL.md`.
+
+### No scripts
+
+**Do not contribute executable scripts (`.js`, `.py`, `.sh`, `.ts`) to `sites/`.** This directory is markdown-only documentation. Scripts are executable code that runs with the user's privileges — accepting them as contributions would expand the attack surface from prompt injection (text-only) to remote code execution. If a flow is universally reusable and deterministic enough to justify a script, it belongs in the skill's `scripts/` directory (core infrastructure, like `browser.js`), not in `sites/`. That promotion is a manual, human-reviewed decision — never automatic.
 
 ## Required sections
 
@@ -143,3 +155,18 @@ Use `innerHTML` + `beforeinput` with `insertFromPaste` instead.
 - [ ] Anti-patterns section documents known failure modes
 - [ ] Validation date included
 - [ ] Generic enough to work for any user, not just the author
+- [ ] No executable scripts (`.js`, `.py`, `.sh`, `.ts`) — markdown only
+
+## Security review checklist (for PR reviewers)
+
+When reviewing a PR that modifies files under `sites/`, check for these supply-chain attack indicators:
+
+- [ ] No instructions that tell the agent to read env vars, credentials, or secret files (`.env`, `~/.ssh`, `~/.aws`)
+- [ ] No network calls to undocumented or external URLs (telemetry, analytics, exfiltration endpoints)
+- [ ] No instructions to open PRs or perform git operations without user confirmation
+- [ ] No base64-encoded blobs, hex strings, or obfuscated content
+- [ ] No instructions that override the scrub/privacy rules in `SKILL.md`
+- [ ] No instructions that tell the agent to auto-apply learnings (learnings are documentation only)
+- [ ] No modifications to `SKILL.md`, `scripts/`, `references/`, or this file (PRs to `sites/` should only touch `sites/`)
+- [ ] Content is paraphrased, not transcribed verbatim from a site (prevents prompt injection)
+- [ ] SkillSpector CI check passes with no high/critical findings
