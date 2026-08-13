@@ -117,11 +117,11 @@ playwright-cli eval "(function(){
 
 ```bash
 # Filter the results array by participant name
-# Example: find thread with 'María'
-var maria = results.filter(function(r) {
-  return r.participants.some(function(p) { return p.includes('María'); });
+# Example: find thread with '<PARTIAL_NAME>'
+var match = results.filter(function(r) {
+  return r.participants.some(function(p) { return p.includes('<PARTIAL_NAME>'); });
 });
-# Returns: [{ threadId: '2-YjFm...', participants: ['German Aliprandi', 'María de los Angeles Celiz'], ... }]
+# Returns: [{ threadId: '2-YjFm...', participants: ['<Your Name>', '<Contact Name>'], ... }]
 ```
 
 **Query ID changes over time.** If the endpoint returns HTML instead of JSON, find the current query ID:
