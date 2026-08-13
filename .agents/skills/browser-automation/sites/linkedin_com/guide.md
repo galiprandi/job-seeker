@@ -786,4 +786,4 @@ csrf = csrf ? csrf.split('=')[1].replace(/"/g,'') : '';
 
 ## API reference
 
-See [linkedin-references/voyager-api.md](linkedin-references/voyager-api.md) for detailed endpoint documentation.
+See [voyager-api.md](voyager-api.md) for detailed endpoint documentation.
