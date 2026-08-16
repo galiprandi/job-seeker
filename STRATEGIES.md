@@ -21,6 +21,25 @@ Reference document with strategies ranked by effectiveness, based on research da
 
 ---
 
+## Field validation (observed, not statistical)
+
+The research-based ranking above is confirmed in practice by this repo's own job search activity. Based on observed outcomes across real sessions:
+
+1. **Cold DM to recruiters (1:1)** — highest yield. Direct outreach to recruiters, whether sourced from posts, connection accepts, or warm intros, consistently produces conversations, screenings, and interviews. Validates strategies #2 and #4.
+2. **Post scraping → identify recruiter → DM** — best lead source. Social network post searches surface active, specific, time-sensitive opportunities posted by reachable recruiters. The post is the lead; the DM is the conversion. Validates strategy #4 as the default for `apply` sessions.
+3. **Connection accepted → DM** — moderate yield. Produces amicable conversations but rarely converts to interviews without a specific role to anchor the message. Validates strategy #5 as a secondary channel.
+4. **1-click apply (bulk)** — low yield. High volume, near-zero response in practice. Useful as a baseline but should not be the primary channel. Validates strategy #6 as a volume complement, not a primary driver.
+5. **Follow-ups (batch)** — low yield. Bulk follow-ups to stale applications rarely get responses. Follow-ups work better when targeted and contextual, not batched to all stale applications.
+6. **Generic job boards** — low yield for senior AI/Agentic profiles. Generic boards produce volume but not quality matches for this profile. Validates strategy #8 as passive radar only.
+
+**Practical implications for flows:**
+- `apply` and `daily` should prioritize post scraping + cold DM over 1-click apply bulk.
+- `news` should surface recruiter-posted opportunities as primary leads, not just platform notifications.
+- Follow-ups should be selective and contextual, not batched to all stale applications.
+- 1-click apply should be a secondary, fill-in activity when DM channels are exhausted, not the default.
+
+---
+
 ## 1. Internal referral (employee refers you)
 
 **Effectiveness: MAXIMUM** — 40-65% interview rate, 40% hire rate, 29 days faster than cold apply
