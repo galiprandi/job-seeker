@@ -51,9 +51,14 @@ Present the 4 levels (see AGENTS.md "Strategy levels") and ask:
    - En los próximos meses, buscando algo mejor → `selective`
    - Necesito algo pronto → `active`
    - Necesito algo ya, desesperado → `aggressive`
-3. ¿Aceptarías roles IC o solo Manager?
+3. **Pregunta adaptativa según career stage** (leer `users.data.profile.career_stage` y `users.data.profile.has_management`):
+   - Si `career_stage` es junior/mid: "¿Estás abierto a roles de un nivel más alto al tuyo, o solo a roles de tu mismo nivel?"
+   - Si `career_stage` es senior+ y `has_management = true`: "¿Aceptarías roles IC o solo Manager?"
+   - Si `career_stage` es senior+ y `has_management = false`: "¿Te interesa dar el salto a management o prefieres seguir como IC?"
 4. ¿Aceptarías hybrid si el proyecto es muy bueno?
 5. ¿Quieres que aplique automáticamente o solo te muestre opciones?
+
+**Nunca preguntes "IC o Manager?" a un usuario junior/mid.** La pregunta 3 se adapta al perfil inferido del CV.
 
 Based on answers, propose a level. Explain what changes:
 ```
@@ -64,7 +69,7 @@ This means:
 - Register on 10 target companies per session
 - Run daily 2x/day
 - Follow up after 3 days instead of 5
-- Accept IC roles if AI focus is strong (Manager relaxed)
+- Relax your top 2 Must-haves (the agent resolves which ones from your profile)
 - Send cold outreach to recruiters at target companies
 
 Does this work? You can adjust any parameter individually.
@@ -75,7 +80,7 @@ Does this work? You can adjust any parameter individually.
 After proposing a level, let the user customize individual parameters:
 - "Quiero que apliques a 15 pero solo Must-matches" → override `apply_batch_size = 15`, keep `match_threshold = must_only`
 - "No quiero cold outreach" → override `cold_outreach = false`
-- "Aceptar hybrid pero no IC" → override `relax_must_haves = ["remote"]` (not "manager")
+- "Relajar remote pero no mentorship" → override `relax_must_haves` with specific keys from the user's Must-haves (the agent reads `users.data.job_preferences` to resolve which keys to relax)
 
 ### 4. Save to DB
 
@@ -96,11 +101,14 @@ The strategy JSON contains all parameters (see AGENTS.md "Strategy levels"). Exa
   "daily_frequency": "2x/day",
   "match_threshold": "must_strong",
   "follow_up_days": 3,
-  "relax_must_haves": ["manager"],
+  "relax_must_haves": "top_2_must_haves",
+  "relaxed_keys": ["remote", "salary"],
   "cold_outreach": false,
   "sources_active": ["radar", "apply", "targets", "referrals", "news"]
 }
 ```
+
+`relax_must_haves` stores the strategy level (`top_2_must_haves`, `top_3_must_haves`, `none`). `relaxed_keys` is the resolved list of actual Must-have keys from `users.data.job_preferences` that the agent will relax. The agent populates `relaxed_keys` at runtime by reading the user's Must-weighted preferences and picking the top N by priority.
 
 ### 5. Confirm
 
@@ -112,7 +120,7 @@ Strategy saved: active (customized)
 - Targets: 10 companies/session
 - Daily: 2x/day
 - Follow-up: 3 days
-- Relaxed: Manager (IC roles accepted if AI focus strong)
+- Relaxed: top 2 Must-haves (remote, salary)
 - Cold outreach: disabled
 - Sources: radar, apply, targets, referrals, news
 
@@ -125,10 +133,10 @@ See AGENTS.md "Strategy levels" for the full table. Summary:
 
 | Level | apply_batch | targets_batch | daily | match | follow_up | relax | cold |
 |---|---|---|---|---|---|---|---|
-| passive | 0 | 0 | on-demand | must_only | 7 | [] | false |
-| selective | 5 | 5 | 1x/day | must_only | 5 | [] | false |
-| active | 10 | 10 | 2x/day | must_strong | 3 | ["manager"] | true |
-| aggressive | 15 | all | 2x/day | must_strong_nice | 2 | ["manager", "remote"] | true |
+| passive | 0 | 0 | on-demand | must_only | 7 | none | false |
+| selective | 5 | 5 | 1x/day | must_only | 5 | none | false |
+| active | 10 | 10 | 2x/day | must_strong | 3 | top_2_must_haves | true |
+| aggressive | 15 | all | 2x/day | must_strong_nice | 2 | top_3_must_haves | true |
 
 ## Rules
 

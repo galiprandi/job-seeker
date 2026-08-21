@@ -68,10 +68,10 @@ Paginate until collecting 20-30 candidates.
 
 ### 2. Filter by Must-haves
 
-For each job, verify against profile Must-haves. Discard if:
-- Doesn't match any Must-have
+For each job, verify against profile Must-haves from `users.data.job_preferences`. Discard if:
+- Doesn't match any Must-have (the filter is dynamic, based on the user's Must-weighted preferences, not hardcoded)
 - Requires visa/location the user doesn't have (e.g: US-only, EU-only)
-- Not a software/tech role
+- Not in the user's field/sector (per `users.data.profile.sector` and `job_preferences`)
 - Already applied (check against DB)
 
 Keep 10-15 matching positions.

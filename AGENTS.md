@@ -12,7 +12,7 @@ Full autonomy. Only ask for user intervention to: (a) data the agent cannot infe
 When the user states a preference, goal, personal data, or decision criterion, the agent must **immediately update** all relevant artifacts (AGENTS.md, PROFILE.md, APPLICATIONS.md, DB, etc.) without the user needing to ask explicitly. Never let a stated preference remain only in the conversation context.
 
 ### Gold Rule 4 — User's professional goal
-The primary goal is **applying knowledge to optimize workflows and processes with AI**. The Manager role is highly valued but **sacrificable** if the pay and project are interesting enough. This hierarchy must be respected when evaluating opportunities, filtering jobs, and drafting responses to recruiters.
+The user's career goal, role preferences, and what's sacrificable live in `users.data.profile.career_goal` and `users.data.job_preferences`. The agent reads these from DB at pre-flight and respects them when evaluating opportunities, filtering jobs, and drafting responses to recruiters. Never hardcode a career goal in the repo. If the DB has no `career_goal`, the `profile` flow asks the user and saves it.
 
 ### Gold Rule 5 — Headed re-login
 When a session expires or re-login is needed on any platform (LinkedIn, Gmail, etc.), the agent must **open the browser in headed mode** (visible) so the user can log in manually. Never attempt to log in programmatically with the user's credentials. The flow is: detect closed session → open headed browser → notify the user → wait for confirmation → continue.
@@ -168,8 +168,15 @@ The job search has configurable aggressiveness. The agent asks the user about th
 |---|---|---|---|---|---|---|---|---|---|
 | `passive` | Employed, open to opportunities | 0 | 0 | on-demand | Must only | 7 | none | false | radar, news |
 | `selective` | Employed, looking for better | 5 | 5 | 1x/day | Must only | 5 | none | false | radar, apply, targets, referrals, news |
-| `active` | Unemployed or about to be | 10 | 10 | 2x/day | Must+Strong | 3 | manager (accept IC if AI focus strong) | true | radar, apply, targets, referrals, news |
-| `aggressive` | Needs a job now | 15 | all | 2x/day | Must+Strong+Nice | 2 | manager + remote (accept hybrid if project is great) | true | radar, apply, targets, referrals, news |
+| `active` | Unemployed or about to be | 10 | 10 | 2x/day | Must+Strong | 3 | top_2_must_haves | true | radar, apply, targets, referrals, news |
+| `aggressive` | Needs a job now | 15 | all | 2x/day | Must+Strong+Nice | 2 | top_3_must_haves | true | radar, apply, targets, referrals, news |
+
+`relax_must_haves` values:
+- `none` — no Must-haves are relaxed
+- `top_2_must_haves` — relax the 2 highest-priority Must-haves from `users.data.job_preferences` (agent reads them at runtime, no hardcoded keys)
+- `top_3_must_haves` — relax the 3 highest-priority Must-haves from `users.data.job_preferences`
+
+The agent determines which Must-haves to relax by reading the user's Must-weighted preferences from DB. For a senior manager, that might be `manager` and `remote`. For a junior, it might be `mentorship` and `tech_stack`. The repo never assumes which Must-haves exist.
 
 ### Parameters
 
@@ -182,7 +189,7 @@ Each level sets these parameters. The user can customize individual ones after c
 | `daily_frequency` | string | How often to run `daily`: `on-demand`, `1x/day`, `2x/day` |
 | `match_threshold` | string | Which matches to act on: `must_only`, `must_strong`, `must_strong_nice` |
 | `follow_up_days` | int | Days before sending a follow-up on an application |
-| `relax_must_haves` | array | Which Must-haves to relax: `manager`, `remote`, `salary`, `ai_focus` |
+| `relax_must_haves` | string | Which Must-haves to relax: `none`, `top_2_must_haves`, `top_3_must_haves`. The agent resolves which actual Must-haves to relax at runtime from `users.data.job_preferences` |
 | `cold_outreach` | bool | Whether to send cold messages to recruiters at target companies |
 | `sources_active` | array | Which sourcing pillars to use: `radar`, `apply`, `targets`, `referrals`, `news` |
 
@@ -206,7 +213,7 @@ node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
 ```
 
 Then adjusts behavior:
-- `apply`: `apply_batch_size` limits applications per session. `match_threshold` filters which jobs to apply. `relax_must_haves` loosens Must-have filtering
+- `apply`: `apply_batch_size` limits applications per session. `match_threshold` filters which jobs to apply. `relax_must_haves` loosens Must-have filtering (the agent resolves `top_N_must_haves` to actual keys from `users.data.job_preferences` at runtime)
 - `targets`: `targets_batch_size` limits companies per session. Same match/relax logic
 - `referrals`: runs as step 0 of `apply`/`targets` only if `referrals` is in `sources_active`. The recruiter-outreach branch (Strategy #4) additionally requires `cold_outreach = true`; the referral-request branch (Strategy #1) runs regardless of `cold_outreach` since it targets warm contacts
 - `daily`: `daily_frequency` controls how often it runs. `sources_active` controls which pillars to activate
