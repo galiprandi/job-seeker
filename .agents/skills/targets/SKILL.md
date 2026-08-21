@@ -43,15 +43,16 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
 
 ## Must-haves filter (from job_preferences)
 
-Before applying to any job, verify against Must-haves from `users.data.job_preferences`. Discard if:
-- Not remote (hybrid with mandatory office days = discard, unless `relax_must_haves` includes `remote`)
-- Doesn't match `ai_focus` preference (if `ai_focus.weight = Must`, role must involve the user's AI role types)
-- Junior/Intern level (per `deal_breakers`)
+Before applying to any job, verify against Must-haves from `users.data.job_preferences`. The filter is dynamic, not hardcoded. For each Must-weighted preference, discard if the job doesn't match. Common examples:
+
+- Work mode mismatch (if `work_mode.weight = Must`, role must match the user's preferred mode. If `relax_must_haves` resolves to include `work_mode`, accept partial matches)
+- Sector/specialization mismatch (if `sector.weight = Must`, role must be in the user's preferred sector)
+- Role level in `deal_breakers` (the user defines their own deal-breakers, never hardcoded. If the user listed "junior" as a deal-breaker, discard junior roles. If they didn't, don't)
 - In `industries_avoid` list (per `industries_avoid.weight`)
 - Salary below `job_preferences.salary.value.min` (if mentioned and `salary.weight = Must`)
 - Not in user's accepted locations (per `location` and `timezones` preferences)
 
-**Gold Rule 4:** Manager role is highly valued but sacrificable if the pay and project are interesting enough. Don't discard IC roles automatically if the AI focus and compensation are strong. Check `relax_must_haves` for `manager`.
+**Gold Rule 4:** The user's career goal and what's sacrificable live in `users.data.profile.career_goal` and `users.data.job_preferences`. Read them from DB. Don't discard roles based on hardcoded assumptions about role type or seniority. Check `relax_must_haves` (resolved from `users.data.job_preferences`) to know which Must-haves are relaxed for the current strategy level.
 
 ## Flow
 
