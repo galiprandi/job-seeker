@@ -117,11 +117,11 @@ playwright-cli eval "(function(){
 
 ```bash
 # Filter the results array by participant name
-# Example: find thread with '<PARTIAL_NAME>'
-var match = results.filter(function(r) {
-  return r.participants.some(function(p) { return p.includes('<PARTIAL_NAME>'); });
+# Example: find thread with 'María'
+var maria = results.filter(function(r) {
+  return r.participants.some(function(p) { return p.includes('María'); });
 });
-# Returns: [{ threadId: '2-YjFm...', participants: ['<Your Name>', '<Contact Name>'], ... }]
+# Returns: [{ threadId: '2-YjFm...', participants: ['<Your Name>', 'María de los Angeles Celiz'], ... }]
 ```
 
 **Query ID changes over time.** If the endpoint returns HTML instead of JSON, find the current query ID:
@@ -138,6 +138,193 @@ playwright-cli eval "(function(){
 - `unreadCount > 0` → open that thread to read and respond
 - `participants` includes target name → use that `threadId` for sending via API or URL navigation
 - `lastActivityAt` → compare against your last review timestamp to detect new activity
+
+### Navigate between conversations
+
+*Validated 2026-08-23 against live LinkedIn Messaging.*
+
+LinkedIn Messaging is a SPA where the conversation list and the active thread are separate panels. Switching conversations has several gotchas.
+
+#### The reliable way: navigate by thread URL
+
+**Always navigate directly to the thread URL.** This is the only method that reliably switches conversations.
+
+```bash
+# Get thread IDs from the bulk inbox fetch (see "Bulk inbox fetch" above)
+# Then navigate directly:
+node scripts/browser.js goto "https://www.linkedin.com/messaging/thread/2-XXXXX==/" --tab linkedin
+
+# Wait for messages to load (see "Read messages" below for the polling pattern)
+```
+
+#### What does NOT work
+
+**Sidebar clicks from `/messaging/`** — clicking a conversation in the sidebar often fails to navigate. The URL stays on the previous thread, and the message panel doesn't update. This is the most common failure mode.
+
+```bash
+# ❌ Unreliable — click may not navigate
+node scripts/browser.js exec eval "(function(){
+  var items = document.querySelectorAll('.msg-conversation-listitem');
+  for (var i = 0; i < items.length; i++) {
+    var name = items[i].querySelector('h3')?.innerText?.trim() || '';
+    if (name.includes('TARGET_NAME')) { items[i].click(); return 'clicked'; }
+  }
+  return 'not found';
+})()" --tab linkedin
+# URL may still point to the previous thread
+```
+
+**Keyboard navigation (Arrow Down/Up)** — pressing arrow keys moves the highlight in the conversation list but does not navigate to the thread. The URL and message panel stay on the previous conversation.
+
+```bash
+# ❌ Does not navigate — only moves highlight
+node scripts/browser.js exec press ArrowDown --tab linkedin
+# URL unchanged, message panel unchanged
+```
+
+**`/messaging/` redirect** — navigating to `https://www.linkedin.com/messaging/` (without a thread ID) redirects to the last active thread. This is not a way to switch conversations — it's a way to return to wherever you last were.
+
+#### Bulk navigation pattern
+
+To read messages from multiple conversations, loop through thread IDs from the bulk inbox fetch:
+
+```bash
+# 1. Fetch all thread IDs + participant names (see "Bulk inbox fetch" above)
+# 2. For each thread, navigate by URL and extract messages
+
+for THREAD_ID in "2-AAAA==" "2-BBBB==" "2-CCCC=="; do
+  node scripts/browser.js goto "https://www.linkedin.com/messaging/thread/$THREAD_ID/" --tab linkedin
+  # Wait for messages to load
+  node scripts/browser.js exec eval "(async function(){
+    for (var i = 0; i < 30; i++) {
+      var items = document.querySelectorAll('.msg-s-event-listitem');
+      if (items.length > 0) return 'ready';
+      await new Promise(function(r){setTimeout(r, 500)});
+    }
+    return 'timeout';
+  })()" --tab linkedin
+  # Extract messages (see "Read messages" below)
+done
+```
+
+**Timing:** each navigation + load takes ~5-8 seconds (navigation + SPA hydration + message render). Budget accordingly for bulk reads.
+
+### Read messages from a conversation (full extraction with sender/direction)
+
+*Validated 2026-08-23 against live LinkedIn Messaging.*
+
+There are two methods to read messages from a conversation: **Voyager API** (preferred, returns structured data with sender) and **DOM extraction** (fallback, requires navigating to the thread).
+
+#### Method 1: Voyager API (preferred)
+
+Fetch events from a thread by thread ID. Returns structured data with sender, body, and timestamp.
+
+```bash
+# Navigate to messaging first (loads required cookies)
+node scripts/browser.js goto "https://www.linkedin.com/messaging/" --tab linkedin
+
+# Fetch events from a thread
+node scripts/browser.js exec eval "(function(){
+  var csrf = document.cookie.split('; ').find(function(c){return c.indexOf('JSESSIONID=')===0});
+  csrf = csrf ? csrf.split('=')[1].replace(/\"/g,'') : '';
+  var THREAD_ID = '2-XXXXX==';
+
+  return fetch('/voyager/api/messaging/conversations/' + encodeURIComponent(THREAD_ID) + '/events?start=0&count=50', {
+    headers: {
+      'accept': 'application/vnd.linkedin.normalized+json+2.1',
+      'x-restli-protocol-version': '2.0.0',
+      'x-li-lang': 'en_US',
+      'csrf-token': csrf
+    }
+  }).then(function(r){return r.json()}).then(function(data){
+    var included = data.included || {};
+    var msgs = [];
+    for (var key in included) {
+      var evt = included[key];
+      if (!evt || evt.\$type !== 'com.linkedin.voyager.messaging.Event') continue;
+      var fromRef = evt['*from'] || '';
+      var senderObj = included[fromRef];
+      var sender = '';
+      if (senderObj) sender = (senderObj.firstName || '') + ' ' + (senderObj.lastName || '');
+      var body = '';
+      var ec = evt.eventContent;
+      if (ec) {
+        if (ec.attributedBody) body = ec.attributedBody.text || '';
+        else if (ec.body) body = ec.body || '';
+      }
+      if (body) msgs.push({sender: sender.trim(), body: body, createdAt: evt.createdAt || 0});
+    }
+    msgs.sort(function(a,b){ return a.createdAt - b.createdAt; });
+    return JSON.stringify(msgs);
+  });
+})()" --tab linkedin
+```
+
+**Thread ID format:** the `2-XXXXX==` from the bulk inbox fetch. The `==` suffix is part of the ID — include it when URL-encoding. If you get `{"data":{"status":400},"included":[]}`, the thread ID is malformed or missing the `==` padding.
+
+**Sender resolution:** `*from` is a ref to a `MessagingMember` or `MiniProfile` object in `included`. Look it up and read `firstName` + `lastName`. Messages from yourself will have your own name.
+
+**Count parameter:** `count=50` returns the last 50 messages. For longer conversations, increase to `count=100` or paginate with `start=50`.
+
+#### Method 2: DOM extraction (fallback)
+
+Navigate to the thread URL and extract messages from the rendered DOM. Use this when the API returns errors or the response structure changes.
+
+```bash
+# 1. Navigate to the thread by ID (include == suffix)
+node scripts/browser.js goto "https://www.linkedin.com/messaging/thread/2-XXXXX==/" --tab linkedin
+
+# 2. Wait for messages to load (poll — LinkedIn is a SPA, messages load async)
+node scripts/browser.js exec eval "(async function(){
+  for (var i = 0; i < 30; i++) {
+    var items = document.querySelectorAll('.msg-s-event-listitem');
+    if (items.length > 0) return 'ready: ' + items.length + ' items';
+    await new Promise(function(r){setTimeout(r, 500)});
+  }
+  return 'timeout';
+})()" --tab linkedin
+
+# 3. Extract messages with direction (sent vs received)
+node scripts/browser.js exec eval "(function(){
+  var items = document.querySelectorAll('.msg-s-event-listitem');
+  var out = [];
+  items.forEach(function(it){
+    var isReceived = it.classList.contains('msg-s-event-listitem--other');
+    var txt = (it.querySelector('.msg-s-event-listitem__body') || it).innerText.trim();
+    if (txt) out.push({dir: isReceived ? 'in' : 'out', text: txt});
+  });
+  return JSON.stringify(out);
+})()" --tab linkedin
+```
+
+**Direction detection:** the class `msg-s-event-listitem--other` marks messages from the other participant. Its absence means the message was sent by you.
+
+**Selector for message text:** `.msg-s-event-listitem__body` contains the message body. Fall back to the listitem's `innerText` if the body element is missing.
+
+**Polling is required:** LinkedIn renders messages asynchronously after navigation. A single `eval` without waiting returns `no items` or `[]`. Always poll with the async loop above (up to 15 seconds).
+
+**Scrolling for older messages:** the message list uses virtual scrolling. To load older messages, scroll the container to the top repeatedly:
+
+```bash
+node scripts/browser.js exec eval "(async function(){
+  var container = document.querySelector('.msg-s-message-listcontainer');
+  if (!container) return 'no container';
+  var seen = {};
+  for (var i = 0; i < 10; i++) {
+    document.querySelectorAll('.msg-s-event-listitem').forEach(function(it){
+      var txt = (it.querySelector('.msg-s-event-listitem__body') || it).innerText.trim();
+      if (txt) seen[txt] = it.classList.contains('msg-s-event-listitem--other') ? 'in' : 'out';
+    });
+    container.scrollTop = 0;
+    await new Promise(function(r){setTimeout(r, 800)});
+  }
+  return JSON.stringify(seen);
+})()" --tab linkedin
+```
+
+**Gotcha — sidebar clicks don't navigate:** clicking a conversation in the sidebar from `/messaging/` often fails to navigate (the URL stays on the previous thread). Always navigate directly to `https://www.linkedin.com/messaging/thread/<THREAD_ID>/` by URL.
+
+**Gotcha — thread ID needs `==` in URL:** the thread ID from the bulk inbox fetch may or may not include the `==` suffix. When navigating by URL, include `==` (e.g. `/messaging/thread/2-XXXXX==/`). Without it, the page may load but show no messages.
 
 ### Send reply via Voyager API (SAFE: by thread ID)
 
@@ -637,6 +824,13 @@ URL parameters:
 - `f_WT=2` = Remote only
 - `sortBy=DD` = sorted by date (most recent first)
 - Keywords with OR (URL encoded): `%22<Role1>%22%20OR%20%22<Role2>%22`
+- `location=Worldwide` = override the user's profile location filter (critical for remote jobs)
+
+**Location filter gotcha:** LinkedIn persists the user's profile location (e.g: "United Arab Emirates") as the default search location. Even with `f_WT=2` (remote), results are scoped to that location's job market, severely limiting results. Always include `&location=Worldwide` in search URLs to get global remote jobs. Without it, searches may return 0-7 results instead of 20+.
+
+**Pagination:** LinkedIn job search shows ~25 results per page. To get more, either:
+- Scroll the results list: `window.scrollBy(0, 5000)` + wait + extract
+- Use the pagination URL parameter: `&start=25` for page 2, `&start=50` for page 3
 
 ```bash
 node scripts/browser.js goto "https://www.linkedin.com/jobs/search/?keywords=<keywords>&location=<loc>&f_AL=true&f_WT=2&sortBy=DD"
@@ -713,6 +907,10 @@ playwright-cli eval "(function(){
 - Some forms have `combobox` that appear selected but aren't. Verify with `option.*selected`.
 - The "Continue" button may not advance if there are errors. Always grep `Please make a selection` | `Please enter a valid answer` | `Required` after each click.
 - Some forms open a file chooser when clicking "Attach". Use `playwright-cli upload <path>` immediately.
+- **"Continue applying" safety dialog**: LinkedIn may show a "Job search safety reminder" dialog with a "Continue applying" button when navigating to a job page. This dialog blocks the Easy Apply button. Dismiss it first by clicking "Continue applying" before attempting to click Easy Apply.
+- **Multi-page forms with required questions**: Many Easy Apply jobs have 3-5 page forms with required text inputs, radio groups, and comboboxes on page 3+ ("Preguntas adicionales"). The automated script (`linkedin-easy-apply.js`) may skip these because it can't answer job-specific questions. For batch applications, jobs without additional questions (1-2 page forms) succeed; jobs with custom questions require manual intervention.
+- **Easy Apply button click reliability**: `dispatchEvent` with mouse events may not open the compose dialog. Use direct `click` via ref from snapshot (`node scripts/browser.js exec click <ref>`) for reliable results. The button ref can be found by grepping the snapshot for `Easy Apply to`.
+- **Form dialog detection**: The Easy Apply form dialog may not match `[role=dialog]` in some LinkedIn versions. Check for the heading "Apply to <Company>" or the text "X/Y pages" to confirm the form is open.
 
 **Captcha:** if a captcha appears, stop and ask the user. Never attempt to solve programmatically.
 
@@ -769,6 +967,204 @@ csrf = csrf ? csrf.split('=')[1].replace(/"/g,'') : '';
 - Always attach CV
 - No bullet points, no em-dashes, don't repeat JD keywords obviously
 
+## Publishing posts (feed posts, validated 2026-08-23)
+
+### Open the composer
+
+The share composer lives inside a **shadow DOM** (`#interop-outlet` → `shadowRoot`). All interactions must go through `shadowRoot.querySelector()`, not `document.querySelector()`.
+
+```bash
+# Navigate to feed
+node scripts/browser.js goto "https://www.linkedin.com/feed/"
+
+# Click "Start a post" (atomic eval — Rule 1)
+node scripts/browser.js exec eval "(() => { const els = Array.from(document.querySelectorAll('*')).filter(e => e.textContent.trim() === 'Start a post' && e.children.length === 0); if (els.length) { let el = els[0]; while (el && el.tagName !== 'BUTTON' && el.getAttribute('role') !== 'button') el = el.parentElement; (el || els[0]).click(); return 'clicked'; } return 'not_found'; })()"
+```
+
+### Type the post content (Quill editor)
+
+The composer uses **Quill.js** (`.ql-editor`), NOT tiptap. The tiptap `innerHTML` + `beforeinput` pattern from messaging does NOT work here — the "Post" button stays disabled because Quill's internal state is never updated.
+
+**What works:** `playwright-cli type` simulates real keyboard input and Quill registers it correctly.
+
+```bash
+# Wait for the editor to appear in the shadow DOM, then focus it
+node scripts/browser.js exec eval "(async () => {
+  for (let i = 0; i < 40; i++) {
+    let editors = document.querySelectorAll('div.ql-editor');
+    let editor = Array.from(editors).find(e => e.offsetParent !== null);
+    if (!editor) { const s = document.querySelector('#interop-outlet'); if (s && s.shadowRoot) editor = s.shadowRoot.querySelector('div.ql-editor'); }
+    if (editor) { editor.focus(); editor.click(); return 'focused'; }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return 'timeout';
+})()"
+
+# Type the content (simulates real keyboard — Quill registers it)
+node scripts/browser.js exec type "Your post text here. Use \\n for line breaks."
+```
+
+**Limitation:** `playwright-cli type` does not handle multi-line text well (newlines are parsed as args). For long multi-paragraph posts, type the text in one line or use multiple `type` calls with `press Enter` between them:
+
+```bash
+node scripts/browser.js exec type "First paragraph"
+node scripts/browser.js exec press Enter
+node scripts/browser.js exec press Enter
+node scripts/browser.js exec type "Second paragraph"
+```
+
+**What does NOT work** (validated 2026-08-23):
+- `editor.innerHTML = '<p>...</p>'` + `InputEvent('beforeinput', {inputType: 'insertFromPaste'})` — text appears visually but "Post" button stays disabled (Quill internal state not updated)
+- `editor.dispatchEvent(new ClipboardEvent('paste', ...))` — same issue, text visible but button disabled
+- `document.execCommand('insertText', false, text)` — text appears but button stays disabled
+- `editor.innerText = text` + `InputEvent('input')` — same issue
+
+### Schedule a post for later
+
+After typing the content, the footer has a clock icon button to schedule.
+
+```bash
+# Click the schedule button (inside shadow DOM)
+node scripts/browser.js exec eval "(() => { const shadow = document.querySelector('#interop-outlet').shadowRoot; const btn = shadow.querySelector('button[aria-label=\"Schedule post\"]'); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
+
+# Set date and time (inputs are in the shadow DOM)
+node scripts/browser.js exec eval "(() => {
+  const shadow = document.querySelector('#interop-outlet').shadowRoot;
+  const dateInput = shadow.querySelector('input[name=\"artdeco-date\"]');
+  const timeInput = shadow.querySelector('input[name=\"timepicker\"]');
+  dateInput.value = 'MM/DD/YYYY';
+  dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+  dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+  timeInput.value = 'H:00 AM';
+  timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+  timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+  return JSON.stringify({ date: dateInput.value, time: timeInput.value });
+})()"
+
+# Click "Next" then "Schedule" (both in shadow DOM)
+node scripts/browser.js exec eval "(() => { const shadow = document.querySelector('#interop-outlet').shadowRoot; const btn = Array.from(shadow.querySelectorAll('button')).find(b => b.textContent.trim() === 'Next' && !b.disabled); if (btn) { btn.click(); return 'clicked Next'; } return 'not_found'; })()"
+
+# Wait a moment, then click "Schedule"
+node scripts/browser.js exec eval "(async () => { await new Promise(r => setTimeout(r, 1000)); const shadow = document.querySelector('#interop-outlet').shadowRoot; const btn = Array.from(shadow.querySelectorAll('button')).find(b => b.textContent.trim() === 'Schedule' && !b.disabled); if (btn) { btn.click(); return 'clicked Schedule'; } return 'not_found'; })()"
+```
+
+**Verification:** after scheduling, the page shows a toast: "Post scheduled. View scheduled posts".
+
+**Note:** Setting `dateInput.value` directly may not always update the calendar widget's internal state. If the post publishes immediately instead of at the scheduled time, click the day button in the calendar instead:
+
+```bash
+# Click a specific day in the calendar (aria-label format: "Day, Month DD, YYYY")
+node scripts/browser.js exec eval "(() => {
+  const shadow = document.querySelector('#interop-outlet').shadowRoot;
+  const dayBtn = Array.from(shadow.querySelectorAll('button')).find(b => b.getAttribute('aria-label') && b.getAttribute('aria-label').includes('Monday, August 24, 2026'));
+  if (dayBtn) { dayBtn.click(); return 'clicked'; } return 'not_found';
+})()"
+```
+
+### Publish immediately
+
+After typing content (and the "Post" button is enabled):
+
+```bash
+# Click "Post" (inside shadow DOM)
+node scripts/browser.js exec eval "(() => { const shadow = document.querySelector('#interop-outlet').shadowRoot; const btn = Array.from(shadow.querySelectorAll('button')).find(b => b.textContent.trim() === 'Post' && !b.disabled); if (btn) { btn.click(); return 'posted'; } return 'not_found_or_disabled'; })()"
+```
+
+### Delete a post
+
+Navigate to your activity page and delete from the control menu:
+
+```bash
+# Go to your activity
+node scripts/browser.js goto "https://www.linkedin.com/in/<profile_id>/recent-activity/all/"
+
+# Find the post by text content, open its control menu
+node scripts/browser.js exec eval "(() => { const btn = document.querySelector('button[aria-label=\"Open control menu for post by <Your Name>\"]'); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
+
+# Click "Delete post" (use find + click with refs)
+node scripts/browser.js exec find "Delete post"
+# then click the ref
+
+# Confirm in the dialog
+node scripts/browser.js exec find "Delete"
+# then click the ref (the dialog's Delete button, not the menu item)
+```
+
+**Verification:** the post text no longer appears in the activity page, and a toast confirms deletion.
+
+### Read your own posts (activity page extraction)
+
+*Validated 2026-08-23 against live LinkedIn.*
+
+To extract your own published posts (feed shares), navigate to your activity page and scrape the post text from the DOM.
+
+```bash
+# 1. Navigate to your activity page (shares only, or all activity)
+node scripts/browser.js goto "https://www.linkedin.com/in/<profile_id>/recent-activity/shares/" --tab linkedin
+
+# Note: LinkedIn may redirect /shares/ to /all/ — both work, /all/ shows posts + comments + reactions
+
+# 2. Wait for posts to render (poll — async SPA load)
+node scripts/browser.js exec eval "(async function(){
+  for (var i = 0; i < 30; i++) {
+    var posts = document.querySelectorAll('.feed-shared-update-v2__description, .update-components-text');
+    if (posts.length > 0) return 'ready: ' + posts.length;
+    await new Promise(function(r){setTimeout(r, 500)});
+  }
+  return 'timeout';
+})()" --tab linkedin
+
+# 3. Extract post texts (deduplicated — the activity page may render duplicates)
+node scripts/browser.js exec eval "(function(){
+  var posts = document.querySelectorAll('.feed-shared-update-v2__description, .update-components-text');
+  var seen = {};
+  var out = [];
+  posts.forEach(function(p){
+    var t = p.innerText.trim();
+    if (t.length > 20 && !seen[t]) { seen[t] = true; out.push(t); }
+  });
+  return JSON.stringify(out);
+})()" --tab linkedin
+```
+
+**Selectors:** `.feed-shared-update-v2__description` and `.update-components-text` both contain post body text. Query both to cover different LinkedIn UI versions.
+
+**Duplicates:** the activity page sometimes renders the same post twice (e.g. once in a featured section, once in the feed). Always deduplicate by text content using a `seen` map.
+
+**Scrolling for more posts:** the activity page uses lazy loading. To load older posts, scroll down and re-extract:
+
+```bash
+node scripts/browser.js exec eval "(async function(){
+  var seen = {};
+  var out = [];
+  for (var s = 0; s < 5; s++) {
+    var posts = document.querySelectorAll('.feed-shared-update-v2__description, .update-components-text');
+    posts.forEach(function(p){
+      var t = p.innerText.trim();
+      if (t.length > 30 && !seen[t]) { seen[t] = true; out.push(t); }
+    });
+    window.scrollBy(0, 3000);
+    await new Promise(function(r){setTimeout(r, 2000)});
+  }
+  return JSON.stringify(out);
+})()" --tab linkedin
+```
+
+**Gotcha — URL redirect:** navigating to `/recent-activity/shares/` may redirect to `/recent-activity/all/`. This is fine — `/all/` includes shares. Don't rely on the URL staying as `/shares/`.
+
+**Gotcha — profile ID required:** you need your own profile ID (the `ACoAA...` string) or vanity name for the URL. Get it from any LinkedIn page:
+
+```bash
+node scripts/browser.js exec eval "(function(){
+  var ids = document.documentElement.outerHTML.match(/ACoAA[A-Za-z0-9_-]{5,}/g) || [];
+  var counts = {};
+  ids.forEach(function(id){counts[id] = (counts[id]||0) + 1});
+  return Object.entries(counts).sort(function(a,b){return b[1]-a[1]})[0][0];
+})()" --tab linkedin
+```
+
+Or use your vanity name: `https://www.linkedin.com/in/<vanity_name>/recent-activity/all/`
+
 ## Anti-patterns
 
 - **Don't** open `/messaging/` and click a sidebar name to send a message — LinkedIn redirects to the last active thread and sidebar clicks may not navigate. The composer belongs to whatever thread is in the URL, not the name you clicked. Use the bulk inbox fetch to get the thread ID, then navigate directly to `/messaging/thread/<thread_id>/` or use the Voyager API with the thread ID. A message sent to the wrong thread cannot be unsent.
@@ -783,6 +1179,8 @@ csrf = csrf ? csrf.split('=')[1].replace(/"/g,'') : '';
 - **Don't** retry captchas in a loop — stop and ask the user
 - **Don't** try to connect with 3rd+ connections — they can't be invited
 - **Don't** retry custom notes when the weekly limit is exhausted — send without a note
+- **Don't** use `innerHTML` + `beforeinput`/`paste`/`execCommand` on the share composer (Quill) — the text appears visually but the "Post" button stays disabled because Quill's internal state is never updated. Use `playwright-cli type` instead (simulates real keyboard input)
+- **Don't** use `document.querySelector()` for the share composer — it lives inside `#interop-outlet`'s shadow DOM. Always use `document.querySelector('#interop-outlet').shadowRoot.querySelector()`
 
 ## API reference
 
