@@ -158,6 +158,17 @@ npm install
 - The agent should mention when an update brings new features (e.g: "pulled latest, new platform adapter for Otta added") so the user knows what changed.
 - This rule applies to any agent consuming this repo, not just the owner's agent.
 
+### Gold Rule 14 — Read browser-automation skills before any browser interaction
+Before using Playwright (via `node scripts/browser.js` or `playwright-cli`) on any site, the agent must **read the browser-automation skill and the corresponding site guide first**. Never guess selectors, endpoints, or interaction patterns from memory.
+
+**Mandatory pre-flight reading:**
+1. Read `.agents/skills/browser-automation/SKILL.md` (wrapper rules, golden rules, tab parallelization, snapshots, eval)
+2. Read the site guide for the target site under `.agents/skills/browser-automation/sites/<site>/guide.md` (e.g: `linkedin_com/guide.md`, `gmail_com/guide.md`)
+
+**Why:** Site guides contain validated selectors, API endpoints, known anti-patterns, and framework-specific fixes (e.g: LinkedIn's tiptap editor requires `beforeinput` with `insertFromPaste`, Gmail's checkboxes are `div[role=checkbox]` not `<input>`). Guessing from memory leads to broken interactions, disabled buttons, and wasted time. The guides are empirical and updated with real findings.
+
+**Enforcement:** Before any `node scripts/browser.js exec` or `playwright-cli` call that interacts with a site (click, fill, type, eval for DOM manipulation), verify the skill and site guide were read in the current session. If not, read them first. Navigation-only commands (`goto`, `open`) don't require this, but any DOM interaction does.
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.

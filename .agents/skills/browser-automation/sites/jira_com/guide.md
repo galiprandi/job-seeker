@@ -23,6 +23,133 @@ node scripts/browser.js load-state
 
 **Note:** Jira login often uses Google SSO or Microsoft SSO. The browser profile preserves the SSO session across restarts.
 
+## Keyboard shortcuts
+
+**Validated 2026-08-23 against Jira Cloud (cencosud.atlassian.net).** All shortcuts below were tested live via `playwright-cli press`. Jira's shortcuts work at the document level — no iframe focus issues like LinkedIn.
+
+Open the cheatsheet with `?` to see the full list in-app:
+
+```bash
+node scripts/browser.js exec press "?"
+```
+
+This opens `dialog "Keyboard shortcuts"` with the complete list grouped by category.
+
+### Global
+
+| Action | Hotkey | Validated |
+|---|---|---|
+| Quick search | `/` | ✅ Opens `combobox "Search"` with `textbox "Search board"` |
+| Close drawer | `Esc` | ✅ |
+| Create work item | `c` | ✅ Opens `dialog "Create New Work Item"` |
+| Keyboard shortcuts | `?` | ✅ Opens `dialog "Keyboard shortcuts"` |
+| Find work items | `g` then `i` | Not validated live |
+| Browse to a space | `g` then `p` | Not validated live |
+| Toggle sidebar | `[` | ✅ Sidebar `display:none` → visible |
+| Open help panel | `h` | Not validated live |
+| Open command palette | `Ctrl+K` | ✅ Opens `dialog "Command palette modal"` |
+
+### Space navigation
+
+| Action | Hotkey |
+|---|---|
+| Go to Summary | `1` |
+| Go to Timeline | `2` |
+| Go to Backlog | `3` |
+| Go to Active sprints | `4` |
+| Go to Releases | `5` |
+| Go to Reports | `6` |
+| Go to Calendar | `7` |
+| Go to List | `8` |
+| Go to Forms | `9` |
+
+### Navigating issues
+
+| Action | Hotkey |
+|---|---|
+| View selected issue | `o` |
+| Next issue | `j` |
+| Previous issue | `k` |
+| Toggle issue fullscreen | `z` |
+| Dock/undock the filters panel | `[` |
+| Next activity | `n` |
+| Previous activity | `p` |
+| Focus search field | `f` |
+| Search for issues | `u` |
+| Switch filter view | `t` |
+| Detail view order by | `y` |
+| Scroll around open issue | `→` `↓` `↑` `←` |
+| Share search criteria | `s` |
+
+### Issue actions
+
+| Action | Hotkey |
+|---|---|
+| Create child issue | `Shift+C` |
+| Link existing issue | `Shift+K` |
+| Assign issue | `a` |
+| Comment on issue | `m` |
+| Watch issue | `w` |
+| Edit issue labels | `l` |
+| Actions menu | `.` |
+| Assign to me | `i` |
+| Change status | `d` |
+| Log work | `q` |
+| Share | `Shift+S` |
+
+### Plans
+
+| Action | Hotkey |
+|---|---|
+| Set timespan to weeks | `Ctrl+Alt+W` |
+| Set timespan to months | `Ctrl+Alt+M` |
+| Set timespan to quarters | `Ctrl+Alt+Q` |
+| Set timespan to years | `Ctrl+Alt+Y` |
+| Set timespan to custom range | `Ctrl+Alt+X` |
+| Go to today | `Ctrl+Alt+T` |
+| Unsaved changes | `Ctrl+Alt+R` |
+| Add fields | `Ctrl+Alt+A` |
+| Toggle timeline/list mode | `Ctrl+Alt+L` |
+
+### Plans dependencies
+
+| Action | Hotkey |
+|---|---|
+| Pan to the left | `←` |
+| Pan to the right | `→` |
+| Pan to the top | `↑` |
+| Pan to the bottom | `↓` |
+| Zoom the report in | `+` |
+| Zoom the report out | `-` |
+
+### Board
+
+| Action | Hotkey |
+|---|---|
+| Next column | `n` |
+| Previous column | `p` |
+| Hide/show detail view | `t` |
+| Toggle epic panel | `e` |
+| Toggle version panel | `v` |
+| Toggle all swimlanes | `-` |
+| Send to top | `s` then `t` |
+| Send to bottom | `s` then `b` |
+
+### Bulk operations
+
+| Action | Hotkey |
+|---|---|
+| Skip to toolbar | `Ctrl+B` |
+
+### Usage notes
+
+- **`?`** is the discovery shortcut — press it first to confirm the full list in-app.
+- **`/`** focuses the board search; type to filter work items on the current page.
+- **`c`** opens the create-work-item dialog without clicking the Create button.
+- **`Ctrl+K`** opens the command palette for navigating to any space, issue, or setting.
+- **`[`** toggles the left sidebar — useful when you need more screen space for the board.
+- **`Esc`** closes any open dialog, drawer, or panel.
+
 ## Create issue
 
 Jira's create-issue form is a multi-field dialog. The pattern:

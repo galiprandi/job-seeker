@@ -1,248 +1,408 @@
-# WhatsApp Web Automation
+---
+name: whatsapp
+description: Automate WhatsApp Web for messaging, conversation monitoring, and bulk scanning.
+---
 
-Automate WhatsApp Web (web.whatsapp.com) with playwright-cli. Covers contact search, message sending, pinned message handling, conversation extraction via internal API, and the virtual scrolling limit.
+# WhatsApp Web Automation Guide
 
-**Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
-
-**Validation date:** 2026-08-13
+> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
 
 ## Setup
 
-```bash
-# Open WhatsApp Web (requires prior QR scan in headed mode)
-node scripts/browser.js open "https://web.whatsapp.com/" --headed
-# After QR scan, close and reopen headless for automation
-node scripts/browser.js close
-node scripts/browser.js open "https://web.whatsapp.com/"
-```
-
-WhatsApp Web is a heavy SPA. After `goto`, wait for the chat list to load:
+### Open WhatsApp Web
 
 ```bash
 node scripts/browser.js goto "https://web.whatsapp.com/"
-playwright-cli eval "(async function(){
-  for (let i = 0; i < 50; i++) {
-    if (document.querySelector('div[role=\"textbox\"]')) return 'ready';
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
 ```
 
-## Contact and chat search
+Wait 5-8 seconds for the chat list to load. WhatsApp Web is a SPA that needs time to hydrate.
 
-### Search box
+### Login
 
-The search box is `textbox "Buscar un chat o iniciar uno nuevo"`.
+WhatsApp Web requires QR code scanning from a phone. If the session is expired, open in headed mode so the user can scan:
 
 ```bash
-playwright-cli fill <search_ref> "<query>"
+node scripts/browser.js open "https://web.whatsapp.com/" --headed
 ```
 
-### Partial match required
+The session persists in `.browser-profile` so subsequent opens are headless.
 
-Exact name matches frequently return "No se encontró ningún chat, contacto ni mensaje." WhatsApp's search is fuzzy and does not match full formal names exactly. Use **partial variations** instead.
+## Keyboard shortcuts (PREFERRED over UI clicks)
 
-**Bad:** `"<Full Formal Name>"` → no results
-**Good:** `"<First Name> <Last Name>"` → finds the contact
+**Always prefer keyboard shortcuts over clicking buttons.** They are faster, more reliable, and don't depend on generated CSS classes or DOM structure that changes between updates.
 
-The actual stored name may differ from the expected spelling (accents, alternate spellings, nicknames). Try multiple partial variations if the first one fails.
+### Shortcuts (Windows/Linux)
 
-### Search results
+| Shortcut | Action | Notes |
+|---|---|---|
+| `Ctrl+Alt+N` | New chat | Opens "Nuevo chat" panel |
+| `Ctrl+Alt+Shift+N` | New group | |
+| `Ctrl+Alt+E` | Emoji panel | Requires compose box focused |
+| `Ctrl+Alt+G` | GIF panel | |
+| `Ctrl+Alt+S` | Sticker panel | |
+| `Ctrl+Alt+P` | Profile and About | Opens "Editar perfil" |
+| `Ctrl+Alt+,` | Settings | Opens settings panel |
+| `Ctrl+Alt+/` | Search | Focuses chat list search |
+| `Alt+K` | Extended search | Opens dialog "Busca chats, contactos y ajustes" |
+| `Ctrl+Alt+Shift+U` | Mark as unread | |
+| `Ctrl+Alt+Shift+M` | Mute chat | |
+| `Ctrl+Alt+Shift+E` | Archive chat | |
+| `Ctrl+Alt+Shift+P` | Pin chat | |
+| `Ctrl+Alt+L` | Lock screen | |
+| `Esc` | Close chat/panel | Closes any open dialog or panel |
 
-Results appear in `grid "Resultados de la búsqueda."` with `gridcell` entries. Click a result to open the chat:
+**Not working:**
+- `Ctrl+Alt+Shift+F` (Search in chat) — does not respond. Use the "Buscar" button in the conversation header instead.
 
-```bash
-playwright-cli click <gridcell_ref>
-```
-
-## Sending messages
-
-### Composer
-
-The composer is `textbox "Escribir un mensaje para <contact name>"` with placeholder "Escribe un mensaje". It is a contenteditable div (like LinkedIn's tiptap editor), not a textarea.
-
-```bash
-# Fill the composer
-playwright-cli fill <composer_ref> "Your message"
-```
-
-### Send
-
-The Send button appears as `button "Enviar"` when there is text in the composer. After sending, the button changes to `button "Mensaje de voz"` and the composer clears — this confirms the message was sent.
-
-```bash
-playwright-cli click <send_ref>
-```
-
-### Send verification
-
-After clicking Send, verify by checking:
-1. The composer is empty (placeholder "Escribe un mensaje" visible again)
-2. The Send button has been replaced by "Mensaje de voz"
-3. The message text appears in the conversation transcript
-
-### Pinned message dialog
-
-Chats with pinned messages show a `dialog` with "Mensaje fijado" at the top. This dialog does **not** block the composer, but can intercept clicks if it expands. To close it:
+### Usage with playwright-cli
 
 ```bash
+# New chat
+playwright-cli press Control+Alt+n
+
+# Extended search (most useful for finding chats)
+playwright-cli press Alt+k
+# Then type and Enter to open
+
+# Emoji panel (compose must be focused)
+playwright-cli press Control+Alt+e
+
+# Profile
+playwright-cli press Control+Alt+p
+
+# Settings
+playwright-cli press Control+Alt+Comma
+
+# Close any panel
 playwright-cli press Escape
 ```
 
-Clicking the pinned dialog button expands it to show the full pinned message. Press Escape to collapse it.
+## Detecting modals and panels
 
-## Conversation extraction
+**WhatsApp does not use `role="dialog"` or `innerText` consistently.** Using `eval` + `innerText` to detect if a modal opened is unreliable. Use the accessibility `snapshot` command instead.
 
-### Method 1: Internal API (structured data, limited to ~308 messages)
+### Patterns in the accessibility snapshot
 
-WhatsApp Web exposes internal modules via `window.require`. Access chat and message collections directly:
+| Modal/Panel | Snapshot pattern |
+|---|---|
+| Extended search (`Alt+K`) | `dialog` > `textbox "Busca chats, contactos y ajustes"` `[active]` |
+| Emoji panel (`Ctrl+Alt+E`) | `application` > `list` > `grid` + `textbox "Buscar emoji"` `[active]` |
+| Profile (`Ctrl+Alt+P`) | Second `banner` with `heading "Editar perfil"` |
+| New chat (`Ctrl+Alt+N`) | Second `banner` with `heading "Nuevo chat"` + `textbox` |
+| Settings (`Ctrl+Alt+,`) | Second `banner` with `heading "<user name>"` + `textbox "Buscar"` |
 
-```js
-// In page context via eval
-(function() {
-  const r = window.require;
-  const ChatColl = r('WAWebChatCollection').ChatCollection;
-  const chat = ChatColl._models.find(m => m.name && m.name.includes('<chat name>'));
-  if (!chat) return 'chat not found';
-  return JSON.stringify({
-    name: chat.name,
-    id: chat.id,
-    msgCount: chat.msgs._models.length
+**Key insight:** WhatsApp panels appear as a second `banner` element outside the main `banner` (which contains the nav). The `dialog` role is only used for Extended search.
+
+```bash
+# Check if a modal is open via snapshot
+node scripts/browser.js exec snapshot | head -20
+# Look for: dialog, second banner, application with grid
+```
+
+## Core flows
+
+### Open a conversation by phone number
+
+Navigate directly to a chat by phone number (international format, no `+`, no spaces):
+
+```bash
+node scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
+```
+
+Example: `https://web.whatsapp.com/send?phone=5491112345678`
+
+This creates or opens the conversation and focuses the compose box. Useful for starting new conversations without searching.
+
+### Open a conversation by name
+
+**Do not use `eval` + `click()` to open chats** — it often fails silently. Use playwright's `click` command with a text selector instead:
+
+```bash
+# Most reliable method
+node scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
+```
+
+**Alternative:** Use `Alt+K` to search, type the name, and press Enter:
+
+```bash
+playwright-cli press Alt+k
+playwright-cli type "<chat name>"
+playwright-cli press Enter
+```
+
+### Send a message
+
+1. Find the compose box: `[data-testid="conversation-compose-box-input"]`
+2. Fill it with `fill <ref>`
+3. Find the send button: `button "Enviar"` or `[data-testid="compose-box"] button`
+4. Click it
+
+```bash
+node scripts/browser.js exec fill <compose_ref> "<message>"
+node scripts/browser.js exec click <send_button_ref>
+```
+
+### Read messages in a conversation
+
+Open the conversation, then extract messages from the panel. WhatsApp uses virtual scrolling — only ~15 messages are in the DOM at any time. To get the full conversation, scroll up and collect.
+
+**Basic (visible messages only):**
+
+```javascript
+async () => {
+  const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
+  if (!panel) return 'no panel';
+  const msgs = [];
+  panel.querySelectorAll('[data-testid="msg-container"]').forEach(m => {
+    const text = m.querySelector('.copyable-text, span.selectable-text')?.textContent || '';
+    const isOut = m.querySelector('.message-out') !== null;
+    msgs.push({dir: isOut ? 'out' : 'in', text: text.substring(0, 300)});
   });
-})()
+  return JSON.stringify(msgs.slice(-10));
+}
 ```
 
-**Available modules:**
-- `WAWebChatCollection` → `ChatCollection` (all chats)
-- `WAWebChatMsgsCollection` → `ChatMsgsCollection` (messages in a chat)
-- `WAWebChatModel` → `Chat` (constructor)
-- `WAWebMsgModel` → `Msg` (constructor)
-- `WAWebSendMsgChatAction` → `addAndSendMsgToChat`, `resendMsgToChat`
-- `WAWebCmd` → `Cmd` (UI commands: openChatAt, scrollMessages, etc.)
-- `WAWebSocketModel` → `Socket`
+Direction detection: `.message-out` = sent by user, absence = received.
 
-**Message fields (MsgModel):**
-- `id.id` — message ID
-- `id.fromMe` — boolean, true if sent by the user
-- `id.remote` — chat JID
-- `id.participant` — sender JID (in groups)
-- `type` — "chat", "sticker", "image", "video", "audio", "document", etc.
-- `body` — message text (empty for media types)
-- `t` — Unix timestamp
-- `from` — sender
-- `to` — recipient
-- `author` — author (in groups)
-- `ack` — delivery status
+**Full conversation (scroll-up collection):**
 
-**API + scroll extraction (max ~308 messages in memory):**
+Each message has a unique `data-testid="conv-msg-<ID>"`. Use a `Set` to deduplicate while scrolling up.
 
-```js
-(async function() {
-  const r = window.require;
-  const ChatColl = r('WAWebChatCollection').ChatCollection;
-  const chat = ChatColl._models.find(m => m.name && m.name.includes('<chat name>'));
-  const msgs = chat.msgs;
+```javascript
+async () => {
   const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
   if (!panel) return 'no panel';
 
-  const allMsgs = new Map();
-  const collect = function() {
-    msgs._models.forEach(function(m) {
-      allMsgs.set(m.id.id, {
-        type: m.type,
-        body: (m.body || '').substring(0, 200),
-        fromMe: m.id.fromMe,
-        t: m.t
-      });
+  const allMsgs = new Set();
+
+  function collect() {
+    const msgs = panel.querySelectorAll('[data-testid^="conv-msg-"]');
+    msgs.forEach(m => {
+      const id = m.getAttribute('data-testid');
+      const text = m.innerText.trim();
+      if (text) allMsgs.add(id + '::' + text);
     });
-  };
+  }
 
   collect();
-  let prevSize = 0;
-  let stable = 0;
-  for (let i = 0; i < 100; i++) {
+
+  // Scroll up to load older messages
+  // 10 iterations × 800ms = ~8 seconds for ~189 messages
+  for (let i = 0; i < 10; i++) {
     panel.scrollTop = 0;
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 800));
     collect();
-    if (allMsgs.size === prevSize) {
-      stable++;
-      if (stable >= 3) break;
-    } else { stable = 0; }
-    prevSize = allMsgs.size;
   }
-  return JSON.stringify({ total: allMsgs.size, messages: Array.from(allMsgs.values()) });
-})()
+
+  // Parse back to array
+  const result = Array.from(allMsgs).map(m => {
+    const [id, ...textParts] = m.split('::');
+    return { id, text: textParts.join('::') };
+  });
+
+  return JSON.stringify({ total: result.length, messages: result });
+}
 ```
 
-**Limitation:** WhatsApp Web uses virtual scrolling with a memory cap of ~308 messages in `msgs._models`. Scroll up loads older messages but evicts recent ones. There is no `loadEarlierMsgs()` or `getAllMsgs()` method accessible via `require`. The `findQuery()` method exists but fails with `this.findQueryImpl is not a function` (the implementation is compiled and not exposed).
+**Tuning:** Increase the loop count for longer conversations. Each iteration loads ~15-20 more messages. 10 iterations ≈ 189 messages. For very long chats, use 30-50 iterations.
 
-### Method 2: DOM scroll + accumulation (more messages, less structured)
+### Detect image/audio/video messages
 
-For conversations larger than 308 messages, extract from the DOM by scrolling and accumulating in a Map:
-
-```js
-(async function() {
+```javascript
+async () => {
   const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
   if (!panel) return 'no panel';
-
-  const allMsgs = new Map();
-  const collect = function() {
-    panel.querySelectorAll('[data-testid="msg-container"]').forEach(function(m) {
-      const text = m.querySelector('.copyable-text, span.selectable-text')?.textContent || '';
-      const isOut = m.querySelector('.message-out') !== null;
-      const id = m.getAttribute('data-id') || text + Math.random();
-      allMsgs.set(id, { dir: isOut ? 'out' : 'in', text: text.substring(0, 200) });
-    });
-  };
-
-  // Scroll to top first to load oldest messages
-  panel.scrollTop = 0;
-  await new Promise(r => setTimeout(r, 3000));
-  collect();
-
-  // Scroll down iteratively, accumulating messages
-  let prevSize = 0;
-  let stable = 0;
-  for (let i = 0; i < 200; i++) {
-    panel.scrollTop = panel.scrollHeight;
-    await new Promise(r => setTimeout(r, 1000));
-    collect();
-    if (allMsgs.size === prevSize) {
-      stable++;
-      if (stable >= 5) break;
-    } else { stable = 0; }
-    prevSize = allMsgs.size;
-  }
-  return JSON.stringify({ total: allMsgs.size, messages: Array.from(allMsgs.values()) });
-})()
+  const msgs = [];
+  panel.querySelectorAll('[data-testid="msg-container"]').forEach(m => {
+    const hasImg = m.querySelector('img') !== null;
+    const hasAudio = m.querySelector('audio') !== null;
+    const hasVideo = m.querySelector('video') !== null;
+    const text = m.textContent?.substring(0, 100);
+    msgs.push({hasImg, hasAudio, hasVideo, text});
+  });
+  return JSON.stringify(msgs.slice(-5));
+}
 ```
 
-This method extracted **8847 messages** from a group chat, vs 308 with the API method. The tradeoff is less structured data (no `type`, `t`, `fromMe` fields — only `dir` and `text`).
+### Scan for unread messages
 
-### Method 3: Hybrid (recommended for large chats)
-
-Combine both: use DOM scroll to accumulate all messages, then enrich with API data for the messages currently in memory:
-
-```js
-// 1. DOM scroll accumulation (gets all messages)
-// 2. API extraction for current _models (gets structured data for recent ~308)
-// 3. Merge by message ID / text content
+```javascript
+async () => {
+  const rows = document.querySelectorAll('[role="row"]');
+  const results = [];
+  rows.forEach(r => {
+    const text = r.textContent || '';
+    if (text.includes('no leído')) {
+      const name = r.querySelector('span[title]')?.getAttribute('title') || text.substring(0, 100);
+      results.push(name);
+    }
+  });
+  return JSON.stringify(results);
+}
 ```
+
+### Find conversations by name or number
+
+```javascript
+async () => {
+  const rows = document.querySelectorAll('[role="row"]');
+  const results = [];
+  rows.forEach(r => {
+    const name = r.querySelector('span[title]')?.getAttribute('title') || '';
+    if (name.includes('<SEARCH_TERM>')) {
+      results.push({name, preview: r.textContent?.substring(0, 150)});
+    }
+  });
+  return JSON.stringify(results);
+}
+```
+
+## Gotchas and anti-patterns
+
+### Unread badges are NOT reliable for monitoring
+
+**Problem:** Conversations opened on the phone lose their unread badge on Web. Relying only on `no leído` badges misses messages that were already seen on mobile.
+
+**Solution:** Maintain your own list of contacts being monitored. Open each conversation periodically and check the last message direction and timestamp, regardless of unread state.
+
+### Refs become stale after navigation or time
+
+**Problem:** Playwright refs (e.g. `f123e456`) become invalid after:
+- Navigating to a new URL
+- The page re-rendering (WhatsApp is a live SPA)
+- Other tabs stealing focus
+
+**Solution:** Always capture a fresh snapshot before clicking a ref. If `Ref not found` error occurs, re-snapshot and find the ref again.
+
+### Other tabs steal focus
+
+**Problem:** If multiple tabs are open, navigating with `goto` may switch to a different tab (e.g. LinkedIn, YouTube). WhatsApp actions then fail silently or target the wrong page.
+
+**Solution:** Before any WhatsApp action, verify the URL is `https://web.whatsapp.com/`. If not, navigate back:
+```bash
+node scripts/browser.js goto "https://web.whatsapp.com/"
+```
+
+### beforeunload dialogs block navigation
+
+**Problem:** Navigating away from WhatsApp can trigger a `beforeunload` dialog that blocks `goto`.
+
+**Solution:** Accept the dialog first:
+```bash
+node scripts/browser.js exec dialog-accept
+```
+
+### Scroll the chat list to find older conversations
+
+**Problem:** The chat list only renders visible rows. Older conversations are not in the DOM until scrolled into view.
+
+**Solution:**
+```javascript
+async () => {
+  const list = document.querySelector('[role="grid"]') || document.querySelector('[data-testid="chat-list"]');
+  if (list) { list.scrollTop = 0; } // scroll to top (most recent)
+  // or: list.scrollTop = list.scrollHeight; // scroll to bottom (older)
+  return 'scrolled';
+}
+```
+
+### Drafts vs sent messages
+
+**Problem:** Filling the compose box with `fill` may leave the message as a draft without sending it. The conversation list shows `Borrador:` prefix for drafts.
+
+**Solution:** After filling, always click the send button explicitly. Do not assume the message was sent just because the text appears in the compose box.
+
+### Typing indicator
+
+**Problem:** The conversation list shows `escribiendo...` when the other person is typing. This is not a message and cannot be read.
+
+**Solution:** Wait 15-30 seconds and re-scan. The indicator disappears when the message is sent (or if they cancel).
+
+### Message timestamps
+
+Messages include timestamps in the text content (e.g. `21:43`). When extracting message text, the timestamp is appended. Parse it to determine message recency.
+
+## Validation
+
+**Validated:** 2026-08-21 against live WhatsApp Web.
+
+## Adding a contact to a WhatsApp list
+
+WhatsApp Web supports custom lists (e.g. for organizing contacts by topic). To add an open conversation to a list:
+
+1. Open the conversation (via `send?phone=` URL or clicking the chat row)
+2. Click the **Menú** button in the conversation header: `[data-testid="conversation-header"] button "Menú"`
+3. Click the **Añadir a la lista** menu item: `menuitem "Añadir a la lista"`
+4. If multiple lists exist, select the target list from the dialog
+
+```bash
+# Open conversation
+node scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
+# Wait for panel to load
+sleep 5
+# Click Menú in conversation header
+MENU_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep 'button "Menú"' | tail -1 | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node scripts/browser.js exec click $MENU_REF
+# Click "Añadir a la lista"
+ADD_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep "Añadir a la lista" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node scripts/browser.js exec click $ADD_REF
+```
+
+**Gotcha:** There are two "Menú" buttons in the snapshot. The one in the conversation header (`[data-testid="conversation-header"]`) is the correct one. Use `tail -1` or filter by the header testid.
+
+**Bulk add pattern:** To add multiple contacts to a list, loop through phone numbers with the above flow. Add `sleep 2` between each to let the menu close and the page settle.
+
+## Long message formatting
+
+When sending long messages (more than 2-3 sentences), separate into paragraphs with `\n\n` for readability on mobile devices. WhatsApp renders `\n` as line breaks in the compose box.
+
+```bash
+node scripts/browser.js exec fill <ref> "Hola! Primer párrafo corto.
+
+Segundo párrafo corto.
+
+Tercer párrafo corto."
+```
+
+**Anti-pattern:** Sending a single wall of text. Recipients reading on mobile will struggle. Keep paragraphs to 1-2 sentences each.
+
+## Voice note transcription via Cache Storage
+
+> See also: `voice-notes.md` in this directory for the full transcription flow.
+
+### Cache is shared across ALL conversations
+
+**Problem:** The `lru-media-array-buffer-cache` Cache Storage is shared across all WhatsApp conversations. When you play a voice note, the audio blob is cached, but you cannot tell which conversation it came from by cache key alone.
+
+**Solution:** Before transcribing, note the voice note duration from the accessibility snapshot (`Mensaje de voz 0:00/0:11`). After playing, extract all Ogg blobs and transcribe them. Match by content, not by cache index.
+
+### LRU eviction
+
+**Problem:** The cache has a limited size and uses LRU eviction. Playing a new voice note may overwrite an existing cached blob rather than adding a new entry.
+
+**Solution:** Extract and transcribe immediately after playing each voice note. Do not play multiple notes and then try to extract them all at once; earlier ones may be evicted.
+
+### Identifying the correct audio
+
+1. Play the voice note (click `button "Reproducir mensaje de voz"`)
+2. Wait 3-4 seconds for the blob to cache
+3. List all Ogg blobs in cache: `caches.open('lru-media-array-buffer-cache').then(cache => cache.keys().then(keys => ...))`
+4. Filter by magic bytes `OggS`
+5. The most recently added/modified entry is likely the one you just played
+6. Extract as base64, save to file, send to Groq Whisper
+7. Verify the transcription content matches the expected conversation context
 
 ## Anti-patterns
 
-- **Don't** search for contacts by exact full name — use partial variations. `"<Full Formal Name>"` fails; `"<First Name> <Last Name>"` works.
-- **Don't** expect the `findQuery()` API method to work — it fails with `this.findQueryImpl is not a function`. The implementation is not exposed via `require`.
-- **Don't** expect more than ~308 messages in `msgs._models` — WhatsApp Web has a virtual scrolling memory cap. Use DOM accumulation for larger conversations.
-- **Don't** assume the pinned message dialog blocks the composer — it doesn't, but it can intercept clicks. Press Escape to close it.
-- **Don't** use `innerText` or `textContent` for the composer — it's a contenteditable div. Use `playwright-cli fill` or dispatch `input` events.
-- **Don't** claim a message was sent without verifying — check that the composer cleared and the Send button changed to "Mensaje de voz".
-
-## Gotchas
-
-- **Search spelling:** The stored name may differ from the expected spelling (accents, alternate spellings, nicknames). Try variations.
-- **Virtual scrolling:** WhatsApp Web only keeps ~308 messages in memory. The DOM method (scroll + accumulate) is required for full conversation extraction.
-- **Pinned dialog:** Chats with pinned messages show a dialog at the top. It doesn't block the composer but can intercept clicks. `Escape` closes it.
-- **Heavy SPA:** WhatsApp Web is a heavy SPA. Always wait for elements to appear with in-page polling before interacting.
-- **Module names:** The `require` function accepts module names like `WAWebChatCollection`, `WAWebMsgModel`, etc. Not all internal modules are accessible — some compiled implementations (like `findQueryImpl`) are not exposed.
+- **Do NOT rely solely on unread badges** for monitoring. Use a maintained contact list.
+- **Do NOT assume a ref is valid** after any navigation or time gap. Re-snapshot.
+- **Do NOT use `innerText` assignment** to fill the compose box. Use `fill` on the compose box ref.
+- **Do NOT send messages without verifying** the conversation target is correct (wrong number = wrong person).
+- **Do NOT forget to handle `beforeunload` dialogs** when navigating away from WhatsApp.
+- **Do NOT send long messages as a single wall of text.** Separate into paragraphs with `\n\n`.
+- **Do NOT play multiple voice notes and then try to extract them all.** The LRU cache may evict earlier blobs. Extract and transcribe one at a time.
+- **Do NOT assume a cache entry belongs to a specific conversation.** The cache is shared across all chats. Match by transcription content, not by cache index.
+- **Do NOT use `eval` + `innerText` to detect modals.** WhatsApp doesn't expose modal text via `innerText` reliably. Use `snapshot` instead.
+- **Do NOT use `eval` + `click()` to open chats.** It often fails silently. Use `playwright-cli click "div[role=\"row\"] >> text=<NAME>"` or `Alt+K` + search.
+- **Do NOT assume all official shortcuts work.** `Ctrl+Alt+Shift+F` (search in chat) does not respond. Test before relying on a shortcut.
+- **Do NOT click buttons when a keyboard shortcut exists** — prefer `press` over `eval` + click.

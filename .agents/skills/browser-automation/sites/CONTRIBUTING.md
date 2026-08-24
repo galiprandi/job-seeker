@@ -125,10 +125,11 @@ Each app guide must include:
 1. **Frontmatter** — `name` and `description` for skill discovery
 2. **Prerequisite** — link to parent `SKILL.md` for golden rules and wrapper
 3. **Setup** — how to open the site, handle login, save state
-4. **Core flows** — the main automation tasks (messaging, applying, reading, etc.)
-5. **API reference** — when internal APIs are available, document endpoints, headers, request/response structures
-6. **Anti-patterns** — what NOT to do, with explanations of why it fails
-7. **Validation date** — when the guide was last validated against the live site
+4. **Keyboard shortcuts** — **Mandatory.** Every site that has keyboard shortcuts must document them in full. Before writing a guide for a site, investigate whether it has shortcuts: check the app's help/FAQ, search "keyboard shortcuts <app name>", or try common patterns (`?`, `Ctrl+/`, `Shift+?`, `F1`). If the site has shortcuts, document the complete list in a dedicated section with tables grouped by category. Only document shortcuts that have been validated against the live site — do not include shortcuts from documentation that were not tested. Mark shortcuts that require enabling a setting (e.g. LinkedIn's hotkey toggle, Facebook's single-character switch) clearly.
+5. **Core flows** — the main automation tasks (messaging, applying, reading, etc.)
+6. **API reference** — when internal APIs are available, document endpoints, headers, request/response structures
+7. **Anti-patterns** — what NOT to do, with explanations of why it fails
+8. **Validation date** — when the guide was last validated against the live site
 
 ## When the site changes
 
