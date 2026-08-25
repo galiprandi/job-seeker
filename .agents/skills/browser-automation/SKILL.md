@@ -48,6 +48,7 @@ Operate a real browser session: navigate, click, fill forms, extract data, and c
 - **401 from API:** Token expired — re-extract from localStorage
 - **Session killed:** Never use shell `sleep` — use in-page polling via `eval` (Rule 2)
 - **Two browser instances:** Use `--tab` or sessions, never open twice
+- **Site returns 403 on curl/HTTP but works in browser:** Sites like Reddit block non-browser User-Agents on HTTP APIs (JSON, RSS) but do NOT block the Playwright browser session in headed mode. If curl returns 403, do NOT assume the browser is also blocked. Use `goto` + `eval` in the browser. If the browser also returns 403, you are likely in headless mode — `close --force` and reopen with `--headed`. Some sites (Reddit) detect headless browsers and block them, but allow headed browsers with a real profile.
 
 ## App guides (LOAD BEFORE interacting with a specific app)
 
@@ -58,11 +59,19 @@ Before automating a specific web app, **read the corresponding guide** in `sites
 | Gmail | `sites/gmail_com/guide.md` | Before any Gmail operation (compose, reply, read inbox, search, delete) |
 | LinkedIn | `sites/linkedin_com/guide.md` | Before any LinkedIn operation (messaging, connections, jobs, Easy Apply, notifications) |
 | Microsoft Teams | `sites/teams_com/guide.md` | Before any Teams operation (send/delete messages via chatsvc API, token extraction) |
+| Outlook Web | `sites/outlook_office_com/guide.md` | Before any Outlook Web operation (read, compose, reply, archive, search) |
+| WhatsApp Web | `sites/whatsapp_com/guide.md` | Before any WhatsApp operation (send messages, read conversations, voice notes) |
+| Discord | `sites/discord_com/guide.md` | Before any Discord operation (messaging, navigation, voice) |
 | Jira | `sites/jira_com/guide.md` | Before any Jira operation (create issue, add comment, transition status) |
 | Teamtailor | `sites/teamtailor_com/guide.md` | Before applying to jobs on Teamtailor-based career sites |
 | Humand.co | `sites/humand_co/guide.md` | Before applying to jobs on Humand.co-based career sites |
+| Reddit | `sites/reddit_com/guide.md` | Before any Reddit operation (reading posts/comments, posting submissions, replying to comments, posting in megathreads) |
+| Google Maps | `sites/google_com/maps-guide.md` | Before any Google Maps operation (search, directions, navigation, layers) |
+| Facebook | `sites/facebook_com/guide.md` | Before any Facebook operation (groups, feed, chat, posts) |
 
 **How to load:** read the file with your read tool. Example: `read .agents/skills/browser-automation/sites/gmail_com/guide.md`
+
+**Before each interaction with a documented site:** grep the specific pattern you need (compose, reply, send, fill, contenteditable, etc.) in the site guide. Do not trial-and-error blindly. The guides contain validated methods and explicit warnings about what does NOT work. Example: `grep "contenteditable" sites/linkedin_com/guide.md`
 
 **Check for existing scripts first:** the consuming repo may already have scripts that wrap common operations (e.g. `scripts/linkedin-inbox.js`, `scripts/send-email.js`). Run `ls scripts/` to see what's available. **Prefer existing scripts over manual UI automation** — they're faster, more reliable, and handle edge cases. The app guides list common scripts to look for.
 
@@ -139,6 +148,7 @@ These rules were validated through extensive testing. Breaking them causes failu
 4. **Use URLs directly, not clicks for navigation** — `goto "https://..."` is more reliable than clicking nav links.
 5. **Verify with DOM content, not URL** — SPAs update content without changing the URL. Check DOM state with `eval`.
 6. **Batch operations into a single eval call** — Wait + click + verify in one `eval` is more robust than multiple CLI calls.
+7. **Always prefer keyboard shortcuts over UI clicks** — When a web app provides keyboard shortcuts, use them. They are faster, more reliable, and don't depend on generated CSS classes or DOM structure that changes between updates. **Before automating any web app, invest time researching whether it has keyboard shortcuts.** Check the app's help/FAQ, search for "keyboard shortcuts <app name>", or try common patterns (`Ctrl+/`, `Ctrl+.`, `?`, `Ctrl+K`). Most modern web apps (Gmail, Outlook, Teams, WhatsApp, Discord, LinkedIn) have extensive shortcut sets. Use `playwright-cli press <key>` to trigger them. If a shortcut exists for an action, never click a button to do the same thing.
 
 **Chaining:** Chain `open && eval` in a single shell command to prevent session death between calls.
 

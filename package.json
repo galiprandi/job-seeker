@@ -41,7 +41,7 @@
   "homepage": "https://github.com/your-username/job-seeker#readme",
   "dependencies": {
     "nodemailer": "^6.10.1",
-    "pg": "^8.22.0"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",

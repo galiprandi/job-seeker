@@ -8,7 +8,24 @@ Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gm
 
 | Platform | URL | Profile | Alerts | Gmail Filter | Last review | Notes |
 |---|---|---|---|---|---|---|
-| _<platform>_ | _<url>_ | _<status>_ | _<status>_ | _<yes/no>_ | _<date>_ | _<notes>_ |
+| Otta / WTTJ | otta.com / uk.welcometothejungle.com | — | — | no | 2026-08-22 | Redirected to WTTJ, no clear registration from AR |
+| Torre | torre.co | ✅ (Google) | pending | no | 2026-08-22 | Account created, SPA doesn't render well in headless for alert config |
+| Built In | builtin.com | ✅ (Google) | ✅ (email alerts on) | no | 2026-08-22 | Onboarding completed, email alerts enabled |
+| YC Workatastartup | workatastartup.com | pending (manual) | — | no | 2026-08-22 | Requires manual YC account registration |
+| We Work Remotely | weworkremotely.com | — | — | no | 2026-08-22 | Not yet configured |
+| Google Careers | careers.google.com | ✅ (Google) | ✅ (search alert on) | no | 2026-08-22 | Software Engineer search alert activated |
+| Meta Careers | metacareers.com | — | manual_login_needed | no | 2026-08-22 | Requires Meta login to save search |
+| Amazon Jobs | amazon.jobs | — | manual_login_needed | no | 2026-08-22 | Requires Amazon account for alerts |
+| Microsoft Careers | careers.microsoft.com | — | manual_login_needed | no | 2026-08-22 | Requires MS/LinkedIn/Google login for alerts |
+| Vercel Careers | vercel.com/careers | — | manual_login_needed | no | 2026-08-22 | No public alert signup, Ashby board empty |
+| Cloudflare Careers | cloudflare.com/careers | — | manual_login_needed | no | 2026-08-22 | No public alert signup, Greenhouse redirects |
+| Datadog Careers | careers.datadoghq.com | — | ✅ (Talent Community) | no | 2026-08-22 | Joined Talent Community via Gem form |
+| Snowflake Careers | careers.snowflake.com | — | ✅ (Talent Community) | no | 2026-08-22 | Joined Talent Community, Engineering/Americas |
+| GitHub Careers | github.com/careers | — | ✅ (Talent Community) | no | 2026-08-22 | Joined GitHub Talent Community |
+| Stripe Careers | stripe.com/careers | — | no alerts | no | 2026-08-22 | No alert feature on careers site |
+| Zapier Careers | zapier.com/careers | — | no alerts | no | 2026-08-22 | No alert feature, Ashby board has no subscribe |
+| OpenAI | openai.com/careers | — | ✅ (Google Alert) | no | 2026-08-22 | Google Alert: site:openai.com/careers |
+| Anthropic | anthropic.com/careers | — | ✅ (Google Alert) | no | 2026-08-22 | Google Alert: site:anthropic.com/careers |
 
 > **Gmail filter template:** `from:(<domain1> OR <domain2> OR ...)` → Skip Inbox → Apply label "Job Alerts"
 

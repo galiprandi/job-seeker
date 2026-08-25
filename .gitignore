@@ -9,6 +9,8 @@
 node_modules/
 orca/
 assets/*.html
+assets/*.pdf
+.claude/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 .browser-config.json

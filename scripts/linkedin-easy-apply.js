@@ -30,6 +30,7 @@
 'use strict';
 
 const { execSync } = require('child_process');
+const path = require('path');
 
 // --- Helpers ---
 
@@ -105,6 +106,19 @@ function dbWrite(sql) {
   }
 }
 
+function loadAuthState() {
+  try {
+    execSync(`node browser.js load-state`, {
+      encoding: 'utf-8',
+      timeout: 10000,
+      cwd: path.dirname(__dirname), // Use repo root, not scripts/ dir
+    });
+    console.log('[apply] Auth state loaded from .browser-profile/auth-state.json');
+  } catch (e) {
+    console.warn('[apply] Failed to load auth state (may be first run):', e.message);
+  }
+}
+
 function extractRef(text, pattern) {
   const match = text.match(pattern);
   return match ? match[1] : null;
@@ -174,14 +188,36 @@ function findEasyApplyJobsFromDOM() {
     const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item');
     if (cards.length === 0) return JSON.stringify([]);
     return JSON.stringify(Array.from(cards).map(c => {
-      const titleEl = c.querySelector('h3, .job-title, .job-card-list__title');
-      const companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name');
+      // LinkedIn UI changes frequently: try multiple selectors for title
+      const titleEl = c.querySelector('h3, .job-title, .job-card-list__title, strong, [class*="title"]');
+      // Company: try h4, then div with company-name class, then any div that looks like a company
+      let companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name, [class*="company"]');
+      if (!companyEl) {
+        // Fallback: find a div whose text is short and not the title or location
+        const divs = c.querySelectorAll('div');
+        for (const d of divs) {
+          const txt = d.textContent.trim();
+          if (txt.length > 2 && txt.length < 60 && !txt.includes('remoto') && !txt.includes('Remote')
+              && !txt.includes('Solicitud') && !txt.includes('Easy Apply')
+              && d.querySelector('strong') === null) {
+            companyEl = d;
+            break;
+          }
+        }
+      }
       const linkEl = c.querySelector('a[href*="/jobs/view/"]');
       // Easy Apply badge: check text, aria-label, and button class
       const hasEasyApplyText = c.textContent.includes('Easy Apply') || c.textContent.includes('Solicitud sencilla');
       const hasEasyApplyBtn = !!c.querySelector('button[aria-label*="Easy Apply"], button[aria-label*="Solicitud sencilla"], .job-card-container__easy-apply, .jobs-apply-button');
+      // Get title from strong element if h3 not found
+      let role = '';
+      if (titleEl) {
+        role = titleEl.textContent.trim();
+        // If titleEl is a strong, it might be the same as the role
+        if (titleEl.tagName === 'STRONG' && role.length > 100) role = '';
+      }
       return {
-        role: titleEl ? titleEl.textContent.trim() : '',
+        role: role,
         company: companyEl ? companyEl.textContent.trim() : '',
         easyApply: hasEasyApplyText || hasEasyApplyBtn,
         url: linkEl ? linkEl.href : '',
@@ -357,8 +393,11 @@ function applyToJob(jobRef, userData) {
 // --- Derive search keywords from DB profile ---
 
 function deriveKeywordsFromProfile(userData) {
-  const title = userData.profile?.title;
-  const skills = userData.profile?.skills || [];
+  const title = userData.profile?.title || userData.profile?.role;
+  const rawSkills = userData.profile?.skills || [];
+  const skills = Array.isArray(rawSkills)
+    ? rawSkills
+    : Object.values(rawSkills).flat();
   const prefs = userData.prefs || {};
 
   // Build keyword string from profile title + top skills
@@ -389,13 +428,21 @@ function deriveKeywordsFromProfile(userData) {
 
 function deriveLocationFromProfile(userData) {
   const location = userData.prefs?.location?.value;
-  const timezones = userData.prefs?.timezones?.value || [];
+  const timezones = userData.prefs?.timezones?.value
+    || userData.prefs?.strong_preferences?.timezones
+    || [];
   const country = userData.personal?.country;
 
+  // Remote-first: if must_have is 100% remote, search worldwide
+  const remoteMust = userData.prefs?.must_haves?.remote;
+  if (remoteMust && typeof remoteMust === 'string' && /remote/i.test(remoteMust)) {
+    return 'Worldwide';
+  }
+
   if (location && typeof location === 'string') return location;
+  if (timezones.includes('Global') || timezones.includes('any')) return 'Worldwide';
+  if (timezones.includes('Americas') || timezones.includes('Latin America')) return 'Latin America';
   if (country) return country;
-  if (timezones.includes('Global')) return 'Worldwide';
-  if (timezones.includes('Americas')) return 'Latin America';
   return 'Worldwide';
 }
 
@@ -433,9 +480,21 @@ function main() {
   }
 
   // Build search URL
+  // f_AL=true → Easy Apply filter
+  // f_WT=2 → Remote filter
+  // f_E → Experience level: 1=Internship, 2=Entry, 3=Associate, 4=Mid-Senior, 5=Director
+  // For junior-mid profiles, include Entry + Associate + Mid-Senior (2,3,4)
+  const seniority = userData.prefs?.strong_preferences?.seniority || '';
+  let expFilter = '';
+  if (seniority.includes('junior') || seniority.includes('entry')) {
+    expFilter = '&f_E=2%2C3%2C4'; // Entry + Associate + Mid-Senior
+  }
   const encodedKeywords = encodeURIComponent(keywords);
   const encodedLocation = encodeURIComponent(location);
-  const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&f_AL=true&f_WT=2&sortBy=DD`;
+  const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&f_AL=true&f_WT=2${expFilter}&sortBy=DD`;
+
+  // Load auth state to maintain LinkedIn session
+  loadAuthState();
 
   goto(searchUrl);
 
