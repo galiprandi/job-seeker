@@ -22,7 +22,7 @@ for (const line of envContent.split('\n')) {
   if (match) env[match[1]] = match[2].trim();
 }
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 const GITHUB_URL = getSocial().github_repo_url || 'https://github.com/<your-username>/<your-repo>';
 const args = process.argv.slice(2);
 let limit = 0;

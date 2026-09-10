@@ -19,7 +19,7 @@
  *
  * Requirements:
  *   - playwright-cli must be installed and on PATH
- *   - scripts/browser.js wrapper for browser open/close/exec
+ *   - .agents/skills/browser-automation/scripts/browser.js wrapper for browser open/close/exec
  *   - scripts/db.js for DB access (reading cv_markdown, writing cv_path)
  *
  * No npm dependencies — the Markdown parser is inline.

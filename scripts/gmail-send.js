@@ -6,7 +6,7 @@
  * Opens Gmail compose dialog, fills fields, attaches CV, sends.
  *
  * Usage:
- *   node scripts/browser.js open "https://mail.google.com"   # ensure Gmail session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"   # ensure Gmail session
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body "Body text"
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body-file body.txt
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body "Body" --no-cv

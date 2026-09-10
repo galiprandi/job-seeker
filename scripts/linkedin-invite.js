@@ -6,7 +6,7 @@
  * Navigates to the custom-invite URL, clicks "Send without a note".
  *
  * Usage:
- *   node scripts/browser.js open "https://www.linkedin.com"   # ensure session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"   # ensure session
  *   node scripts/linkedin-invite.js <vanity>
  *   node scripts/linkedin-invite.js <vanity1> <vanity2> <vanity3>
  *   node scripts/linkedin-invite.js --from-search '"AI Engineer" "hiring" LATAM'
