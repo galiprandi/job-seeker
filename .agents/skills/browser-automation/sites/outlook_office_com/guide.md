@@ -222,7 +222,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec press d
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const folder = Array.from(document.querySelectorAll('[role=\"treeitem\"]')).find(f =>
-    f.offsetParent !== null && f.textContent.includes('Mi Local Argentina')
+    f.offsetParent !== null && f.textContent.includes('<Folder Name>')
   );
   if (folder) { folder.click(); return 'clicked'; }
   return 'not_found';

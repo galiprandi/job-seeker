@@ -20,11 +20,11 @@ trigger: onboarding
 
    Save the preference:
    ```bash
-   node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, 'tooling', 'browser_mode', '<chosen_value>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()" --write
+   node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (<user_id>, 'tooling', 'browser_mode', '<chosen_value>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()" --write
    ```
    The agent must respect this preference in **all flows** that use the browser. Load it at every pre-flight:
    ```bash
-   node scripts/db.js "SELECT value FROM preferences WHERE user_id = 1 AND category = 'tooling' AND key = 'browser_mode' AND status = 'active'"
+   node scripts/db.js "SELECT value FROM preferences WHERE user_id = <user_id> AND category = 'tooling' AND key = 'browser_mode' AND status = 'active'"
    ```
    If no preference exists, default to `headed_logins_only`.
 
@@ -56,7 +56,7 @@ trigger: onboarding
 13. Validate session: navigate to linkedin.com/feed/
 14. Save LinkedIn profile URL to `users.data.linkedin_profile` via db CLI:
     ```bash
-    node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{linkedin_profile}', '\"<url>\"') WHERE id = 1" --write
+    node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{linkedin_profile}', '\"<url>\"') WHERE id = <user_id>" --write
     ```
 15. Collect user info from all logged-in sites (LinkedIn, Gmail/Google): name, photo, phone, email. Save to `users.data` as JSONB via db CLI (`jsonb_set`). Useful for aligning profiles on other job platforms
 16. Check if profiles need updating (inconsistent data across sites). Report to user
@@ -77,9 +77,9 @@ trigger: onboarding
     Save to DB:
     ```bash
     # Save level to preferences
-    node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, 'workflow', 'strategy_level', '<level>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()" --write
+    node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (<user_id>, 'workflow', 'strategy_level', '<level>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()" --write
     # Save detailed parameters to users.data.strategy
-    node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{strategy}', '<json>'::jsonb) WHERE id = 1" --write
+    node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{strategy}', '<json>'::jsonb) WHERE id = <user_id>" --write
     ```
     The strategy JSON should contain all parameters (see AGENTS.md "Strategy levels" for the schema per level). If the user customizes any parameter, override the default for that level.
     If no strategy is set, default to `selective`.

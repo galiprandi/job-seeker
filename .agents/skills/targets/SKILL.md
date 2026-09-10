@@ -13,7 +13,7 @@ The user says `targets` (or variants: "register on companies", "apply to target 
 
 ## Purpose
 
-The third sourcing pillar alongside `radar` (passive alerts) and `apply` (LinkedIn Easy Apply). This flow goes directly to the career sites of the 40 target companies (19 LATAM + 21 Argentina), registers the user, creates a standout profile, and applies to matching positions.
+The third sourcing pillar alongside `radar` (passive alerts) and `apply` (LinkedIn Easy Apply). This flow goes directly to the career sites of the target companies (loaded from users.data.target_companies in DB), registers the user, creates a standout profile, and applies to matching positions.
 
 ## Pre-flight
 
@@ -21,24 +21,24 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
 - [ ] **Parallel execution:** if running alongside other flows (e.g: `apply` or `news`), attach a session with `node scripts/browser.js attach --session targets-1` and pass `--session targets-1` to all browser commands and scripts. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `targets_batch_size` (max companies per session, 0 = don't run, "all" = no limit), `match_threshold`, `relax_must_haves`. If `targets` is not in `sources_active`, skip this flow entirely
 - [ ] Load profile, job preferences, CV and photo paths:
   ```bash
-  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'cv_path' AS cv_path, data->'photo_path' AS photo_path, data->'style_profile' AS style_profile FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'cv_path' AS cv_path, data->'photo_path' AS photo_path, data->'style_profile' AS style_profile FROM users WHERE id = <user_id>"
   ```
 - [ ] Load company registrations to see current state:
   ```bash
-  node scripts/db.js "SELECT id, company, region, sector, careers_url, ats_platform, registration_status, profile_completed, applied_jobs_count, notes FROM company_registrations WHERE user_id = 1 ORDER BY registration_status, region, company"
+  node scripts/db.js "SELECT id, company, region, sector, careers_url, ats_platform, registration_status, profile_completed, applied_jobs_count, notes FROM company_registrations WHERE user_id = <user_id> ORDER BY registration_status, region, company"
   ```
 - [ ] Load existing applications for dedup:
   ```bash
-  node scripts/db.js "SELECT company, url FROM applications WHERE user_id = 1"
+  node scripts/db.js "SELECT company, url FROM applications WHERE user_id = <user_id>"
   ```
 
 ## Must-haves filter (from job_preferences)
@@ -83,7 +83,7 @@ For each company with `registration_status = 'pending'` (or `profile_completed =
    - If no account creation possible → mark `registration_status = 'manual_login_needed'`, notify user (Gold Rule 5)
 5. **Complete profile** to make it stand out:
    - Full name (from `users.data.profile.full_name`)
-   - Title/headline: use `profile.title` + top skills (e.g: "Software Engineer | AI Strategy & Agent-First Workflows")
+   - Title/headline: use `profile.title` + top skills (e.g: "<Title> | <Top Skills>")
    - Summary/bio: use `profile.summary`, adapted to the platform's character limit
    - Location: from `users.data.personal_info` (city, country) or `form_answers.location`
    - Upload CV: use `profile.cv_path` or `personal_info.cv_pdf_path` (from DB, never hardcoded)
@@ -147,7 +147,7 @@ For each company with `registration_status = 'registered'` and `applied_jobs_cou
 5. **Apply** following the ATS-specific flow (see ATS guide below)
 6. **Register each application in DB:**
    ```bash
-   node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, '<company_lowercase>', '<company>', '<role>', '<url>', 'applied', '<json with match_reason, ats_type, location, salary_if_known>'::jsonb)" --write
+   node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (<user_id>, '<company_lowercase>', '<company>', '<role>', '<url>', 'applied', '<json with match_reason, ats_type, location, salary_if_known>'::jsonb)" --write
    ```
 7. **Update company registration:**
    ```bash
@@ -164,7 +164,7 @@ Present to user:
 ### Registration summary
 - Registered: X/40 companies
 - Profile completed: X/40
-- No fit (no remote/Argentina/tech): X
+- No fit (no remote/<country>/tech): X
 - Manual login needed: X
 
 ### Applications summary
@@ -256,7 +256,7 @@ The flow is fully resumable. The `company_registrations` table tracks state per 
 
 If the session is interrupted, the next run picks up where it left off by querying:
 ```bash
-node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = 1 AND registration_status = 'pending' ORDER BY region, company"
+node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = <user_id> AND registration_status = 'pending' ORDER BY region, company"
 ```
 
 ## DB access
@@ -289,10 +289,10 @@ node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = 1 AND re
 Typical queries:
 ```bash
 # Pending companies
-node scripts/db.js "SELECT id, company, region, careers_url, ats_platform, notes FROM company_registrations WHERE user_id = 1 AND registration_status = 'pending' ORDER BY region, company"
+node scripts/db.js "SELECT id, company, region, careers_url, ats_platform, notes FROM company_registrations WHERE user_id = <user_id> AND registration_status = 'pending' ORDER BY region, company"
 
 # Registered but no applications yet
-node scripts/db.js "SELECT id, company, careers_url, ats_platform FROM company_registrations WHERE user_id = 1 AND registration_status = 'registered' AND applied_jobs_count = 0 ORDER BY company"
+node scripts/db.js "SELECT id, company, careers_url, ats_platform FROM company_registrations WHERE user_id = <user_id> AND registration_status = 'registered' AND applied_jobs_count = 0 ORDER BY company"
 
 # Update after registration
 node scripts/db.js "UPDATE company_registrations SET registration_status = 'registered', profile_completed = true, ats_platform = '<ats>', login_method = '<method>', profile_url = '<url>', last_visit_at = NOW(), updated_at = NOW() WHERE id = <id>" --write

@@ -16,7 +16,7 @@
  * Output (JSON array of contacts):
  *   [
  *     {
- *       "name": "Jane Doe",
+ *       "name": "<Candidate Name>",
  *       "title": "Staff Engineer at Stripe",
  *       "vanity": "jane-doe",
  *       "profile_url": "https://www.linkedin.com/in/jane-doe/",
@@ -205,7 +205,7 @@ function main() {
   }
 
   // Load candidate education and experience background from DB
-  const userRows = dbQuery(`SELECT data->'profile' AS profile FROM users WHERE id = 1`);
+  const userRows = dbQuery(`SELECT data->'profile' AS profile FROM users WHERE id = ${process.env.USER_ID || 1}`);
   const profile = userRows && userRows[0] && userRows[0].profile ? userRows[0].profile : {};
 
   const education = Array.isArray(profile.education) ? profile.education : [];

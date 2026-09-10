@@ -18,16 +18,16 @@ The user says `referrals` or launches warm sourcing for a target company/role. A
 - [ ] Verify active browser session (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) if session closed
 - [ ] Load profile, university background, past companies, and job preferences from Postgres DB:
   ```bash
-  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'style_profile' AS style FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'style_profile' AS style FROM users WHERE id = <user_id>"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `cold_outreach` (gates the recruiter-outreach branch in step 3). If `referrals` is not in `sources_active`, the flow should not run standalone — when invoked as step 0 of `apply`/`targets`, those flows handle the gate.
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 
 ### 1. Warm Contact & Recruiter Discovery
@@ -55,7 +55,7 @@ If an internal contact, alumni, or ex-colleague is found:
    - Tone: polite, non-demanding, asking for team insights or guidance on applying.
 3. **Stage the draft in DB:**
    ```bash
-   node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at, data) VALUES (1, 'linkedin', 'outbound', '<contact_name>', 'Solicitud de referido / consulta sobre equipo', '', '<draft_text>', 'draft', NOW(), '{\"category\": \"referral_request\", \"company\": \"<Company>\", \"vanity\": \"<vanity>\"}'::jsonb)" --write
+   node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at, data) VALUES (<user_id>, 'linkedin', 'outbound', '<contact_name>', 'Solicitud de referido / consulta sobre equipo', '', '<draft_text>', 'draft', NOW(), '{\"category\": \"referral_request\", \"company\": \"<Company>\", \"vanity\": \"<vanity>\"}'::jsonb)" --write
    ```
 4. **Register or update pipeline card** in stage `discovered`:
    ```bash
@@ -111,7 +111,7 @@ node scripts/linkedin-invite.js <vanity-name>
 node scripts/linkedin-invite.js vanity1 vanity2 vanity3
 
 # Search + invite in one command (pipe search -> invite)
-node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" LATAM'
+node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" <Region>'
 ```
 
 **Flags:** `--from-search "<keywords>"` (searches and invites all found)

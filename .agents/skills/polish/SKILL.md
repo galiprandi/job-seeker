@@ -38,11 +38,11 @@ Before executing any phase, verify that dependencies are satisfied. If any check
 
 ```bash
 # 1. Verify onboarding completed: DB exists and has user
-node scripts/db.js "SELECT id, name, email, data FROM users WHERE id = 1"
+node scripts/db.js "SELECT id, name, email, data FROM users WHERE id = <user_id>"
 # If no row → "Necesitas ejecutar `onboarding` primero. No hay DB configurada."
 
 # 2. Verify profile exists with minimum data
-node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs FROM users WHERE id = 1"
+node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs FROM users WHERE id = <user_id>"
 # If profile is null/empty → "Necesitas ejecutar `profile` primero. No hay perfil capturado."
 # If job_preferences is null/empty → "Necesitas completar el cuestionario de `profile`. No hay preferencias declaradas."
 
@@ -56,7 +56,7 @@ node scripts/browser.js ensure
 # If fails → "Necesitas iniciar sesion en LinkedIn. Ejecuta `onboarding` o abre el browser headed para login."
 
 # 5. Verify linkedin_profile URL exists in DB
-node scripts/db.js "SELECT data->'linkedin_profile' AS url FROM users WHERE id = 1"
+node scripts/db.js "SELECT data->'linkedin_profile' AS url FROM users WHERE id = <user_id>"
 # If null → "No tengo tu URL de LinkedIn. Ejecuta `onboarding` para guardarla."
 ```
 
@@ -109,7 +109,7 @@ node scripts/db.js "SELECT data->'linkedin_profile' AS url FROM users WHERE id =
 
 For each section with gaps, **draft all changes** for that section and **show them together** to the user for approval:
 
-1. **Headline:** draft 2-3 options aligned to `profile.title` + top skills + `job_preferences.ai_focus`. Example: `"Software Engineer | AI Strategy & Agent-First Workflows | Remote"`
+1. **Headline:** draft 2-3 options aligned to `profile.title` + top skills + `job_preferences.ai_focus`. Example: `"<Title> | <Top Skills> | <Work Mode>"`
 2. **About:** draft 3-4 paragraph summary positioning the user for target roles, mentioning AI focus if Must, ending with a soft CTA
 3. **Experience:** for each role, rewrite descriptions as quantified achievements (format: "Action + Context + Result"). Use data from original CV (`profile.experience[]`)
 4. **Skills:** reorder to put the most target-aligned skills in top 3. Add missing skills from `job_preferences.stack`

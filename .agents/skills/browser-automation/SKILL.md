@@ -4,7 +4,7 @@ version: "2.0.0"
 description: Control a dedicated browser via playwright-cli. Use when automating web apps, scraping authenticated sites, filling forms, or navigating SPAs. Do NOT use for desktop apps or API-only integrations.
 allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*) Bash(node:*)
 metadata:
-  author: galiprandi
+  author: <your-username>
   tags: [browser-automation, playwright, web-scraping, rpa, automation]
 ---
 

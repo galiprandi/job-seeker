@@ -11,12 +11,12 @@
  *   const { apply } = require('./scripts/teamtailor/apply');
  *   await apply(page, {
  *     jobUrl: 'https://job.site/jobs/123',
- *     firstName: 'Jane',
- *     lastName: 'Doe',
- *     email: 'jane@example.com',
- *     phone: '+1 555 123 4567',
- *     country: 'Spain',
- *     location: 'Madrid',
+ *     firstName: '<FirstName>',
+ *     lastName: '<LastName>',
+ *     email: '<email@example.com>',
+ *     phone: '<+CountryCode Area Number>',
+ *     country: '<Country>',
+ *     location: '<City>',
  *     cvPath: '/path/to/cv.pdf',
  *     coverLetter: 'I am excited...',
  *   });

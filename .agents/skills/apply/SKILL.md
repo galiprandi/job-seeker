@@ -18,17 +18,17 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 - [ ] **Parallel execution:** if running alongside other flows (e.g: `news` or `targets`), attach a session with `node scripts/browser.js attach --session apply-1` and pass `--session apply-1` to `linkedin-easy-apply.js` and all browser commands. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `apply_batch_size` (max jobs per session), `match_threshold` (must_only / must_strong / must_strong_nice), `relax_must_haves` (loosen Must-have filtering). If `apply_batch_size = 0`, don't auto-apply, only present matches for manual approval
 - [ ] Read profile and existing applications via db CLI:
   ```bash
-  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'personal_info' AS personal FROM users WHERE id = 1"
-  node scripts/db.js "SELECT url FROM applications WHERE user_id = 1"
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'personal_info' AS personal FROM users WHERE id = <user_id>"
+  node scripts/db.js "SELECT url FROM applications WHERE user_id = <user_id>"
   ```
 - [ ] **DB is the single source of truth for ALL form fields.** Before filling ANY form (LinkedIn, Lever, Greenhouse, Workday, SuccessFactors, custom sites), the agent must have the profile data loaded in context. **Never invent, guess, or fabricate any value.** If a required field is not in the DB, STOP, ask the user, save the answer to DB, then continue. This is Gold Rule 5c.
 - [ ] **Captcha policy: NEVER attempt to solve captchas programmatically.** This is Gold Rule 5b. When a captcha appears (hCaptcha, reCAPTCHA, image challenge, drag-and-drop, etc.), the agent must: (1) ensure browser is headed, (2) notify the user and wait, (3) continue only after user confirms. Never retry in a loop. Never attempt to click captcha elements, solve challenges, or bypass them.
@@ -117,7 +117,7 @@ For each selected job:
 7. Register in DB via db CLI:
 
 ```bash
-node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, 'linkedin', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
+node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (<user_id>, 'linkedin', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
 ```
 
 `data` should include: match reason, method (easy_apply), location, questions_answered count.
@@ -228,13 +228,13 @@ Searches LinkedIn posts, extracts author + vanity + email + content preview. Fil
 
 ```bash
 # Basic search (human-readable output)
-node scripts/linkedin-search.js '"<Role>" "hiring" LATAM'
+node scripts/linkedin-search.js '"<Role>" "hiring" <Region>'
 
 # Search with more scrolls and JSON output (to pipe to other scripts)
 node scripts/linkedin-search.js '"<Role>" "<City>" "hiring"' --scroll 3 --json
 
 # Validated queries:
-#   '"<Role>" "hiring" LATAM'               (most productive)
+#   '"<Role>" "hiring" <Region>'               (most productive)
 #   '"<Role>" "<City>" "hiring"'      (geo-specific)
 #   '"ingeniero IA" "buscamos"'                  (Spanish)
 ```

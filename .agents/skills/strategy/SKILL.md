@@ -19,8 +19,8 @@ The job search has configurable aggressiveness. Different situations (employed v
 
 - [ ] Load current strategy:
   ```bash
-  node scripts/db.js "SELECT value FROM preferences WHERE user_id = 1 AND category = 'workflow' AND key = 'strategy_level' AND status = 'active'"
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT value FROM preferences WHERE user_id = <user_id> AND category = 'workflow' AND key = 'strategy_level' AND status = 'active'"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
 - [ ] If no strategy exists, note that onboarding step 4b was skipped. Default to `selective`.
 
@@ -86,10 +86,10 @@ After proposing a level, let the user customize individual parameters:
 
 ```bash
 # Save level
-node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, 'workflow', 'strategy_level', '<level>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, source = EXCLUDED.source, updated_at = NOW()" --write
+node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (<user_id>, 'workflow', 'strategy_level', '<level>', 1.0, 'explicit_statement') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, source = EXCLUDED.source, updated_at = NOW()" --write
 
 # Save detailed parameters
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{strategy}', '<json>'::jsonb) WHERE id = 1" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{strategy}', '<json>'::jsonb) WHERE id = <user_id>" --write
 ```
 
 The strategy JSON contains all parameters (see AGENTS.md "Strategy levels"). Example for `active` with customizations:

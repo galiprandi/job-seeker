@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/galiprandi/job-seeker
+      link: https://github.com/<your-username>/job-seeker
 
 features:
   - title: 9 Flows
@@ -42,7 +42,7 @@ features:
 You don't need to know how to code. If you use an AI coding agent like **[Claude Code](https://claude.com/product/claude-code)**, **[Codex](https://openai.com/codex)**, or **[Antigravity](https://antigravity.google/)** (all have free options), just copy and paste this prompt into it:
 
 ```text
-Clone the repository https://github.com/galiprandi/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
+Clone the repository https://github.com/<your-username>/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
 ```
 
 That's it. The agent will clone the repo, install dependencies, and walk you through onboarding step by step. It will ask you to log into LinkedIn and Gmail manually (in a visible browser window) and to provide a free Postgres connection string from [Neon](https://neon.tech). After that, you just talk to it in plain language: "apply to 5 jobs", "check for updates", "run the daily routine".
@@ -75,7 +75,7 @@ Job Seeker is free and open source. If it helps you, here are three ways to supp
   icon="⭐"
   title="Star the repo on GitHub"
   description="Stars help other people discover Job Seeker. It takes one click."
-  href="https://github.com/galiprandi/job-seeker"
+  href="https://github.com/<your-username>/job-seeker"
   cta="Star"
 />
 
@@ -83,7 +83,7 @@ Job Seeker is free and open source. If it helps you, here are three ways to supp
   icon="💬"
   title="Join the discussion"
   description="Ask a question, share an idea, or tell us how you're using Job Seeker. The community is here."
-  href="https://github.com/galiprandi/job-seeker/discussions"
+  href="https://github.com/<your-username>/job-seeker/discussions"
   cta="Discuss"
 />
 
@@ -91,6 +91,6 @@ Job Seeker is free and open source. If it helps you, here are three ways to supp
   icon="▶️"
   title="Watch the demo"
   description="See the apply flow in action, from search to application to kanban tracking."
-  href="https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.webm"
+  href="https://github.com/<your-username>/job-seeker/releases/download/v0.1.0/demo-terminal.webm"
   cta="Watch"
 />

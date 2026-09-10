@@ -9,7 +9,7 @@
  *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"   # ensure session
  *   node scripts/linkedin-invite.js <vanity>
  *   node scripts/linkedin-invite.js <vanity1> <vanity2> <vanity3>
- *   node scripts/linkedin-invite.js --from-search '"AI Engineer" "hiring" LATAM'
+ *   node scripts/linkedin-invite.js --from-search '"<Role>" "hiring" <Region>'
  *   --session <name> Browser session name (default: "default". Use a different name for parallel agents)
  *
  * Exit codes:

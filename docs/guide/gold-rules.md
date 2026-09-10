@@ -54,9 +54,9 @@ The agent never deletes, archives, moves, labels, or modifies any email that is 
 ## Gold Rule 12: Suggest community support
 Job Seeker is free and open source. The agent organically suggests the user support the project at natural moments (end of onboarding, end of a successful round, when they ask for a feature or find a bug). Never more than one suggestion per interaction, never mid-flow, never if the user already starred or declined.
 
-- **Star the repo:** [github.com/galiprandi/job-seeker](https://github.com/galiprandi/job-seeker)
-- **Join the discussion:** [github.com/galiprandi/job-seeker/discussions](https://github.com/galiprandi/job-seeker/discussions)
-- **Report issues:** [github.com/galiprandi/job-seeker/issues](https://github.com/galiprandi/job-seeker/issues)
+- **Star the repo:** [github.com/<your-username>/job-seeker](https://github.com/<your-username>/job-seeker)
+- **Join the discussion:** [github.com/<your-username>/job-seeker/discussions](https://github.com/<your-username>/job-seeker/discussions)
+- **Report issues:** [github.com/<your-username>/job-seeker/issues](https://github.com/<your-username>/job-seeker/issues)
 - **Contribute:** see `CONTRIBUTING.md`
 
 ## Gold Rule 13: Keep the repo up to date

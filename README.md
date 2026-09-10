@@ -2,19 +2,19 @@
 
 > Let your AI coding agent apply to jobs for you.
 
-[![CI](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/galiprandi/job-seeker/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-vitepress-646cff.svg)](https://galiprandi.github.io/job-seeker/)
+[![CI](https://github.com/<your-username>/job-seeker/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-username>/job-seeker/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-vitepress-646cff.svg)](https://<your-username>.github.io/job-seeker/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/galiprandi/job-seeker?style=social)](https://github.com/galiprandi/job-seeker)
+[![Stars](https://img.shields.io/github/stars/<your-username>/job-seeker?style=social)](https://github.com/<your-username>/job-seeker)
 
-**If this helps you find your next role, [give it a star](https://github.com/galiprandi/job-seeker).** It helps other devs discover it.
+**If this helps you find your next role, [give it a star](https://github.com/<your-username>/job-seeker).** It helps other devs discover it.
 
 ## First time here? No coding experience needed
 
 If you use an AI coding agent like **[Claude Code](https://claude.com/product/claude-code)**, **[Codex](https://openai.com/codex)**, or **[Antigravity](https://antigravity.google/)** (download one if you don't have it yet, all have free options) and aren't sure how to get started, copy and paste this prompt into your agent:
 
 ```text
-Clone the repository https://github.com/galiprandi/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
+Clone the repository https://github.com/<your-username>/job-seeker, run npm install, then read AGENTS.md and .agents/skills/onboarding/SKILL.md and run the onboarding flow. Walk me through each step and ask for anything you need (LinkedIn/Gmail logins, a Neon Postgres connection string, etc.).
 ```
 
 The agent will clone the repo, install dependencies, and start onboarding, which sets up your browser, database, and profile. You'll only be asked to log into LinkedIn and Gmail manually and to provide a Postgres connection string (Neon's free tier works).
@@ -29,11 +29,11 @@ Job Seeker is a set of **markdown skills** that any coding agent (Devin, Claude,
 
 Your data stays in your own DB. The repo is candidate-agnostic: clone it, run onboarding, and go.
 
-**Full documentation: [https://galiprandi.github.io/job-seeker/](https://galiprandi.github.io/job-seeker/)**
+**Full documentation: [https://<your-username>.github.io/job-seeker/](https://<your-username>.github.io/job-seeker/)**
 
 ## Demo
 
-https://github.com/galiprandi/job-seeker/releases/download/v0.1.0/demo-terminal.webm
+https://github.com/<your-username>/job-seeker/releases/download/v0.1.0/demo-terminal.webm
 
 **Pipeline kanban** (`node scripts/pipeline.js`):
 
@@ -142,7 +142,7 @@ After onboarding, try:
 
 ## Platforms
 
-`PLATFORMS.md` is a catalog of 35 platforms in 5 categories (general, tech, AI, executive, latam), community-maintained. The agent consults it to decide where to search based on your profile. You don't choose platforms, the agent deduces them. See the [platforms reference](https://galiprandi.github.io/job-seeker/reference/platforms) in the docs.
+`PLATFORMS.md` is a catalog of 35 platforms in 5 categories (general, tech, AI, executive, latam), community-maintained. The agent consults it to decide where to search based on your profile. You don't choose platforms, the agent deduces them. See the [platforms reference](https://<your-username>.github.io/job-seeker/reference/platforms) in the docs.
 
 ## Stack
 
@@ -211,7 +211,7 @@ LICENSE                      # MIT
 
 ## Key decisions
 
-See `ADR.md` for details, or the [architecture reference](https://galiprandi.github.io/job-seeker/reference/architecture) in the docs. Summary:
+See `ADR.md` for details, or the [architecture reference](https://<your-username>.github.io/job-seeker/reference/architecture) in the docs. Summary:
 
 - **playwright-cli** over MCP: native CLI, no JSON config, token-efficient
 - **Postgres** over Mongo: 70% of data is relational. JSONB for semi-structured
@@ -226,7 +226,7 @@ See `ADR.md` for details, or the [architecture reference](https://galiprandi.git
 
 ## Contributing
 
-Contributions are welcome. See `CONTRIBUTING.md` for guidelines, or the [contributing guide](https://galiprandi.github.io/job-seeker/reference/contributing) in the docs.
+Contributions are welcome. See `CONTRIBUTING.md` for guidelines, or the [contributing guide](https://<your-username>.github.io/job-seeker/reference/contributing) in the docs.
 
 Areas where help is most useful:
 

@@ -113,7 +113,7 @@ function extractRef(text, pattern) {
 // --- DB data loader ---
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = 1")[0];
+  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${process.env.USER_ID || 1}")[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
@@ -384,7 +384,7 @@ function deriveKeywordsFromProfile(userData) {
     roleTypes.slice(0, 3).forEach((r) => parts.push(`"${r}"`));
   }
 
-  return parts.length > 0 ? parts.join(' OR ') : 'Software Engineer';
+  return parts.length > 0 ? parts.join(' OR ') : '';
 }
 
 function deriveLocationFromProfile(userData) {
@@ -503,7 +503,7 @@ function main() {
         // Register in DB
         const safeCompany = job.company.replace(/'/g, "''");
         const safeRole = job.role.replace(/'/g, "''");
-        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (1, 'linkedin', '${safeCompany}', '${safeRole}', '', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "high"}')`);
+        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (${process.env.USER_ID || 1}, 'linkedin', '${safeCompany}', '${safeRole}', '', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "high"}')`);
         break;
       case 'captcha':
         console.log('CAPTCHA - STOPPING');
