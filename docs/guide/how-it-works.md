@@ -37,7 +37,7 @@ All candidate-specific data lives in Postgres (JSONB for semi-structured data). 
 
 ## Browser automation
 
-The browser wrapper (`scripts/browser.js`) guarantees:
+The browser wrapper (`.agents/skills/browser-automation/scripts/browser.js`) guarantees:
 1. The `.browser-profile` directory is always used (isolated work sessions)
 2. Browser mode preference is respected automatically (headless by default, headed for logins)
 3. Session management prevents multiple instances

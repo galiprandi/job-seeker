@@ -35,7 +35,7 @@ Every message drafted for recruiters or job-related contacts must pass an **anti
 - [ ] **No em-dashes** (—). Use commas, periods, or parentheses.
 - [ ] **No bullet points** in chat/DM messages. Bullets are for docs, not LinkedIn messages.
 - [ ] **Conversational tone**, not formal/structured. A human doesn't write polished paragraphs in a DM.
-- [ ] **Maximum 2 short paragraphs**. If it's longer, it's over-explaining.
+- [ ] **Paragraph count depends on content**. No arbitrary limit. Split by natural topic breaks, not by a fixed number.
 - [ ] **Don't mention company research** in a way that sounds like it was googled 2 minutes ago. If mentioning something, make it natural.
 - [ ] **Don't repeat JD keywords** obviously (e.g: "agent orchestration, RAG and evaluation strategies" sounds like copy-paste from the JD).
 - [ ] **Use style_profile** from the DB (user's previous messages) as reference for tone and length. If no style_profile exists, mimic the recruiter's tone (if they write short, reply short).
@@ -71,9 +71,9 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 **ALWAYS use the work browser via the wrapper script.** Never use any other browser instance (personal Chrome, Safari, Firefox, etc.) even if it's available or already open.
 
 **Mandatory workflow:**
-- **Open:** `node scripts/browser.js open <url>` (only this command)
-- **Navigate:** `node scripts/browser.js goto <url>` (only this command)
-- **Close:** `node scripts/browser.js close` (only this command)
+- **Open:** `node .agents/skills/browser-automation/scripts/browser.js open <url>` (only this command)
+- **Navigate:** `node .agents/skills/browser-automation/scripts/browser.js goto <url>` (only this command)
+- **Close:** `node .agents/skills/browser-automation/scripts/browser.js close` (only this command)
 
 **What is prohibited:**
 - Never call `playwright-cli open` directly
@@ -87,9 +87,9 @@ The repo must be **cloneable and usable by anyone** without editing any file. Al
 3. Session management (prevent multiple instances, proper cleanup)
 4. Cookie/state isolation between work and personal browsing
 
-**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `node scripts/browser.js exec <cmd>` (which resolves session + tab automatically) or call `playwright-cli` directly AFTER opening via the wrapper. The wrapper wraps open/goto/close/tabs/sessions/state/debug.
+**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `node .agents/skills/browser-automation/scripts/browser.js exec <cmd>` (which resolves session + tab automatically) or call `playwright-cli` directly AFTER opening via the wrapper. The wrapper wraps open/goto/close/tabs/sessions/state/debug.
 
-**Enforcement:** Before any browser operation, verify the command starts with `node scripts/browser.js`. If not, stop and correct it.
+**Enforcement:** Before any browser operation, verify the command starts with `node .agents/skills/browser-automation/scripts/browser.js`. If not, stop and correct it.
 
 **Browser knowledge:** The reusable browser skills live in the `skills` repo (`browser-core`, `linkedin`, `gmail`). The local `.agents/skills/browser-automation/` skill contains the browser automation patterns (wrapper, golden rules, tab parallelization, snapshots, eval). Prefer the global skills for generic browser patterns; use `browser-automation` for job-seeker-specific flows.
 
@@ -159,7 +159,7 @@ npm install
 - This rule applies to any agent consuming this repo, not just the owner's agent.
 
 ### Gold Rule 14 — Read browser-automation skills before any browser interaction
-Before using Playwright (via `node scripts/browser.js` or `playwright-cli`) on any site, the agent must **read the browser-automation skill and the corresponding site guide first**. Never guess selectors, endpoints, or interaction patterns from memory.
+Before using Playwright (via `node .agents/skills/browser-automation/scripts/browser.js` or `playwright-cli`) on any site, the agent must **read the browser-automation skill and the corresponding site guide first**. Never guess selectors, endpoints, or interaction patterns from memory.
 
 **Mandatory pre-flight reading:**
 1. Read `.agents/skills/browser-automation/SKILL.md` (wrapper rules, golden rules, tab parallelization, snapshots, eval)
@@ -167,7 +167,49 @@ Before using Playwright (via `node scripts/browser.js` or `playwright-cli`) on a
 
 **Why:** Site guides contain validated selectors, API endpoints, known anti-patterns, and framework-specific fixes (e.g: LinkedIn's tiptap editor requires `beforeinput` with `insertFromPaste`, Gmail's checkboxes are `div[role=checkbox]` not `<input>`). Guessing from memory leads to broken interactions, disabled buttons, and wasted time. The guides are empirical and updated with real findings.
 
-**Enforcement:** Before any `node scripts/browser.js exec` or `playwright-cli` call that interacts with a site (click, fill, type, eval for DOM manipulation), verify the skill and site guide were read in the current session. If not, read them first. Navigation-only commands (`goto`, `open`) don't require this, but any DOM interaction does.
+**Enforcement:** Before any `node .agents/skills/browser-automation/scripts/browser.js exec` or `playwright-cli` call that interacts with a site (click, fill, type, eval for DOM manipulation), verify the skill and site guide were read in the current session. If not, read them first. Navigation-only commands (`goto`, `open`) don't require this, but any DOM interaction does.
+
+### Gold Rule 15 — Periodic disk cleanup
+The browser profile and Playwright artifacts grow unbounded over time and can reach several GB. The agent must **proactively offer to purge them** when it notices the repo size is large, or at least once a month during a `daily` or `news` round.
+
+**What grows (all in `.gitignore`, safe to delete):**
+- `.browser-profile/Default/Cache` — Chromium HTTP cache (can exceed 1 GB)
+- `.browser-profile/Default/Code Cache` — V8 compiled JS cache (~400 MB)
+- `.browser-profile/Default/Service Worker` — SW cache from LinkedIn, Gmail, etc. (~500 MB)
+- `.browser-profile/Default/GPUCache` and `.browser-profile/GraphiteDawnCache` — GPU shader caches
+- `.playwright-cli/` — console logs, accessibility snapshots (`.yml`), traces, and `.webm` videos (can exceed 500 MB)
+
+**Recommended purge (safe, preserves logins):**
+```bash
+rm -rf .browser-profile/Default/Cache .browser-profile/Default/Code\ Cache .browser-profile/Default/Service\ Worker .browser-profile/Default/GPUCache .browser-profile/GraphiteDawnCache
+rm -rf .playwright-cli
+```
+
+**What NOT to delete (would force re-login):**
+- `.browser-profile/Default/Cookies`
+- `.browser-profile/Default/Local Storage`
+- `.browser-profile/Default/IndexedDB` (contains site session data, only delete if user wants a full re-login)
+- `.browser-profile/auth-state.json`
+
+**Aggressive option (full reset, requires re-login everywhere):**
+```bash
+rm -rf .browser-profile
+```
+Only use this when the user explicitly wants a clean profile or is hitting persistent session corruption.
+
+**Enforcement:** The agent should check `du -sh .browser-profile .playwright-cli` at the start of a `daily` round. If combined size exceeds 1 GB, mention it in the summary and offer to purge. Never purge without informing the user first (Gold Rule 2 does not apply here since this is a maintenance action, not a job-search task).
+
+### Gold Rule 16 — Show quoted user messages as code blocks
+When displaying a message received from a recruiter, hiring manager, contact, or any external user, the agent must render the quoted text inside a fenced code block (triple backticks). Code blocks make the message stand out, preserve its original formatting, and clearly separate the sender's words from the agent's commentary. Do not use blockquotes, bullet points, or emojis inside the quoted message.
+
+**Example:**
+```
+Message from <Recruiter Name>:
+
+```
+Hi <Your Name>, would you be interested in an Architect role...
+```
+```
 
 ## Strategy levels
 
@@ -292,7 +334,7 @@ onboarding → profile → strategy
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-automation/SKILL.md`. |
+| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `.agents/skills/browser-automation/scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-automation/SKILL.md`. |
 | `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
 | `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
 | `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies. `--json` for piping, `--session <name>` for parallel execution, `--pages <n>` for pagination |
@@ -322,7 +364,7 @@ onboarding → profile → strategy
 
 ## Operational constraints
 
-- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node scripts/browser.js`** for open/close/goto/tabs/sessions (see `skills` repo: `browser-core/SKILL.md`). Never call `playwright-cli open` directly
+- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node .agents/skills/browser-automation/scripts/browser.js`** for open/close/goto/tabs/sessions (see `skills` repo: `browser-core/SKILL.md`). Never call `playwright-cli open` directly
 - Browser visibility controlled by `.browser-config.json` (`browser_mode`: `headless`, `headed`, `headed_logins_only`). Default: `headless`. Set during onboarding. Can also be overridden via `BROWSER_MODE` env var. Manual login/2FA is always headed (Gold Rule 5). The DB `preferences.tooling.browser_mode` value is synced to `.browser-config.json` during onboarding
 - Custom DB schema: create tables as needed
 - JSONB for semi-structured data in `users.data`
@@ -333,19 +375,19 @@ onboarding → profile → strategy
 
 ### Parallel execution
 
-Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `skills` repo: `browser-core/references/parallel-agents.md`).
+Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`.agents/skills/browser-automation/scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `skills` repo: `browser-core/references/parallel-agents.md`).
 
 **How to run flows in parallel:**
 
 1. The first agent opens the browser normally (creates the primary session):
    ```bash
-   node scripts/browser.js open "https://www.linkedin.com" --headed
+   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com" --headed
    ```
 
 2. Each additional agent attaches a session with a unique name:
    ```bash
-   node scripts/browser.js attach --session apply-1
-   node scripts/browser.js attach --session news-1
+   node .agents/skills/browser-automation/scripts/browser.js attach --session apply-1
+   node .agents/skills/browser-automation/scripts/browser.js attach --session news-1
    ```
 
 3. Each agent passes `--session <name>` to every script it runs:
@@ -357,14 +399,14 @@ Multiple flows can run in parallel by using **attached sessions**. Each parallel
 
 4. All browser wrapper commands accept `--session`:
    ```bash
-   node scripts/browser.js goto <url> --session apply-1
-   node scripts/browser.js exec snapshot --session apply-1
-   node scripts/browser.js exec eval '<code>' --session news-1
+   node .agents/skills/browser-automation/scripts/browser.js goto <url> --session apply-1
+   node .agents/skills/browser-automation/scripts/browser.js exec snapshot --session apply-1
+   node .agents/skills/browser-automation/scripts/browser.js exec eval '<code>' --session news-1
    ```
 
 5. When done, detach (not close — close is ref-counted and refuses if other agents are active):
    ```bash
-   node scripts/browser.js detach --session apply-1
+   node .agents/skills/browser-automation/scripts/browser.js detach --session apply-1
    ```
 
 **Which flows can run in parallel:**
@@ -382,7 +424,7 @@ Multiple flows can run in parallel by using **attached sessions**. Each parallel
 
 - Every script that touches the browser MUST accept and pass `--session`. All scripts in `scripts/` now do (linkedin-easy-apply, linkedin-search, linkedin-invite, gmail-send, generate-cv)
 - Never call `close` or `close-all` from a parallel agent — use `detach`. Close is ref-counted and will refuse unless you use `--force` (which kills the browser for all agents)
-- Use `node scripts/browser.js who` to check which agents are active before closing
+- Use `node .agents/skills/browser-automation/scripts/browser.js who` to check which agents are active before closing
 - Each session should use its own tab (`--tab <name>`) to avoid navigation conflicts within the same session
 - DB access is safe in parallel (Postgres handles concurrent connections)
 

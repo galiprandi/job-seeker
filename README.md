@@ -97,7 +97,7 @@ Your profile, preferences, writing style and history live in Postgres (Neon). Yo
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `scripts/browser.js` wrapper | Browser automation: open/close/goto/tabs/sessions via wrapper. Other commands (click, fill, snapshot) via `exec` or direct call |
+| `playwright-cli` | `.agents/skills/browser-automation/scripts/browser.js` wrapper | Browser automation: open/close/goto/tabs/sessions via wrapper. Other commands (click, fill, snapshot) via `exec` or direct call |
 | `db` | `scripts/db.js` | Safe Postgres CLI. Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes) |
 | `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies |
 | `pipeline` | `scripts/pipeline.js` | Kanban board CLI for application tracking. Print board, move cards, view funnel, card details |
