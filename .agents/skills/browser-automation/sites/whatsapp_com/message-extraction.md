@@ -51,8 +51,8 @@ WhatsApp Web's search box (`textbox "Buscar un chat o iniciar uno nuevo"`) retur
 
 ```bash
 # Click the search textbox and type the term
-node scripts/browser.js exec click "[role='textbox']"
-node scripts/browser.js exec type "<SEARCH_TERM>"
+node .agents/skills/browser-automation/scripts/browser.js exec click "[role='textbox']"
+node .agents/skills/browser-automation/scripts/browser.js exec type "<SEARCH_TERM>"
 ```
 
 After typing, wait 2–3 seconds and extract results:
@@ -74,9 +74,9 @@ This is useful for finding messages about a specific topic across all conversati
 **Do not** use `element.click()` via JS on the grid row — it does not reliably open the conversation. Instead, capture a snapshot and use the `ref` from the search result row:
 
 ```bash
-node scripts/browser.js exec snapshot
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 # Find the ref for the chat row, e.g. f86e2369
-node scripts/browser.js exec click <REF>
+node .agents/skills/browser-automation/scripts/browser.js exec click <REF>
 ```
 
 After the chat opens, wait 2–3 seconds for messages to render, then run the bulk extraction `eval` on `#main`.

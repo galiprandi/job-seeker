@@ -31,12 +31,23 @@ The landing page shows a "Create Account or Login" panel with four options:
 
 ### Option A: Email (magic link) — recommended for automation
 
-1. Click the `textbox "Email"` (placeholder: `example@email.com`).
-2. Type the user's email with `keyboard.type()`.
-3. Click `button "Continue with email"`.
-4. The page shows "Check your email" with the address confirmation.
-5. Open the user's inbox, find the email from Groq titled "Your login request to Groq".
-6. Extract the magic link from the "Log in" button href:
+1. Fill the email input (placeholder: `example@email.com`):
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
+# Find the email input ref, then fill it
+node .agents/skills/browser-automation/scripts/browser.js exec fill <email_ref> "user@email.com"
+```
+
+2. Click "Continue with email":
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find "Continue with email"
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+```
+3. The page shows "Check your email" with the address confirmation.
+4. Open the user's inbox, find the email from Groq titled "Your login request to Groq".
+5. Extract the magic link from the "Log in" button href:
 
 ```js
 () => {
@@ -47,10 +58,10 @@ The landing page shows a "Create Account or Login" panel with four options:
 }
 ```
 
-7. Navigate to that URL in the browser. The redirect chain is:
+6. Navigate to that URL in the browser. The redirect chain is:
    `stytch.com/v1/magic_links/redirect?...` → `console.groq.com/authenticate?stytch_redirect_type=login` → `console.groq.com/home`
 
-8. Wait for the dashboard to load. Verify success by checking for the organization selector:
+7. Wait for the dashboard to load. Verify success by checking for the organization selector:
 
 ```js
 () => {
@@ -61,7 +72,13 @@ The landing page shows a "Create Account or Login" panel with four options:
 
 ### Option B: Google OAuth
 
-1. Click `button "Continue with Google"`.
+1. Click "Continue with Google":
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find "Continue with Google"
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+```
+
 2. Google's account chooser appears. Select the account.
 3. A consent screen appears ("Google permitirá que Groq acceda a esta información"). Click "Continuar".
 4. The redirect may fail with a `400` error on `api.groq.com/platform/v1/user/profile/signupb2b`. If this happens, fall back to the email magic-link flow (Option A).
@@ -80,19 +97,35 @@ Or click `link "API Keys"` in the left navigation.
 
 ## Step 4: Create an API Key
 
-1. Click `button "Create API Key"` (`data-testid="keys-page-create-button"`).
+1. Click "Create API Key" (`data-testid="keys-page-create-button"`):
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find "Create API Key"
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+```
+
 2. A dialog appears with:
-   - `textbox "Display Name"` (`data-testid="key-name-input"`) — enter a descriptive name (max 50 chars).
-   - `combobox "Expiration"` (`data-testid="key-expiration-select"`) — defaults to "No expiration".
+   - Display Name input (`data-testid="key-name-input"`) — fill with a descriptive name (max 50 chars):
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec fill <name_ref> "descriptive name"
+```
+
+   - Expiration combobox (`data-testid="key-expiration-select"`) — defaults to "No expiration".
 
 3. **Captcha:** Groq may display a captcha (Turnstile) before the Submit button appears. The captcha is not in the accessibility snapshot — check for it visually. The user must solve it manually in a headed browser.
 
-4. After the captcha is solved, `button "Submit"` (`data-testid="key-form-submit-button"`) appears in the dialog.
+4. After the captcha is solved, the Submit button (`data-testid="key-form-submit-button"`) appears in the dialog. Click it:
 
-5. Click Submit. The response shows:
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find "Submit"
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+```
+
+5. The response shows:
    - A message: "Your new API key has been created. Copy it now, as we will not display it again."
-   - `textbox` containing the key (starts with `gsk_`).
-   - `button "Copy"`.
+   - An input containing the key (starts with `gsk_`).
+   - A "Copy" button.
 
 6. Extract the key value:
 
@@ -103,7 +136,12 @@ Or click `link "API Keys"` in the left navigation.
 }
 ```
 
-7. Click `button "Done"` to close the dialog.
+7. Click "Done" to close the dialog:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find "Done"
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+```
 
 ## Step 5: Store the API key
 

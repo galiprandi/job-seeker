@@ -1,26 +1,25 @@
 ---
 name: outlook
 description: Automate Outlook on the web (Microsoft 365) with playwright-cli. Covers reading inbox, archiving, replying, composing, searching, folder navigation, and keyboard shortcuts. Use when checking email, sending messages, managing inbox, or extracting email data in Outlook Web. Part of the browser-automation skill.
+verified: 2026-09-02
 ---
 
 # Outlook (Web) Automation
 
 Automate Outlook on the web (Microsoft 365 / Exchange) via `playwright-cli`.
 
-**Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
-
 ## Setup
 
 ```bash
 # Open Outlook (headed for login)
-node scripts/browser.js open "https://outlook.office.com/mail/" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://outlook.office.com/mail/" --headed
 
 # User logs in manually (SSO/OAuth), then save state
-node scripts/browser.js save-state
+node .agents/skills/browser-automation/scripts/browser.js save-state
 
 # Next sessions: load state and go headless
-node scripts/browser.js open "https://outlook.office.com/mail/"
-node scripts/browser.js load-state
+node .agents/skills/browser-automation/scripts/browser.js open "https://outlook.office.com/mail/"
+node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Keyboard shortcuts (PREFERRED over UI clicks)
@@ -105,23 +104,23 @@ node scripts/browser.js load-state
 
 ```bash
 # Archive the currently open or selected email
-playwright-cli press e
+node .agents/skills/browser-automation/scripts/browser.js exec press e
 
 # Mark as read
-playwright-cli press q
+node .agents/skills/browser-automation/scripts/browser.js exec press q
 
 # Reply to current email
-playwright-cli press r
+node .agents/skills/browser-automation/scripts/browser.js exec press r
 
 # New message
-playwright-cli press n
+node .agents/skills/browser-automation/scripts/browser.js exec press n
 
 # Go to inbox (two-key shortcut with small delay)
-playwright-cli press g
-playwright-cli press i
+node .agents/skills/browser-automation/scripts/browser.js exec press g
+node .agents/skills/browser-automation/scripts/browser.js exec press i
 
 # Search mail
-playwright-cli press Alt+q
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+q
 ```
 
 **Note:** Two-key shortcuts (like `G` then `I`) require a small delay between keys.
@@ -133,10 +132,10 @@ playwright-cli press Alt+q
 Outlook Web uses `[role="option"]` for message list items. Classes are generated and unreliable.
 
 ```bash
-node scripts/browser.js goto "https://outlook.office.com/mail/inbox"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://outlook.office.com/mail/inbox"
 
 # Wait for messages to load
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelectorAll('[role=\"option\"]').length > 0) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -145,7 +144,7 @@ playwright-cli eval "(async function(){
 })()"
 
 # Extract message list
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const items = Array.from(document.querySelectorAll('[role=\"option\"]')).filter(o => o.offsetParent !== null);
   return JSON.stringify(items.slice(0, 20).map(o => ({
     aria: o.getAttribute('aria-label') || '',
@@ -158,7 +157,7 @@ playwright-cli eval "(function(){
 
 ```bash
 # Click by sender or subject text
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const items = Array.from(document.querySelectorAll('[role=\"option\"]')).filter(o => o.offsetParent !== null);
   const target = items.find(o => o.textContent.includes('OTC-7376'));
   if (target) { target.click(); return 'clicked'; }
@@ -171,7 +170,7 @@ Or use keyboard: navigate with `Ctrl+.` / `Ctrl+,` then `Enter` to open.
 ### UI: read email content
 
 ```bash
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r => setTimeout(r, 2000));
   const reader = document.querySelector('[role=\"document\"], [aria-label*=\"Cuerpo\"], [aria-label*=\"Body\"]');
   if (reader) return reader.innerText.substring(0, 3000);
@@ -185,13 +184,13 @@ playwright-cli eval "(async function(){
 
 ```bash
 # Select email with Ctrl+Space, or have it open, then:
-playwright-cli press e
+node .agents/skills/browser-automation/scripts/browser.js exec press e
 ```
 
 ### Fallback: button click
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = Array.from(document.querySelectorAll('button')).find(b =>
     b.offsetParent !== null && b.getAttribute('aria-label')?.includes('Archivar')
   );
@@ -206,22 +205,22 @@ playwright-cli eval "(function(){
 
 ```bash
 # Go to inbox
-playwright-cli press g
-playwright-cli press i
+node .agents/skills/browser-automation/scripts/browser.js exec press g
+node .agents/skills/browser-automation/scripts/browser.js exec press i
 
 # Go to sent
-playwright-cli press g
-playwright-cli press s
+node .agents/skills/browser-automation/scripts/browser.js exec press g
+node .agents/skills/browser-automation/scripts/browser.js exec press s
 
 # Go to drafts
-playwright-cli press g
-playwright-cli press d
+node .agents/skills/browser-automation/scripts/browser.js exec press g
+node .agents/skills/browser-automation/scripts/browser.js exec press d
 ```
 
 ### Fallback: click folder in tree
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const folder = Array.from(document.querySelectorAll('[role=\"treeitem\"]')).find(f =>
     f.offsetParent !== null && f.textContent.includes('Mi Local Argentina')
   );
@@ -233,7 +232,7 @@ playwright-cli eval "(function(){
 ### Scroll in message list
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const scrollable = Array.from(document.querySelectorAll('*')).find(e =>
     e.scrollHeight > e.clientHeight && e.clientHeight > 200 &&
     e.offsetParent !== null && e.querySelector('[role=\"option\"]')
@@ -249,13 +248,13 @@ playwright-cli eval "(function(){
 
 ```bash
 # PREFERRED: keyboard shortcut
-playwright-cli press n
+node .agents/skills/browser-automation/scripts/browser.js exec press n
 ```
 
 Or click the "Correo nuevo" / "New mail" button:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = Array.from(document.querySelectorAll('button')).find(b =>
     b.offsetParent !== null && (b.textContent.includes('Correo nuevo') || b.textContent.includes('New mail'))
   );
@@ -270,7 +269,7 @@ Outlook compose uses React-controlled inputs. Use the native value setter patter
 
 ```bash
 # To (recipients)
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const input = document.querySelector('input[aria-label=\"Para\"], input[aria-label=\"To\"]');
   if (!input) return 'not_found';
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -281,7 +280,7 @@ playwright-cli eval "(function(){
 })()"
 
 # Subject
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const input = document.querySelector('input[aria-label=\"Asunto\"], input[aria-label=\"Subject\"]');
   if (!input) return 'not_found';
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -295,7 +294,7 @@ playwright-cli eval "(function(){
 
 ```bash
 # PREFERRED: keyboard shortcut
-playwright-cli press Control+Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Enter
 ```
 
 ### Verify send
@@ -303,7 +302,7 @@ playwright-cli press Control+Enter
 Wait for the compose dialog to close and the message to appear in Sent:
 
 ```bash
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     const compose = document.querySelector('[role=\"dialog\"]');
     if (!compose) return 'sent';
@@ -317,14 +316,14 @@ playwright-cli eval "(async function(){
 
 ```bash
 # PREFERRED: keyboard shortcut
-playwright-cli press r        # reply
-playwright-cli press Shift+r  # reply all
+node .agents/skills/browser-automation/scripts/browser.js exec press r        # reply
+node .agents/skills/browser-automation/scripts/browser.js exec press Shift+r  # reply all
 ```
 
 The reply body is a contenteditable div. Fill it with:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const el = document.querySelector('div[contenteditable=\"true\"]');
   if (!el) return 'not_found';
   el.focus();
@@ -338,27 +337,27 @@ playwright-cli eval "(function(){
 
 ```bash
 # PREFERRED: keyboard shortcut
-playwright-cli press Alt+q
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+q
 
 # Then type the search query
-playwright-cli type "from:juan subject:OTC"
-playwright-cli press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec type "from:juan subject:OTC"
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 ## Calendar
 
 ```bash
 # Go to calendar
-playwright-cli press Ctrl+Shift+2
+node .agents/skills/browser-automation/scripts/browser.js exec press Ctrl+Shift+2
 
 # Create new event
-playwright-cli press n
+node .agents/skills/browser-automation/scripts/browser.js exec press n
 
 # Save appointment
-playwright-cli press Ctrl+s
+node .agents/skills/browser-automation/scripts/browser.js exec press Ctrl+s
 
 # Send meeting invite
-playwright-cli press Control+Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Enter
 ```
 
 ## Multiple accounts
@@ -369,10 +368,6 @@ Outlook Web supports multiple accounts. The URL may include the account index:
 
 ## Anti-patterns
 
-- **Don't** click buttons when a keyboard shortcut exists — prefer `press` over `eval` + click
 - **Don't** rely on CSS class names — Outlook uses generated classes; use `[role]` attributes and `aria-label`
-- **Don't** try to log in programmatically — Outlook requires SSO/OAuth manual login
 - **Don't** send or delete emails without explicit user confirmation
 - **Don't** archive emails without explicit user confirmation
-- **Don't** forget to wait after `goto` — Outlook Web is a heavy SPA
-- **Don't** reuse refs after clicking or pressing keys — take a new snapshot

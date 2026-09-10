@@ -1,33 +1,197 @@
 ---
 name: gmail
 description: Automate Gmail with playwright-cli. Covers reading inbox via Atom feed, composing emails (with validated selectors), replying, searching, archiving, labeling, keyboard shortcuts, and bulk delete. Use when checking email, sending messages, managing inbox, or extracting email data. Part of the browser-automation skill.
+verified: 2026-09-08
 ---
 
 # Gmail Automation
 
 Automate Gmail via `playwright-cli` using a mix of UI interactions, keyboard shortcuts, and the Gmail Atom feed for bulk inbox reading.
 
-**Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
+## Keyboard shortcuts
 
-**Before doing anything manually, check if the consuming repo has scripts that wrap these operations.** Common scripts in consuming repos:
-- `scripts/send-email.js` — send emails via SMTP (no browser needed, PREFERRED for sending)
-- `scripts/gmail-send.js` — send emails via Gmail web UI with attachments
+Gmail has extensive keyboard shortcuts. They work with `node .agents/skills/browser-automation/scripts/browser.js exec press <key>`.
 
-Run `ls scripts/*email*.js scripts/gmail*.js scripts/send*.js` to see what's available. **Prefer existing scripts over manual UI automation** — they're faster, more reliable, and handle edge cases.
+### PREREQUISITE: Enable keyboard shortcuts (per account)
+
+Gmail keyboard shortcuts are **disabled by default**. They must be enabled per account — enabling on one account does NOT enable them on others.
+
+**Enable via UI:**
+1. Settings (gear icon) → See all settings → General
+2. Scroll to "Keyboard shortcuts" / "Combinaciones de teclas"
+3. Select "Keyboard shortcuts on" / "Habilitar combinaciones de teclas"
+4. Click "Save Changes" / "Guardar cambios" at the bottom
+5. **Reload Gmail** (navigate to `#inbox`) — settings take effect on next page load
+
+**Enable via eval (automated):**
+```bash
+# Navigate to settings, enable, save, and return to inbox in one flow
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#settings/general"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
+  // Wait for settings page to load
+  for (let i = 0; i < 30; i++) {
+    const radios = document.querySelectorAll('input[type=radio]');
+    if (radios.length > 5) break;
+    await new Promise(r => setTimeout(r, 300));
+  }
+  // Find the 'on' radio (not checked) and click it
+  const labels = Array.from(document.querySelectorAll('td'));
+  const onLabel = labels.find(td => {
+    const t = td.textContent.trim();
+    return (t === 'Keyboard shortcuts on' || t === 'Habilitar combinaciones de teclas');
+  });
+  if (onLabel) {
+    const radio = onLabel.querySelector('input[type=radio]');
+    if (radio && !radio.checked) { radio.click(); }
+  }
+  // Click Save Changes
+  const saveBtn = Array.from(document.querySelectorAll('button')).find(b =>
+    b.textContent.includes('Save Changes') || b.textContent.includes('Guardar cambios')
+  );
+  if (saveBtn) { saveBtn.click(); return 'saved'; }
+  return 'save_not_found';
+})()"
+# Wait for navigation back to inbox
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
+  for (let i = 0; i < 30; i++) {
+    if (location.hash.includes('#inbox')) return 'inbox';
+    await new Promise(r => setTimeout(r, 300));
+  }
+  return 'timeout';
+})()"
+```
+
+**Verify shortcuts are enabled:**
+```bash
+# Press ? (Shift+/) — should open keyboard shortcuts help dialog
+node .agents/skills/browser-automation/scripts/browser.js exec press "Shift+/"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
+  const dialog = document.querySelector('[role=dialog]');
+  if (dialog && dialog.innerText.toLowerCase().includes('shortcut')) return 'enabled';
+  return 'not_enabled_or_no_dialog';
+})()"
+```
+
+### CRITICAL: Focus requirement before shortcuts
+
+Gmail ignores ALL keyboard shortcuts when an `INPUT`, `TEXTAREA`, or `contenteditable` element has focus. This is the #1 reason shortcuts appear to "not work."
+
+**Before pressing any shortcut key, blur the active element and focus the body:**
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
+  if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    document.activeElement.blur();
+  }
+  document.body.focus();
+  return 'body_focused';
+})()"
+```
+
+**Symptom:** You press `j` but no email row gets selected. Check `document.activeElement.tagName` — if it's `INPUT`, shortcuts won't fire.
+
+### CRITICAL: Two-key sequences must use `+` notation
+
+Gmail two-key shortcuts (like `g` then `i`) must be sent as a **single `press` call with `+` notation**, NOT as two separate calls. Separate calls have too much latency between them — Gmail's sequence timeout expires.
+
+**CORRECT (works):**
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+i"   # Go to Inbox
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+s"   # Go to Starred
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+t"   # Go to Sent
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+a"   # Go to All Mail
+```
+
+**WRONG (does not work — too much latency between calls):**
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec press g
+node .agents/skills/browser-automation/scripts/browser.js exec press i   # Gmail already forgot the 'g'
+```
+
+**Why it works:** Playwright's `keyboard.press("g+i")` sends both keydown events in rapid succession through CDP, fast enough for Gmail's sequence window. The events are `isTrusted: true`, so Gmail accepts them as real user input.
+
+### Navigation
+
+| Shortcut | Action | Notation |
+|---|---|---|
+| `g+i` | Go to Inbox | `press "g+i"` |
+| `g+s` | Go to Starred | `press "g+s"` |
+| `g+t` | Go to Sent | `press "g+t"` |
+| `g+d` | Go to Drafts | `press "g+d"` |
+| `g+a` | Go to All Mail | `press "g+a"` |
+| `g+l` | Go to Label (opens label picker) | `press "g+l"` |
+
+### Email actions
+
+| Shortcut | Action |
+|---|---|
+| `c` | Compose new email |
+| `x` | Select email (checkbox) |
+| `e` | Archive selected email |
+| `#` | Delete selected email |
+| `s` | Star/unstar email |
+| `l` | Apply label (opens label menu) |
+| `v` | Move to label (opens label menu) |
+| `r` | Reply to email |
+| `a` | Reply all |
+| `f` | Forward email |
+| `m` | Mute thread |
+| `z` | Undo last action |
+| `Shift+I` | Mark as read |
+| `Shift+U` | Mark as unread |
+| `/` | Search mail |
+| `Shift+/` | Show keyboard shortcut help |
+
+### Composition shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+Enter` / `⌘+Enter` | Send email |
+| `Ctrl+Shift+C` / `⌘+Shift+C` | Add CC |
+| `Ctrl+Shift+B` / `⌘+Shift+B` | Add BCC |
+| `Ctrl+K` / `⌘+K` | Insert link |
+
+### Thread navigation
+
+| Shortcut | Action |
+|---|---|
+| `j` | Next email (older) |
+| `k` | Previous email (newer) |
+| `Enter` | Open email |
+| `u` | Back to inbox from email view |
+
+### Usage with playwright-cli
+
+```bash
+# IMPORTANT: Blur any focused input before pressing shortcuts
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){document.activeElement?.blur();document.body.focus();return 'ok';})()"
+
+# Select first email, then archive it
+node .agents/skills/browser-automation/scripts/browser.js exec press j
+node .agents/skills/browser-automation/scripts/browser.js exec press x
+node .agents/skills/browser-automation/scripts/browser.js exec press e
+
+# Go to inbox (two-key shortcut — MUST use + notation in single call)
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+i"
+
+# Go to sent mail
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+t"
+```
+
+**Note:** Two-key shortcuts (like `g`+`i`) MUST use `+` notation in a single `press` call. Two separate calls do NOT work — the latency between CLI calls exceeds Gmail's sequence timeout.
 
 ## Setup
 
 ```bash
 # Open Gmail (headless if already logged in, headed for login)
-node scripts/browser.js open "https://mail.google.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com" --headed
 
 # If login needed: user logs in manually, then save state
-node scripts/browser.js save-state
-node scripts/browser.js close
+node .agents/skills/browser-automation/scripts/browser.js save-state
+node .agents/skills/browser-automation/scripts/browser.js close
 
 # Next sessions: load state and go headless
-node scripts/browser.js open "https://mail.google.com"
-node scripts/browser.js load-state
+node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"
+node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Reading inbox
@@ -37,7 +201,7 @@ node scripts/browser.js load-state
 One HTTP call returns unread inbox emails with title, sender, email, and summary. No UI navigation needed.
 
 ```bash
-playwright-cli eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();return t.substring(0,2000)})()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();return t.substring(0,2000)})()"
 ```
 
 Returns XML Atom feed containing:
@@ -46,7 +210,7 @@ Returns XML Atom feed containing:
 
 **Parse the feed:**
 ```bash
-playwright-cli eval "(async()=>{
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{
   var r=await fetch('https://mail.google.com/mail/feed/atom');
   var t=await r.text();
   var p=new DOMParser();
@@ -76,7 +240,7 @@ playwright-cli eval "(async()=>{
 
 **Quick unread count:**
 ```bash
-playwright-cli eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();var m=t.match(/<fullcount>(\d+)<\/fullcount>/);return m?m[1]+' unread':'error'})()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();var m=t.match(/<fullcount>(\d+)<\/fullcount>/);return m?m[1]+' unread':'error'})()"
 ```
 
 ### UI: list conversations
@@ -90,9 +254,9 @@ Fields: .yW .zF or .yW span[email] for sender, .bog for subject, .xW.xY span[tit
 ```
 
 ```bash
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#all"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#all"
 # Wait for rows to load (in-page polling, see Browser Automation Rule 2)
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelectorAll('tr.zA').length > 5) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -101,7 +265,7 @@ playwright-cli eval "(async function(){
 })()"
 
 # Extract emails
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const rows = document.querySelectorAll('tr.zA');
   return JSON.stringify(Array.from(rows).slice(0, 20).map(r => ({
     from: r.querySelector('.yW .zF, .yW span[email]')?.getAttribute('email') || '',
@@ -122,8 +286,8 @@ Note: display name "Job Alerts" (space), URL uses %20
 ```
 
 ```bash
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#label/Job%20Alerts"
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#label/Job%20Alerts"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 40; i++) {
     const main = document.querySelector('div[role=main]');
     if (main && (main.innerText.includes('Job Alerts') || document.querySelectorAll('tr.zA').length > 0)) return 'ready';
@@ -132,7 +296,7 @@ playwright-cli eval "(async function(){
   return 'timeout';
 })()"
 
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const rows = document.querySelectorAll('tr.zA');
   if (rows.length === 0) return JSON.stringify({ empty: true, count: 0 });
   return JSON.stringify({
@@ -151,13 +315,13 @@ playwright-cli eval "(function(){
 
 ```bash
 # Navigate by URL (requires thread ID)
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#inbox/<threadId>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#inbox/<threadId>"
 ```
 
 Or click an email row from the inbox list (use eval, not ref-based click — see Browser Automation Rule 1):
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const rows = document.querySelectorAll('tr.zA');
   if (rows.length > 0) { rows[0].click(); return 'clicked'; }
   return 'not_found';
@@ -169,7 +333,7 @@ playwright-cli eval "(function(){
 When an email is open, the content is in `[role="main"]`:
 
 ```bash
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r=>setTimeout(r,2000));
   const body = document.querySelector('[role=main]');
   if (body) return body.innerText.substring(0, 3000);
@@ -187,11 +351,11 @@ The fastest way to archive is the `e` key. Select the email first with `x`, or h
 
 ```bash
 # If email is open in reading pane, just press e
-playwright-cli press e
+node .agents/skills/browser-automation/scripts/browser.js exec press e
 
 # Or select from list then archive
-playwright-cli press x
-playwright-cli press e
+node .agents/skills/browser-automation/scripts/browser.js exec press x
+node .agents/skills/browser-automation/scripts/browser.js exec press e
 ```
 
 ### Bulk archive
@@ -199,7 +363,7 @@ playwright-cli press e
 Select multiple checkboxes then press `e`:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const rows = document.querySelectorAll('tr');
   const targets = ['sender1', 'sender2', 'sender3'];
   let clicked = 0;
@@ -214,7 +378,7 @@ playwright-cli eval "(function(){
 })()"
 
 # Then archive all selected
-playwright-cli press e
+node .agents/skills/browser-automation/scripts/browser.js exec press e
 ```
 
 ### Archive via button (fallback)
@@ -222,7 +386,7 @@ playwright-cli press e
 If keyboard shortcuts don't work, find the archive button:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('div[role=button][aria-label*=\"Archivar\"], div[role=button][aria-label*=\"Archive\"]');
   if (btn) { btn.click(); return 'archived'; }
   return 'not_found';
@@ -236,7 +400,7 @@ Gmail shows a native "Darse de baja" / "Unsubscribe" link next to the sender for
 ```bash
 # 1. Open the email
 # 2. Click the "Darse de baja" / "Unsubscribe" span next to sender
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const span = Array.from(document.querySelectorAll('span')).find(s =>
     s.offsetParent !== null && (s.textContent.trim() === 'Darse de baja' || s.textContent.trim() === 'Unsubscribe')
   );
@@ -245,7 +409,7 @@ playwright-cli eval "(function(){
 })()"
 
 # 3. Wait for confirmation dialog
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 25; i++) {
     const dialog = document.querySelector('[role=dialog]');
     if (dialog && (dialog.innerText.includes('Anular suscripción') || dialog.innerText.includes('Unsubscribe'))) return 'dialog_ready';
@@ -255,7 +419,7 @@ playwright-cli eval "(async function(){
 })()"
 
 # 4. Click confirm button in dialog
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = Array.from(document.querySelectorAll('button')).filter(b =>
     b.offsetParent !== null && (b.textContent.includes('Anular suscripción') || b.textContent.includes('Unsubscribe'))
   );
@@ -283,13 +447,13 @@ Gmail compose is **NOT** an iframe. It is `div[role=dialog]` in the main documen
 
 ```bash
 # Method 1: Keyboard shortcut 'c' opens compose
-playwright-cli press c
+node .agents/skills/browser-automation/scripts/browser.js exec press c
 ```
 
 Or click the "Compose" / "Redactar" button via eval:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('div[role=button], button');
   for (const b of btns) {
     const label = b.getAttribute('aria-label') || b.textContent || '';
@@ -305,7 +469,7 @@ React-controlled inputs don't react to `.value = "..."` alone. You must use the 
 
 **To (recipients):**
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const toInput = document.querySelector('input[role=combobox][aria-label=\"Destinatarios\"], input[role=combobox][aria-label=\"To\"]');
   if (!toInput) return 'to_not_found';
   const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -318,7 +482,7 @@ playwright-cli eval "(function(){
 
 **Subject:** (same native setter pattern)
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const el = document.querySelector('input[aria-label=\"Asunto\"], input[aria-label=\"Subject\"]');
   if (!el) return 'subject_not_found';
   const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -330,7 +494,7 @@ playwright-cli eval "(function(){
 
 **Body:** (textarea, use HTMLTextAreaElement setter)
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const el = document.querySelector('textarea[aria-label=\"Cuerpo del mensaje\"], textarea[aria-label=\"Message body\"]');
   if (!el) return 'body_not_found';
   const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
@@ -345,7 +509,7 @@ playwright-cli eval "(function(){
 Plain `.click()` is unreliable for the Send button. Use the event sequence:
 
 ```bash
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('div[role=button][aria-label*=\"Enviar\"], div[role=button][aria-label*=\"Send\"]');
   if (!btn) return 'send_not_found';
   btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -360,7 +524,7 @@ playwright-cli eval "(function(){
 Wait for the toast "Mensaje enviado" (English: "Message sent"):
 
 ```bash
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     const alerts = document.querySelectorAll('div[role=alert], span[role=alert]');
     for (const a of alerts) {
@@ -424,10 +588,10 @@ Gmail's native schedule send is preferable to SMTP + cron/sleep because it survi
 
 ```bash
 # Navigate to Scheduled folder
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#scheduled"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#scheduled"
 
 # Check the scheduled email appears
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r=>setTimeout(r,3000));
   var body=document.body.innerText;
   if(body.match(/Programado para enviarse/i)) return 'verified';
@@ -457,7 +621,7 @@ Reply is different from compose. The reply body **IS** a contenteditable div (un
 
 ```bash
 # 1. Click Reply button
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('button[aria-label=\"Responder\"], button[aria-label=\"Reply\"]');
   if (!btn) return 'reply_not_found';
   btn.click();
@@ -465,7 +629,7 @@ playwright-cli eval "(function(){
 })()"
 
 # 2. Wait for contenteditable body to appear
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 25; i++) {
     if (document.querySelector('div[contenteditable=true]')) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -474,7 +638,7 @@ playwright-cli eval "(async function(){
 })()"
 
 # 3. Fill reply body (contenteditable, use innerText + InputEvent)
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const el = document.querySelector('div[contenteditable=true]');
   if (!el) return 'body_not_found';
   el.focus();
@@ -484,7 +648,7 @@ playwright-cli eval "(function(){
 })()"
 
 # 4. Send reply (different aria-label from compose!)
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('div[role=button][aria-label=\"Enviar y archivar\"], div[role=button][aria-label=\"Send & archive\"]');
   if (!btn) return 'send_not_found';
   btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -499,9 +663,9 @@ playwright-cli eval "(function(){
 ### Search bar
 
 ```bash
-playwright-cli snapshot
-playwright-cli fill <search_ref> "from:linkedin.com subject:job"
-playwright-cli press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
+node .agents/skills/browser-automation/scripts/browser.js exec fill <search_ref> "from:linkedin.com subject:job"
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 ### Search operators (work in the search bar)
@@ -525,82 +689,12 @@ playwright-cli press Enter
 ### Navigate to label/folder by URL
 
 ```bash
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#label/job-alerts"
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#starred"
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#sent"
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#drafts"
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#all"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#label/job-alerts"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#starred"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#sent"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#drafts"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#all"
 ```
-
-## Keyboard shortcuts
-
-Gmail has extensive keyboard shortcuts. They work with `playwright-cli press <key>`.
-
-**Must enable:** Settings → See all settings → General → Keyboard shortcuts: ON
-
-### Navigation
-
-| Shortcut | Action |
-|---|---|
-| `g` then `i` | Go to Inbox |
-| `g` then `s` | Go to Starred |
-| `g` then `t` | Go to Sent |
-| `g` then `d` | Go to Drafts |
-| `g` then `a` | Go to All Mail |
-| `g` then `l` | Go to Label (opens label picker) |
-
-### Email actions
-
-| Shortcut | Action |
-|---|---|
-| `c` | Compose new email |
-| `x` | Select email (checkbox) |
-| `e` | Archive selected email |
-| `#` | Delete selected email |
-| `s` | Star/unstar email |
-| `l` | Apply label (opens label menu) |
-| `v` | Move to label (opens label menu) |
-| `r` | Reply to email |
-| `a` | Reply all |
-| `f` | Forward email |
-| `m` | Mute thread |
-| `z` | Undo last action |
-| `Shift+I` | Mark as read |
-| `Shift+U` | Mark as unread |
-| `/` | Search mail |
-| `Shift+/` | Show keyboard shortcut help |
-
-### Composition shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+Enter` / `⌘+Enter` | Send email |
-| `Ctrl+Shift+C` / `⌘+Shift+C` | Add CC |
-| `Ctrl+Shift+B` / `⌘+Shift+B` | Add BCC |
-| `Ctrl+K` / `⌘+K` | Insert link |
-
-### Thread navigation
-
-| Shortcut | Action |
-|---|---|
-| `j` | Next email (older) |
-| `k` | Previous email (newer) |
-| `Enter` | Open email |
-| `u` | Back to inbox from email view |
-
-### Usage with playwright-cli
-
-```bash
-# Select first email, then archive it
-playwright-cli press x
-playwright-cli press e
-
-# Go to sent mail (two-key shortcut with short delay)
-playwright-cli press g
-playwright-cli press t
-```
-
-**Note:** Two-key shortcuts (like `g` then `i`) require a small delay between keys.
 
 ## Delete emails (trash)
 
@@ -608,10 +702,10 @@ The delete button is `div.nX` with `aria-label="Eliminar"` (Spanish) or `aria-la
 
 ```bash
 # 1. Navigate to search results or label
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#search/$(python3 -c 'import urllib.parse; print(urllib.parse.quote("from:linkedin.com"))')"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#search/$(python3 -c 'import urllib.parse; print(urllib.parse.quote("from:linkedin.com"))')"
 
 # 2. Wait for rows
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelectorAll('tr.zA').length > 0) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -620,14 +714,14 @@ playwright-cli eval "(async function(){
 })()"
 
 # 3. Select all
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const cb = document.querySelector('div[role=\"checkbox\"]');
   if (cb) { cb.click(); return 'selected'; }
   return 'not_found';
 })()"
 
 # 4. Click "select all that match" if it appears
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const links = document.querySelectorAll('a, span');
   for (const l of links) {
     if (l.textContent.includes('Seleccionar todas') || l.textContent.includes('Select all')) {
@@ -638,7 +732,7 @@ playwright-cli eval "(function(){
 })()"
 
 # 5. Delete with proper event sequence
-playwright-cli eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('div.nX[aria-label=\"Eliminar\"], div.nX[aria-label=\"Delete\"]');
   if (!btn) return 'not_found';
   btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -679,8 +773,8 @@ Requires an app password (not your regular password). Generate at https://myacco
 Gmail is a heavy SPA. After `goto` or any navigation, use in-page polling (Browser Automation Rule 2):
 
 ```bash
-node scripts/browser.js goto "https://mail.google.com/mail/u/0/#inbox"
-playwright-cli eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#inbox"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelectorAll('tr.zA').length > 0) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -701,7 +795,7 @@ The "To" field is a custom component that:
 Don't navigate the UI just to check if there are new emails:
 
 ```bash
-playwright-cli eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();var m=t.match(/<fullcount>(\d+)<\/fullcount>/);return m?m[1]+' unread':'error'})()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');var t=await r.text();var m=t.match(/<fullcount>(\d+)<\/fullcount>/);return m?m[1]+' unread':'error'})()"
 ```
 
 ### Multiple Gmail accounts
@@ -716,9 +810,6 @@ Gmail supports multiple accounts in the same browser. The URL pattern includes t
 - **Don't** try to fill the "To" field with `.value =` alone — use the native value setter
 - **Don't** use plain `.click()` for the Send button — use mousedown -> click -> mouseup
 - **Don't** confuse compose (textarea body) with reply (contenteditable body) — they use different selectors
-- **Don't** reuse refs after clicking or pressing keys — take a new snapshot
-- **Don't** forget to wait after `goto` — Gmail is a heavy SPA
-- **Don't** try to log in programmatically — open headed and let the user log in
 - **Don't** use `type` for multiline body text — use `fill <ref>` or eval with native setter
 - **Don't** navigate to `#inbox` expecting all emails — Gmail splits into categories, use `#all`
 - **Don't** archive emails without explicit user confirmation — always ask first

@@ -1,11 +1,15 @@
-# Discord Web Automation Guide
+---
+name: discord
+description: Automate Discord Web for messaging, navigation, and voice.
+verified: 2026-09-02
+---
 
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
+# Discord Web Automation Guide
 
 ## Setup
 
 ```bash
-node scripts/browser.js goto "https://discord.com/app"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://discord.com/app"
 ```
 
 Wait 5-8 seconds for the SPA to load. Discord Web is a React SPA that needs time to hydrate.
@@ -93,28 +97,28 @@ Wait 5-8 seconds for the SPA to load. Discord Web is a React SPA that needs time
 | `Esc` | Decline incoming call |
 | `Ctrl+'` | Start call in DM/group |
 
-### Usage with playwright-cli
+### Usage with the wrapper
 
 ```bash
 # Show keyboard shortcuts
-playwright-cli press Control+Slash
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Slash
 
 # Quick Switcher (find any channel/DM)
-playwright-cli press Control+k
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+k
 # Then type and Enter to open
 
 # Search in current channel
-playwright-cli press Control+f
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+f
 
 # Emoji picker (compose must be focused)
-playwright-cli press Control+e
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+e
 
 # Navigate channels
-playwright-cli press Alt+ArrowUp
-playwright-cli press Alt+ArrowDown
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+ArrowUp
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+ArrowDown
 
 # Mark channel as read
-playwright-cli press Escape
+node .agents/skills/browser-automation/scripts/browser.js exec press Escape
 ```
 
 ## Detecting modals
@@ -130,7 +134,7 @@ Discord uses `dialog` role consistently for modals. Check the accessibility snap
 
 ```bash
 # Check if a modal is open
-node scripts/browser.js exec snapshot | grep "dialog"
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot | grep "dialog"
 ```
 
 ## Opening a DM or channel
@@ -139,20 +143,20 @@ node scripts/browser.js exec snapshot | grep "dialog"
 
 ```bash
 # 1. Open Quick Switcher
-playwright-cli press Control+k
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+k
 
 # 2. Type the name
-playwright-cli type "santituc"
+node .agents/skills/browser-automation/scripts/browser.js exec type "santituc"
 
 # 3. Wait for results, press Enter
-playwright-cli press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 **Alternative:** Click the server/DM in the sidebar:
 
 ```bash
 # Click a server by name (use eval — Discord servers have complex DOM)
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const item = Array.from(document.querySelectorAll('[role=\"treeitem\"]'))
     .find(i => i.getAttribute('aria-label') && i.getAttribute('aria-label').includes('Hermes'));
   if (item) { item.click(); return 'clicked'; }
@@ -212,13 +216,13 @@ async () => {
 
 ```bash
 # Focus compose
-node scripts/browser.js exec eval "document.querySelector('div[role=\"textbox\"]').focus()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('div[role=\"textbox\"]').focus()"
 
 # Type message
-node scripts/browser.js exec type "Hello world"
+node .agents/skills/browser-automation/scripts/browser.js exec type "Hello world"
 
 # Send
-node scripts/browser.js exec press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 **For multi-line messages:** Use `Shift+Enter` for line breaks instead of `\n` in type.
@@ -230,11 +234,3 @@ node scripts/browser.js exec press Enter
 - **Discord class names are obfuscated** — they change between builds. Never rely on class names like `scrollerInner_d38b50`. Use `[role]`, `[aria-label]`, or `[data-testid]` attributes instead.
 - **`Ctrl+F` opens Discord's search, not the browser's** — Discord intercepts the shortcut. Use `Alt+Ctrl+F` or the browser menu if you need browser find.
 - **Sidebar items are `[role="treeitem"]`** but the `aria-label` may be null for some items. Check text content as fallback.
-
-## Anti-patterns
-
-- **Don't** click buttons when a keyboard shortcut exists — prefer `press` over `eval` + click
-- **Don't** rely on obfuscated class names — they change between Discord builds
-- **Don't** try to use message shortcuts (E, R, F) without hovering the message first
-- **Don't** use `Ctrl+F` expecting browser find — Discord intercepts it for channel search
-- **Don't** assume the compose box is focused — always focus it before typing or using compose shortcuts

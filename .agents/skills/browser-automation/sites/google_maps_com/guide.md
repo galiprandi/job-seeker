@@ -1,16 +1,15 @@
 ---
 name: google_maps
 description: Automate Google Maps for distance verification, business search, and phone number extraction.
+verified: 2026-09-02
 ---
 
 # Google Maps Automation Guide
 
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
-
 ## Setup
 
 ```bash
-node scripts/browser.js goto "https://www.google.com/maps"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps"
 ```
 
 No login required for basic search and directions.
@@ -22,7 +21,7 @@ No login required for basic search and directions.
 Navigate to directions with origin and destination:
 
 ```bash
-node scripts/browser.js goto "https://www.google.com/maps/dir/<ORIGIN>/<DESTINATION>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps/dir/<ORIGIN>/<DESTINATION>"
 ```
 
 URL-encode addresses with `+` for spaces and `%C3%B3` for accented characters.
@@ -47,7 +46,7 @@ The first meaningful distance in the array is typically the walking/driving rout
 ### Search for a business and extract phone number
 
 ```bash
-node scripts/browser.js goto "https://www.google.com/maps/search/<BUSINESS_NAME>+<LOCATION>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps/search/<BUSINESS_NAME>+<LOCATION>"
 ```
 
 Extract phone from the business card:
@@ -66,7 +65,7 @@ async () => {
 When a street address is ambiguous or returns wrong results, use exact coordinates:
 
 ```bash
-node scripts/browser.js goto "https://www.google.com/maps/dir/-36.7683815,-56.6766244/<DESTINATION>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps/dir/-36.7683815,-56.6766244/<DESTINATION>"
 ```
 
 This avoids the problem of Google Maps resolving a generic street name to the wrong segment.

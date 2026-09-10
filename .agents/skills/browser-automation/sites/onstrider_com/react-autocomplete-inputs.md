@@ -10,10 +10,10 @@ The skill input fields in the "Roles and main skills" modal on Strider's profile
 
 ```bash
 # fill approach
-node scripts/browser.js exec fill <ref> "Python"
+node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "Python"
 
 # native value setter approach
-node scripts/browser.js exec eval "(function() {
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function() {
   var input = document.querySelector('#stacks-4');
   var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
   nativeSetter.call(input, 'Python');
@@ -35,7 +35,7 @@ The working pattern is a 3-step sequence: **type a prefix → wait for the dropd
 
 ```bash
 # Step 1: Focus the input and type a prefix
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var input = document.querySelector('#stacks-<N>');
   input.focus();
   input.click();
@@ -46,7 +46,7 @@ node scripts/browser.js exec eval "(async function(){
 })()"
 
 # Step 2: Wait for the dropdown and click the matching option
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r => setTimeout(r, 1000));
   var suggestions = document.querySelectorAll('[role=option], [class*=suggestion], [class*=option]');
   for (var i = 0; i < suggestions.length; i++) {

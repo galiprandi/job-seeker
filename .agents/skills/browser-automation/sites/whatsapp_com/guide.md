@@ -1,18 +1,17 @@
 ---
 name: whatsapp
 description: Automate WhatsApp Web for messaging, conversation monitoring, and bulk scanning.
+verified: 2026-09-02
 ---
 
 # WhatsApp Web Automation Guide
-
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
 
 ## Setup
 
 ### Open WhatsApp Web
 
 ```bash
-node scripts/browser.js goto "https://web.whatsapp.com/"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/"
 ```
 
 Wait 5-8 seconds for the chat list to load. WhatsApp Web is a SPA that needs time to hydrate.
@@ -22,7 +21,7 @@ Wait 5-8 seconds for the chat list to load. WhatsApp Web is a SPA that needs tim
 WhatsApp Web requires QR code scanning from a phone. If the session is expired, open in headed mode so the user can scan:
 
 ```bash
-node scripts/browser.js open "https://web.whatsapp.com/" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://web.whatsapp.com/" --headed
 ```
 
 The session persists in `.browser-profile` so subsequent opens are headless.
@@ -54,27 +53,27 @@ The session persists in `.browser-profile` so subsequent opens are headless.
 **Not working:**
 - `Ctrl+Alt+Shift+F` (Search in chat) — does not respond. Use the "Buscar" button in the conversation header instead.
 
-### Usage with playwright-cli
+### Usage with the wrapper
 
 ```bash
 # New chat
-playwright-cli press Control+Alt+n
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Alt+n
 
 # Extended search (most useful for finding chats)
-playwright-cli press Alt+k
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+k
 # Then type and Enter to open
 
 # Emoji panel (compose must be focused)
-playwright-cli press Control+Alt+e
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Alt+e
 
 # Profile
-playwright-cli press Control+Alt+p
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Alt+p
 
 # Settings
-playwright-cli press Control+Alt+Comma
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Alt+Comma
 
 # Close any panel
-playwright-cli press Escape
+node .agents/skills/browser-automation/scripts/browser.js exec press Escape
 ```
 
 ## Detecting modals and panels
@@ -95,7 +94,7 @@ playwright-cli press Escape
 
 ```bash
 # Check if a modal is open via snapshot
-node scripts/browser.js exec snapshot | head -20
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot | head -20
 # Look for: dialog, second banner, application with grid
 ```
 
@@ -106,7 +105,7 @@ node scripts/browser.js exec snapshot | head -20
 Navigate directly to a chat by phone number (international format, no `+`, no spaces):
 
 ```bash
-node scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
 ```
 
 Example: `https://web.whatsapp.com/send?phone=5491112345678`
@@ -119,15 +118,15 @@ This creates or opens the conversation and focuses the compose box. Useful for s
 
 ```bash
 # Most reliable method
-node scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
+node .agents/skills/browser-automation/scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
 ```
 
 **Alternative:** Use `Alt+K` to search, type the name, and press Enter:
 
 ```bash
-playwright-cli press Alt+k
-playwright-cli type "<chat name>"
-playwright-cli press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+k
+node .agents/skills/browser-automation/scripts/browser.js exec type "<chat name>"
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 ### Send a message
@@ -138,8 +137,8 @@ playwright-cli press Enter
 4. Click it
 
 ```bash
-node scripts/browser.js exec fill <compose_ref> "<message>"
-node scripts/browser.js exec click <send_button_ref>
+node .agents/skills/browser-automation/scripts/browser.js exec fill <compose_ref> "<message>"
+node .agents/skills/browser-automation/scripts/browser.js exec click <send_button_ref>
 ```
 
 ### Read messages in a conversation
@@ -257,6 +256,46 @@ async () => {
 }
 ```
 
+## Sending images and files
+
+### The problem with upload and drop
+
+**Problem:** `exec upload` requires a native file chooser modal to be open. WhatsApp Web's "Adjuntar > Fotos y videos" button triggers a native OS file dialog. When this dialog opens, the wrapper loses control of the session and the browser becomes a zombie (unresponsive, gets cleaned up).
+
+`exec drop` does not work with WhatsApp's hidden `input[type="file"]` element either.
+
+**Solution:** Use `run-code` with `page.locator('input[type="file"]').setInputFiles()` to set the file directly on the hidden input, bypassing the native dialog entirely.
+
+```bash
+# 1. Open the conversation first
+node .agents/skills/browser-automation/scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
+
+# 2. Set the file on the hidden input (no native dialog needed)
+node .agents/skills/browser-automation/scripts/browser.js exec run-code "(async (page) => { const input = await page.locator('input[type=\"file\"]').first(); await input.setInputFiles('/absolute/path/to/file.png'); return 'file set'; })"
+
+# 3. Wait for the preview + caption box to appear
+sleep 3
+
+# 4. Write the caption (use Shift+Enter for line breaks, NOT Enter)
+node .agents/skills/browser-automation/scripts/browser.js exec run-code "(async (page) => { const caption = await page.locator('div[contenteditable][data-tab=\"10\"]'); await caption.focus(); await page.keyboard.type('First line.'); await page.keyboard.press('Shift+Enter'); await page.keyboard.type('Second line.'); return 'done'; })"
+
+# 5. Send (snapshot first to get fresh ref)
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
+# Look for: button "Enviar 1 seleccionado" or button "Enviar"
+node .agents/skills/browser-automation/scripts/browser.js exec click <send_ref>
+```
+
+**Key details:**
+- WhatsApp has one hidden `input[type="file"]` with `accept="image/*"`. For documents, the accept attribute changes.
+- After `setInputFiles`, WhatsApp shows a preview with a caption box (`div[contenteditable][data-tab="10"]`) and an "Enviar" button.
+- Use `Shift+Enter` for line breaks in the caption. Plain `Enter` may send the message prematurely or lose the first line.
+- The send button text changes: "Enviar 1 seleccionado" when a file is attached, "Enviar" when only text.
+
+**Anti-pattern:**
+- Do NOT click "Adjuntar" > "Fotos y videos" via `eval` + `click()`. The native file dialog crashes the session.
+- Do NOT use `exec upload` — it requires the native dialog and will zombie the session.
+- Do NOT use `exec drop` on `input[type="file"]` — it silently fails.
+
 ## Gotchas and anti-patterns
 
 ### Unread badges are NOT reliable for monitoring
@@ -280,7 +319,7 @@ async () => {
 
 **Solution:** Before any WhatsApp action, verify the URL is `https://web.whatsapp.com/`. If not, navigate back:
 ```bash
-node scripts/browser.js goto "https://web.whatsapp.com/"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/"
 ```
 
 ### beforeunload dialogs block navigation
@@ -289,7 +328,7 @@ node scripts/browser.js goto "https://web.whatsapp.com/"
 
 **Solution:** Accept the dialog first:
 ```bash
-node scripts/browser.js exec dialog-accept
+node .agents/skills/browser-automation/scripts/browser.js exec dialog-accept
 ```
 
 ### Scroll the chat list to find older conversations
@@ -324,7 +363,7 @@ Messages include timestamps in the text content (e.g. `21:43`). When extracting 
 
 ## Validation
 
-**Validated:** 2026-08-21 against live WhatsApp Web.
+**Validated:** 2026-08-24 against live WhatsApp Web.
 
 ## Adding a contact to a WhatsApp list
 
@@ -337,15 +376,15 @@ WhatsApp Web supports custom lists (e.g. for organizing contacts by topic). To a
 
 ```bash
 # Open conversation
-node scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
 # Wait for panel to load
 sleep 5
 # Click Menú in conversation header
-MENU_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep 'button "Menú"' | tail -1 | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node scripts/browser.js exec click $MENU_REF
+MENU_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep 'button "Menú"' | tail -1 | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click $MENU_REF
 # Click "Añadir a la lista"
-ADD_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep "Añadir a la lista" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node scripts/browser.js exec click $ADD_REF
+ADD_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep "Añadir a la lista" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click $ADD_REF
 ```
 
 **Gotcha:** There are two "Menú" buttons in the snapshot. The one in the conversation header (`[data-testid="conversation-header"]`) is the correct one. Use `tail -1` or filter by the header testid.
@@ -357,7 +396,7 @@ node scripts/browser.js exec click $ADD_REF
 When sending long messages (more than 2-3 sentences), separate into paragraphs with `\n\n` for readability on mobile devices. WhatsApp renders `\n` as line breaks in the compose box.
 
 ```bash
-node scripts/browser.js exec fill <ref> "Hola! Primer párrafo corto.
+node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "Hola! Primer párrafo corto.
 
 Segundo párrafo corto.
 
@@ -391,18 +430,3 @@ Tercer párrafo corto."
 5. The most recently added/modified entry is likely the one you just played
 6. Extract as base64, save to file, send to Groq Whisper
 7. Verify the transcription content matches the expected conversation context
-
-## Anti-patterns
-
-- **Do NOT rely solely on unread badges** for monitoring. Use a maintained contact list.
-- **Do NOT assume a ref is valid** after any navigation or time gap. Re-snapshot.
-- **Do NOT use `innerText` assignment** to fill the compose box. Use `fill` on the compose box ref.
-- **Do NOT send messages without verifying** the conversation target is correct (wrong number = wrong person).
-- **Do NOT forget to handle `beforeunload` dialogs** when navigating away from WhatsApp.
-- **Do NOT send long messages as a single wall of text.** Separate into paragraphs with `\n\n`.
-- **Do NOT play multiple voice notes and then try to extract them all.** The LRU cache may evict earlier blobs. Extract and transcribe one at a time.
-- **Do NOT assume a cache entry belongs to a specific conversation.** The cache is shared across all chats. Match by transcription content, not by cache index.
-- **Do NOT use `eval` + `innerText` to detect modals.** WhatsApp doesn't expose modal text via `innerText` reliably. Use `snapshot` instead.
-- **Do NOT use `eval` + `click()` to open chats.** It often fails silently. Use `playwright-cli click "div[role=\"row\"] >> text=<NAME>"` or `Alt+K` + search.
-- **Do NOT assume all official shortcuts work.** `Ctrl+Alt+Shift+F` (search in chat) does not respond. Test before relying on a shortcut.
-- **Do NOT click buttons when a keyboard shortcut exists** — prefer `press` over `eval` + click.

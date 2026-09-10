@@ -1,3 +1,9 @@
+---
+name: strider
+description: Automate Strider (onstrider.com) LATAM job platform: profile updates, work experience, and multi-step job applications.
+verified: 2026-09-02
+---
+
 # Strider (onstrider.com) — Automation Guide
 
 **Validated:** 2026-08-17
@@ -18,10 +24,10 @@ Strider is a LATAM-focused job platform that matches developers with US companie
 First login is manual (headed mode). The platform uses email + password or Google OAuth.
 
 ```bash
-node scripts/browser.js open "https://app.onstrider.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://app.onstrider.com" --headed
 # user logs in manually
-node scripts/browser.js save-state
-node scripts/browser.js close
+node .agents/skills/browser-automation/scripts/browser.js save-state
+node .agents/skills/browser-automation/scripts/browser.js close
 ```
 
 Subsequent sessions reuse the saved profile. No captcha observed during login.
@@ -31,7 +37,7 @@ Subsequent sessions reuse the saved profile. No captcha observed during login.
 A cookie consent banner appears on first visit. Click "Accept" before interacting:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var btns = document.querySelectorAll('button, a');
   for (var i = 0; i < btns.length; i++) {
     if (btns[i].textContent.trim() === 'Accept' && btns[i].offsetParent !== null) {
@@ -50,8 +56,8 @@ node scripts/browser.js exec eval "(async function(){
 Navigate to the profile page and extract the current state:
 
 ```bash
-node scripts/browser.js goto "https://app.onstrider.com/profile"
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://app.onstrider.com/profile"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r => setTimeout(r, 3000));
   var body = document.body.innerText;
   var idx = body.indexOf('Open to roles');
@@ -69,15 +75,15 @@ The "Edit" button next to "Open to roles" opens a modal dialog with both roles a
 
 ```bash
 # Find the Edit button near "Open to roles" — use snapshot to get the ref
-node scripts/browser.js exec snapshot
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 # Look for: button "Edit" [ref=eXXX] near "Open to roles"
-node scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
 ```
 
 **Add a role:** Click on a role name in the "Other roles you might consider" list:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var dialog = document.querySelector('[role=dialog]');
   if (!dialog) return 'no_dialog';
   var items = dialog.querySelectorAll('button, div[role=button], li, div');
@@ -96,13 +102,13 @@ node scripts/browser.js exec eval "(async function(){
 **Update years of experience:** Each skill has a combobox (select) for years. Use `select` with the combobox ref from snapshot:
 
 ```bash
-node scripts/browser.js exec select <combobox_ref> "10+ years"
+node .agents/skills/browser-automation/scripts/browser.js exec select <combobox_ref> "10+ years"
 ```
 
 **Save:**
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var dialog = document.querySelector('[role=dialog]');
   var btns = dialog.querySelectorAll('button');
   for (var i = 0; i < btns.length; i++) {
@@ -123,11 +129,11 @@ The bio is a simple textarea in a modal. `fill` works directly:
 
 ```bash
 # Find Edit button near "Bio" via snapshot
-node scripts/browser.js exec click <bio_edit_ref>
+node .agents/skills/browser-automation/scripts/browser.js exec click <bio_edit_ref>
 # Find the "Short bio" textbox via find
-node scripts/browser.js exec find "Short bio"
+node .agents/skills/browser-automation/scripts/browser.js exec find "Short bio"
 # Fill
-node scripts/browser.js exec fill <textarea_ref> "<bio text>"
+node .agents/skills/browser-automation/scripts/browser.js exec fill <textarea_ref> "<bio text>"
 # Save
 ```
 
@@ -154,7 +160,7 @@ Click "Add new" in the Work experience section. A modal opens with:
 **Start date:** Use native value setter with `YYYY-MM-DD` format:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var input = document.querySelector('#startDate');
   var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
   nativeSetter.call(input, 'YYYY-MM-DD');
@@ -187,7 +193,7 @@ Jobs appear on the home page with a countdown timer ("NNh NNmin to reply"). Each
 **Fill number inputs** with native value setter:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
   var input = document.getElementById('answers.N.value');
   nativeSetter.call(input, '<VALUE>');
@@ -202,8 +208,8 @@ node scripts/browser.js exec eval "(async function(){
 **Link work experiences:** Each question has a "Link work experiences*" combobox. Click the textbox, wait for dropdown, click the matching work experience:
 
 ```bash
-node scripts/browser.js exec click <link_textbox_ref>
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec click <link_textbox_ref>
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   await new Promise(r => setTimeout(r, 2000));
   var suggestions = document.querySelectorAll('[role=option], [class*=suggestion], [class*=option]');
   for (var i = 0; i < suggestions.length; i++) {
@@ -235,10 +241,6 @@ https://app.onstrider.com/job-opportunities/<UUID>
 ```
 
 The home page link uses a different URL format with query params. Navigate directly to the UUID URL if you have it.
-
-## API reference
-
-No internal API endpoints were captured during this session. The platform appears to use a Next.js backend with server-side rendering. API capture would require network inspection during form submissions.
 
 ## Anti-patterns
 
