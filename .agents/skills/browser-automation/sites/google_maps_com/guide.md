@@ -104,10 +104,10 @@ This avoids the problem of Google Maps resolving a generic street name to the wr
 **Problem:** Argentine phone numbers appear in multiple formats:
 - Landline: `02257 66-8376`
 - Mobile: `011 15-5057-0897`
-- International: `+54 9 11 5057-0897`
-- WhatsApp normalized: `+54 9 11 5057-0897` (15 prefix removed, 9 added)
+- International: `+<Country Code> <Area> <Number>`
+- WhatsApp normalized: `+<Country Code> <Area> <Number>` (15 prefix removed, 9 added)
 
-**Solution:** Normalize all numbers to international format for WhatsApp: `+54 9 <area> <number>` (remove leading `15`, add `9` after `54` for mobiles).
+**Solution:** Normalize all numbers to international format for WhatsApp: `+<Country Code> <Area> <Number>` (normalize to international format per your country).
 
 ### Business search returns results in wrong town
 

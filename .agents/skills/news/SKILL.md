@@ -21,11 +21,11 @@ Also runs in parallel when the user launches an application.
 - [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `follow_up_days` (days before sending follow-up), `cold_outreach` (whether to send cold messages to recruiters). If `news` not in `sources_active`, warn the user
 
@@ -97,7 +97,7 @@ Sources to collect (dispatch as parallel subagents when possible, sequential oth
 - [ ] **Pending follow-ups:** query DB for applications without response after X days (contextual: 3 days for urgent, 5 for normal, 7 for cold)
 - [ ] **Staged referral & outreach drafts:** query DB for drafts staged by the `referrals` flow (or by step 2.5 of `apply`/`targets`) that are still pending user approval:
   ```bash
-  node scripts/db.js "SELECT id, channel, sender, subject, draft, data FROM messages WHERE user_id = 1 AND status = 'draft' AND direction = 'outbound' AND (data->>'category') IN ('referral_request', 'recruiter_outreach') ORDER BY received_at DESC"
+  node scripts/db.js "SELECT id, channel, sender, subject, draft, data FROM messages WHERE user_id = <user_id> AND status = 'draft' AND direction = 'outbound' AND (data->>'category') IN ('referral_request', 'recruiter_outreach') ORDER BY received_at DESC"
   ```
   For each staged draft: present it in the summary under its category (`referral_request` or `recruiter_outreach`) with the contact name, company, and the draft text. User can approve (send via LinkedIn DM), edit, or reject. This is where warm-sourcing drafts become actionable — the `referrals` flow stages them, `news` surfaces them for approval and sends them.
 - [ ] **Scheduling links (parallel subagent):** if any email or message contains a scheduling link (Calendly, SmartRecruiters self-schedule, Workable, HubSpot meetings, etc.), dispatch a background subagent (`subagent_general`) to open each link, read available slots, and filter them against `users.data.availability` (preferred_hours, timezone, blocked days). The subagent returns a filtered list of slots that match the user's preferences. This runs in parallel with the rest of the news flow so the user doesn't wait. The subagent prompt must include:
@@ -255,16 +255,16 @@ Typical queries:
 
 ```bash
 # Pending follow-ups
-node scripts/db.js "SELECT id, company, role, applied_at FROM applications WHERE user_id = 1 AND status = 'applied' AND applied_at < NOW() - INTERVAL '5 days'"
+node scripts/db.js "SELECT id, company, role, applied_at FROM applications WHERE user_id = <user_id> AND status = 'applied' AND applied_at < NOW() - INTERVAL '5 days'"
 
 # Save a draft
-node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at) VALUES (1, 'gmail', 'inbound', '<sender>', '<subject>', '<body>', '<draft>', 'draft', NOW())" --write
+node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at) VALUES (<user_id>, 'gmail', 'inbound', '<sender>', '<subject>', '<body>', '<draft>', 'draft', NOW())" --write
 
 # Mark sent
 node scripts/db.js "UPDATE messages SET status = 'sent', sent_at = NOW() WHERE id = <id>" --write
 
 # Update last_review_at
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{last_review_at}', '\"<iso>\"') WHERE id = 1" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{last_review_at}', '\"<iso>\"') WHERE id = <user_id>" --write
 ```
 
 `users.data.last_review_at` (JSONB) tracks the last review timestamp.
@@ -432,7 +432,7 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 
 - **Filter by unread**: click the "Unread" button (ref changes per snapshot) to see only unread conversations. If "No unread messages" appears, there are none
 - **Search by name**: fill the "Search messages" searchbox with the sender name, press Enter, then click the matching conversation heading
-- **Conversation previews**: the list shows last message preview (`paragraph` under each `heading level=3`). "You:" prefix means German sent the last message (waiting for reply). Sender name without "You:" means they sent last (may need action)
+- **Conversation previews**: the list shows last message preview (`paragraph` under each `heading level=3`). "You:" prefix means the user sent the last message (waiting for reply). Sender name without "You:" means they sent last (may need action)
 - **Thread URL pattern**: `https://www.linkedin.com/messaging/thread/2-XXXXX/` — the ID is stable per conversation and can be stored in DB for direct navigation
 
 ### Verified send flow (Aug 2026)
@@ -446,7 +446,7 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 7. Verify text via `eval` (innerText)
 8. Verify Send button is NOT `disabled`
 9. Click Send button
-10. Verify "German Aliprandi sent the following messages" appears in snapshot
+10. Verify "<Your Name> sent the following messages" appears in snapshot
 
 ## Email delivery
 

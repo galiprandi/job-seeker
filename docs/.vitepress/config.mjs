@@ -17,7 +17,7 @@ export default defineConfig({
       { text: 'Reference', link: '/reference/platforms' },
       {
         text: 'GitHub',
-        link: 'https://github.com/galiprandi/job-seeker',
+        link: 'https://github.com/<your-username>/job-seeker',
       },
     ],
 
@@ -70,12 +70,12 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/galiprandi/job-seeker' },
+      { icon: 'github', link: 'https://github.com/<your-username>/job-seeker' },
     ],
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright 2026 German Aliprandi',
+      copyright: 'Copyright 2026 <Your Name>',
     },
 
     search: {

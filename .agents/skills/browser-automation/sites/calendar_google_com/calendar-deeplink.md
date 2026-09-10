@@ -16,12 +16,12 @@ https://calendar.google.com/calendar/render?action=TEMPLATE&text=<TITLE>&dates=<
 | `dates` | Start and end time | `YYYYMMDDTHHMMSSZ/YYYYMMDDTHHMMSSZ` in UTC |
 | `details` | Event body | URL-encoded string |
 | `location` | Location | URL-encoded string |
-| `ctz` | Display time zone | IANA zone, e.g. `America/Argentina/Buenos_Aires` |
+| `ctz` | Display time zone | IANA zone, e.g. `<Your IANA Timezone>` |
 
 ## Example
 
 ```
-https://calendar.google.com/calendar/render?action=TEMPLATE&text=Rotación%20token%20PAT%20GitHub&dates=20260824T170000Z/20260824T180000Z&details=Rotación%20y%20baja%20de%20PAT%20Classic%20de%20GitHub&ctz=America/Argentina/Buenos_Aires
+https://calendar.google.com/calendar/render?action=TEMPLATE&text=<Event%20Title>&dates=20260824T170000Z/20260824T180000Z&details=<Event%20Description>&ctz=<Your IANA Timezone>
 ```
 
 This opens Google Calendar with the fields pre-filled. The user still must confirm/save.

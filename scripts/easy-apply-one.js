@@ -36,7 +36,7 @@ function dbQuery(sql) {
 }
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = 1")[0];
+  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${process.env.USER_ID || 1}")[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},

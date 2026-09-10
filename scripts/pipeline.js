@@ -320,7 +320,7 @@ function printCardDetail(app, messages) {
 
 // --- DB operations ---
 async function getRows(client, opts = {}) {
-  let sql = `SELECT id, user_id, platform, company, role, url, status, applied_at, data FROM applications WHERE user_id = 1`;
+  let sql = `SELECT id, user_id, platform, company, role, url, status, applied_at, data FROM applications WHERE user_id = ${process.env.USER_ID || 1}`;
   const params = [];
   if (opts.stage) {
     params.push(opts.stage);
@@ -346,7 +346,7 @@ async function moveCard(client, id, newStage) {
 
   // Get current state
   const cur = await client.query(
-    `SELECT id, status, data FROM applications WHERE id = $1 AND user_id = 1`,
+    `SELECT id, status, data FROM applications WHERE id = $1 AND user_id = ${process.env.USER_ID || 1}`,
     [id]
   );
   if (cur.rows.length === 0) {
@@ -371,7 +371,7 @@ async function moveCard(client, id, newStage) {
   // Update with jsonb_set for stage_history
   const newData = JSON.stringify({ ...oldData, stage_history: history });
   await client.query(
-    `UPDATE applications SET status = $1, data = $2::jsonb WHERE id = $3 AND user_id = 1`,
+    `UPDATE applications SET status = $1, data = $2::jsonb WHERE id = $3 AND user_id = ${process.env.USER_ID || 1}`,
     [newStage, newData, id]
   );
 
@@ -381,7 +381,7 @@ async function moveCard(client, id, newStage) {
 
 async function getCardDetail(client, id) {
   const appRes = await client.query(
-    `SELECT id, user_id, platform, company, role, url, status, applied_at, data FROM applications WHERE id = $1 AND user_id = 1`,
+    `SELECT id, user_id, platform, company, role, url, status, applied_at, data FROM applications WHERE id = $1 AND user_id = ${process.env.USER_ID || 1}`,
     [id]
   );
   if (appRes.rows.length === 0) {

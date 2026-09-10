@@ -19,12 +19,12 @@ trigger: db
 
 ```bash
 # Read (default, JSON array out)
-node scripts/db.js "SELECT * FROM users WHERE id = 1"
-node scripts/db.js "SELECT data->'profile' AS profile FROM users WHERE id = 1"
+node scripts/db.js "SELECT * FROM users WHERE id = <user_id>"
+node scripts/db.js "SELECT data->'profile' AS profile FROM users WHERE id = <user_id>"
 
 # Write (requires --write)
-node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, 'linkedin', 'Acme', 'Eng Manager', 'https://...', 'applied', '{}'::jsonb)" --write
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{linkedin_profile}', '\"https://...\"') WHERE id = 1" --write
+node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (<user_id>, 'linkedin', 'Acme', 'Eng Manager', 'https://...', 'applied', '{}'::jsonb)" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{linkedin_profile}', '\"https://...\"') WHERE id = <user_id>" --write
 
 # Introspection
 node scripts/db.js --tables

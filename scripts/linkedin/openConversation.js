@@ -8,7 +8,7 @@
  *
  * Usage:
  *   const { openConversation } = require('./scripts/linkedin/openConversation');
- *   await openConversation(page, 'Jane Doe');
+ *   await openConversation(page, '<Recipient Name>');
  */
 'use strict';
 

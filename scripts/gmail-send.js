@@ -88,12 +88,10 @@ function extractRef(text, pattern) {
   return match ? match[1] : null;
 }
 
-const DEFAULT_CV_FALLBACK = path.join(os.homedir(), 'Documents', 'cv.pdf');
-
 function loadCvPathFromDB() {
   try {
     const output = execSync(
-      `node ${__dirname}/db.js "SELECT data->'profile'->>'cv_path' AS cv_path, data->'personal_info'->>'cv_pdf_path' AS cv_pdf FROM users WHERE id = 1"`,
+      `node ${__dirname}/db.js "SELECT data->'profile'->>'cv_path' AS cv_path, data->'personal_info'->>'cv_pdf_path' AS cv_pdf FROM users WHERE id = ${process.env.USER_ID || 1}"`,
       { encoding: 'utf-8', timeout: 15000, cwd: __dirname }
     );
     const rows = JSON.parse(output);
@@ -107,7 +105,7 @@ function main() {
   const args = process.argv.slice(2);
 
   let to = null, subject = null, body = null, bodyFile = null;
-  let cvPath = loadCvPathFromDB() || DEFAULT_CV_FALLBACK, noCv = false;
+  let cvPath = loadCvPathFromDB(), noCv = false;
   let cc = null, bcc = null;
 
   for (let i = 0; i < args.length; i++) {

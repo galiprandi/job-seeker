@@ -9,7 +9,7 @@
  *
  * Usage:
  *   const { sendMessage } = require('./scripts/linkedin/sendMessage');
- *   await sendMessage(page, 'Jane Doe', 'Hello!');
+ *   await sendMessage(page, '<Recipient Name>', 'Hello!');
  */
 'use strict';
 

@@ -53,7 +53,7 @@ function dbWrite(sql) {
 }
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = 1")[0];
+  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${process.env.USER_ID || 1}")[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
@@ -83,7 +83,7 @@ function deriveKeywordsFromProfile(userData) {
     const roleTypes = prefs.role_types?.value || [];
     roleTypes.slice(0, 3).forEach((r) => parts.push(`"${r}"`));
   }
-  return parts.length > 0 ? parts.join(' OR ') : 'Software Engineer';
+  return parts.length > 0 ? parts.join(' OR ') : '';
 }
 
 function sleep(ms) {
@@ -102,7 +102,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 // Get applied job IDs from DB
-const appliedRaw = shell(`node scripts/db.js "SELECT (regexp_match(url, 'jobs/view/([0-9]+)'))[1] AS job_id FROM applications WHERE user_id = 1 AND url LIKE '%linkedin.com/jobs/view/%'" --json`, 10000);
+const appliedRaw = shell(`node scripts/db.js "SELECT (regexp_match(url, 'jobs/view/([0-9]+)'))[1] AS job_id FROM applications WHERE user_id = ${process.env.USER_ID || 1} AND url LIKE '%linkedin.com/jobs/view/%'" --json`, 10000);
 const appliedSet = new Set();
 try {
   JSON.parse(appliedRaw).forEach(r => appliedSet.add(r.job_id));
@@ -230,7 +230,7 @@ for (let i = 0; i < Math.min(newJobs.length, maxJobs); i++) {
   if (stepApplied) {
     applied++;
     const safeTitle = job.title.replace(/'/g, "''");
-    dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (1, 'linkedin', '', '${safeTitle}', 'https://www.linkedin.com/jobs/view/${job.id}/', 'applied', NOW(), '{"source": "search_apply"}')`);
+    dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (${process.env.USER_ID || 1}, 'linkedin', '', '${safeTitle}', 'https://www.linkedin.com/jobs/view/${job.id}/', 'applied', NOW(), '{"source": "search_apply"}')`);
     results.push({ id: job.id, title: job.title, status: 'applied' });
   } else {
     failed++;

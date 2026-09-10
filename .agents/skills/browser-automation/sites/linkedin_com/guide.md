@@ -335,7 +335,7 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 ### Post search for job openings (content search)
 
 **Queries that work (ordered by effectiveness):**
-1. `"<Role>" "hiring" LATAM` in `search/results/content/` with `sortBy="date_posted"` and Posts filter. Most productive query. Returns posts from recruiters and hiring managers with visible contact emails.
+1. `"<Role>" "hiring" <Region>` in `search/results/content/` with `sortBy="date_posted"` and Posts filter. Most productive query. Returns posts from recruiters and hiring managers with visible contact emails.
 2. `"<Role>" "<City>" "hiring"` for geo-specific searches. Returns local posts with direct emails.
 3. `"<Role in user's language>" "buscamos"` (or equivalent in the user's language) for searches in the local language.
 4. `#hiring + <Role> keywords` (hashtags). LinkedIn doesn't support OR between hashtags. Simplify to one hashtag + keywords.

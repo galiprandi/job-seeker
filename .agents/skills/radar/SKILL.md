@@ -30,11 +30,11 @@ Three alert sources:
 - [ ] Read `PROFILE.md` to get keywords, seniority, location, preferences
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
-- [ ] Load target companies (40 companies: 19 LATAM + 21 Argentina, each `{name, url, sector}`). These are priority targets for alert configuration and platform prioritization:
+- [ ] Load target companies (companies loaded from users.data.target_companies in DB, each `{name, url, sector}`). These are priority targets for alert configuration and platform prioritization:
   ```bash
-  node scripts/db.js "SELECT data->'target_companies' AS target_companies FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'target_companies' AS target_companies FROM users WHERE id = <user_id>"
   ```
 
 ### 1. Register on platforms
@@ -96,7 +96,7 @@ For each company with native alerts:
 - [ ] Set frequency: daily if available, weekly otherwise
 - [ ] Record in DB:
   ```bash
-  node scripts/db.js "INSERT INTO company_registrations (user_id, company, region, sector, careers_url, ats_platform, registration_status, notes) VALUES (1, '<company>', 'big_tech', '<sector>', '<url>', '<ats>', 'alert_only', 'Alerts configured via radar') ON CONFLICT (user_id, company) DO UPDATE SET notes = EXCLUDED.notes, updated_at = NOW()" --write
+  node scripts/db.js "INSERT INTO company_registrations (user_id, company, region, sector, careers_url, ats_platform, registration_status, notes) VALUES (<user_id>, '<company>', 'big_tech', '<sector>', '<url>', '<ats>', 'alert_only', 'Alerts configured via radar') ON CONFLICT (user_id, company) DO UPDATE SET notes = EXCLUDED.notes, updated_at = NOW()" --write
   ```
 
 For companies without native alerts (Netflix, OpenAI, Anthropic):
@@ -129,7 +129,7 @@ Once, when configuring the first platform:
 - [ ] Update `PROFILE.md` "Configured alerts" section with keywords and platforms
 - [ ] Register in DB via db CLI (if exists): save alert status to `users.data.platforms` JSONB:
   ```bash
-  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{platforms}', '<json>'::jsonb) WHERE id = 1" --write
+  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{platforms}', '<json>'::jsonb) WHERE id = <user_id>" --write
   ```
 
 ### 6. Report
@@ -162,4 +162,4 @@ Once, when configuring the first platform:
 
 ## Learnings
 
-- **2026-07-31**: An agent running radar couldn't identify target companies because the pre-flight didn't load `users.data.target_companies`. Fixed: added target_companies loading to pre-flight and company-specific alert configuration to step 2. The DB has 40 target companies (19 LATAM + 21 Argentina) with `{name, url, sector}` structure. See DATA.md for the canonical schema.
+- **2026-07-31**: An agent running radar couldn't identify target companies because the pre-flight didn't load `users.data.target_companies`. Fixed: added target_companies loading to pre-flight and company-specific alert configuration to step 2. The DB has target companies (loaded from users.data.target_companies in DB) with `{name, url, sector}` structure. See DATA.md for the canonical schema.

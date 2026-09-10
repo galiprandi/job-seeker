@@ -21,11 +21,11 @@ Compose the `news` and `apply` flows with decision logic to keep the job search 
 - [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `daily_frequency` (on-demand / 1x/day / 2x/day), `sources_active` (which pillars to activate), `apply_batch_size` and `targets_batch_size` (passed to sub-flows). If `daily` not in `sources_active`, warn the user
 
@@ -54,7 +54,7 @@ Run the full `news` flow:
 Query DB via db CLI:
 
 ```bash
-node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = 1"
+node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = <user_id>"
 ```
 
 Decision logic respects strategy:

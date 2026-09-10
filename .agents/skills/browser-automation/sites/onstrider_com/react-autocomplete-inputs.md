@@ -10,13 +10,13 @@ The skill input fields in the "Roles and main skills" modal on Strider's profile
 
 ```bash
 # fill approach
-node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "Python"
+node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "<Skill>"
 
 # native value setter approach
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function() {
   var input = document.querySelector('#stacks-4');
   var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-  nativeSetter.call(input, 'Python');
+  nativeSetter.call(input, '<Skill>');
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new Event('change', { bubbles: true }));
   input.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -59,7 +59,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 })()"
 ```
 
-The prefix should be short (2-3 chars) to trigger the dropdown without filtering out the target option. For example, `Py` for `Python`, `LL` for `LLM`, `ci` for `CI/CD`.
+The prefix should be short (2-3 chars) to trigger the dropdown without filtering out the target option. For example, `<Prefix>` for `<Skill>`.
 
 The option text must match exactly (case-sensitive). Some platforms use different casing than expected (e.g. `TRPC` instead of `tRPC`).
 

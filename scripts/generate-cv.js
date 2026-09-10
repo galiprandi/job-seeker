@@ -100,7 +100,7 @@ Options:
  */
 function getMarkdownFromDB() {
   try {
-    const sql = "SELECT data->'cv_markdown' AS md FROM users WHERE id = 1";
+    const sql = "SELECT data->'cv_markdown' AS md FROM users WHERE id = ${process.env.USER_ID || 1}";
     const raw = execSync(`node "${DB_JS}" "${sql}"`, {
       encoding: 'utf8',
       timeout: 15000,
@@ -507,7 +507,7 @@ function generatePdfFromHtml(htmlPath, outputPath, session) {
 function updateCvPathInDB(pdfPath) {
   try {
     const escapedPath = pdfPath.replace(/'/g, "''");
-    const sql = `UPDATE users SET data = jsonb_set(data, '{cv_path}', '"${escapedPath}"') WHERE id = 1`;
+    const sql = `UPDATE users SET data = jsonb_set(data, '{cv_path}', '"${escapedPath}"') WHERE id = ${process.env.USER_ID || 1}`;
     execSync(`node "${DB_JS}" "${sql}" --write`, {
       encoding: 'utf8',
       timeout: 15000,

@@ -64,11 +64,11 @@ After successful submission, the page shows: "Your application was successfully 
 **Reading available slots:**
 
 1. Navigate to the scheduling URL. The page shows "Loading Meeting Request..." then renders a calendar.
-2. Set the timezone: find the `<select>` element and set its value to the user's timezone (e.g: `America/Argentina/Buenos_Aires`). React requires the native setter:
+2. Set the timezone: find the `<select>` element and set its value to the user's timezone (e.g: `<Your IANA Timezone>`). React requires the native setter:
    ```js
    const select = document.querySelector('select');
    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
-   setter.call(select, 'America/Argentina/Buenos_Aires');
+   setter.call(select, '<Your IANA Timezone>');
    select.dispatchEvent(new Event('change', { bubbles: true }));
    ```
 3. Available days have class `_available` (e.g: `_available_gc9ve_220`). Extract them:

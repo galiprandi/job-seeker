@@ -9,11 +9,11 @@ trigger: profile
 
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load existing profile if present:
   ```bash
-  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS job_preferences, data->'style_profile' AS style_profile FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS job_preferences, data->'style_profile' AS style_profile FROM users WHERE id = <user_id>"
   ```
 - [ ] If profile exists, validate changes before overwriting
 
@@ -58,7 +58,7 @@ From the CV data, infer:
 
 Save to `users.data.profile` as JSONB, including the inferred fields:
 ```bash
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{profile}', '<json>'::jsonb) WHERE id = 1" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{profile}', '<json>'::jsonb) WHERE id = <user_id>" --write
 ```
 
 The inferred profile is preliminary. Step 2 confirms or corrects it.
@@ -114,7 +114,7 @@ Each answer must have a weight: **Must** (non-negotiable), **Strong** (strong pr
 
 Save to `users.data.job_preferences` as JSONB with weights:
 ```bash
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{job_preferences}', '<json>'::jsonb) WHERE id = 1" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{job_preferences}', '<json>'::jsonb) WHERE id = <user_id>" --write
 ```
 
 ## Step 3: Current situation and expectations
@@ -135,11 +135,11 @@ Ask the user directly. These are not inferable from a CV.
 ### Availability for interviews
 - [ ] Preferred time slot for interviews (e.g: "13:00 to 16:00 AR")
 - [ ] Fixed blocked days/times (e.g: "Tuesday 14:00 to 15:00, English class")
-- [ ] Timezone (default: America/Argentina/Buenos_Aires)
+- [ ] Timezone (default: <Your IANA Timezone>)
 
 Save to `users.data`:
 ```bash
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{availability}', '{\"preferred_hours\":\"<start>-<end> AR\",\"timezone\":\"<tz>\",\"blocked\":{\"<day>\":\"<start>-<end> (<reason>)\"}}') WHERE id = 1" --write
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{availability}', '{\"preferred_hours\":\"<start>-<end> AR\",\"timezone\":\"<tz>\",\"blocked\":{\"<day>\":\"<start>-<end> (<reason>)\"}}') WHERE id = <user_id>" --write
 ```
 
 The `news` flow uses this to filter available slots from scheduling links without asking the user each time.
@@ -232,8 +232,8 @@ Ask the user:
 - **All DB access via `scripts/db.js`** (see `db` skill). Read-only by default, `--write` for saves
 - Persist everything to `users.data` as JSONB via `jsonb_set`:
   ```bash
-  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{profile}', '<json>'::jsonb) WHERE id = 1" --write
-  node scripts/db.js "SELECT data->'profile' AS profile FROM users WHERE id = 1"
+  node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{profile}', '<json>'::jsonb) WHERE id = <user_id>" --write
+  node scripts/db.js "SELECT data->'profile' AS profile FROM users WHERE id = <user_id>"
   ```
 - If user already has a profile in DB, validate changes before overwriting
 - Profile is updated when user changes CV or answers new questions

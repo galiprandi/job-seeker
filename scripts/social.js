@@ -6,7 +6,7 @@ const { execSync } = require('child_process');
 
 function getSocial() {
   try {
-    const out = execSync('node scripts/db.js "SELECT data->\'social\' AS social FROM users WHERE id = 1"', {
+    const out = execSync('node scripts/db.js "SELECT data->\'social\' AS social FROM users WHERE id = ${process.env.USER_ID || 1}"', {
       encoding: 'utf8',
       cwd: __dirname + '/..',
       timeout: 10000,
