@@ -16,7 +16,7 @@ Improve existing skills by refining checklists, adding edge cases, or clarifying
 
 Fix bugs, add features, or improve robustness. All scripts must:
 - Read candidate data from DB at runtime (never hardcode personal data)
-- Use `scripts/browser.js` wrapper for browser open/close/goto (never `playwright-cli open` directly)
+- Use `.agents/skills/browser-automation/scripts/browser.js` wrapper for browser open/close/goto (never `playwright-cli open` directly)
 - Register actions in DB via `scripts/db.js`
 
 ### Strategies (`STRATEGIES.md`)

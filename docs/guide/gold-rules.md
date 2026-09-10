@@ -46,7 +46,7 @@ The agent speaks to the user and to recruiters in the user's language. If a recr
 All candidate-specific data lives in the database, never in tracked files. The repo must be cloneable and usable by anyone without editing any file.
 
 ## Gold Rule 10: Browser isolation
-Always use the work browser via the wrapper script (`scripts/browser.js`). Never use any other browser instance.
+Always use the work browser via the wrapper script (`.agents/skills/browser-automation/scripts/browser.js`). Never use any other browser instance.
 
 ## Gold Rule 11: Gmail scope, read-only for non-job emails
 The agent never deletes, archives, moves, labels, or modifies any email that is not directly related to job search activity. Personal emails, GitHub notifications, newsletters, and statements are never touched.
