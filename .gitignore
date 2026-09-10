@@ -12,3 +12,7 @@ assets/*.html
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 .browser-config.json
+.DS_Store
+.tmp-*
+.tmp_*
+.claude/
