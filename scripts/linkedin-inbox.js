@@ -4,7 +4,7 @@
  * Endpoint: /voyager/api/voyagerMessagingGraphQL/graphql
  * Query ID: messengerConversations.0d5e6781bbee71c3e51c8843c6519f48
  *
- * Usage: node scripts/browser.js exec eval "$(cat scripts/linkedin-inbox.js)"
+ * Usage: node .agents/skills/browser-automation/scripts/browser.js exec eval "$(cat scripts/linkedin-inbox.js)"
  *        (run from any LinkedIn page — the script auto-detects the profile ID)
  *
  * Returns: JSON array of conversations with participants, unread count, last message, last activity.

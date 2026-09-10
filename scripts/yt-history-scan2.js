@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const { getSocial } = require('./social');
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 const YT_HANDLE = getSocial().youtube_handle || '<your-handle>';
 const MAX_ATTEMPTS = 300;
 const OUTPUT_FILE = '/tmp/yt_channels_all.json';

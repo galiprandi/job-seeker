@@ -7,7 +7,7 @@
  * Outputs JSON array to stdout.
  *
  * Usage:
- *   node scripts/browser.js open "https://www.linkedin.com"   # ensure session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"   # ensure session
  *   node scripts/linkedin-search.js '"<Your Role>" "hiring" LATAM'
  *   node scripts/linkedin-search.js '"<Your Role>" "hiring" LATAM' --scroll 3
  *   node scripts/linkedin-search.js '"<Your Role>" "<Your City>" "hiring"' --json

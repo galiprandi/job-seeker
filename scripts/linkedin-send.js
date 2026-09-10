@@ -21,7 +21,7 @@
  *   # New conversation with attachment
  *   node scripts/linkedin-send.js --recipient "ACoAA123" --text "Here is my CV" --file /path/to/cv.pdf
  *
- * Requires: browser open with LinkedIn tab (node scripts/browser.js open "https://www.linkedin.com")
+ * Requires: browser open with LinkedIn tab (node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com")
  *
  * Endpoints:
  *   New conversation:  POST /voyager/api/messaging/conversations?action=create

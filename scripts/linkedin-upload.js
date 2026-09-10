@@ -8,7 +8,7 @@
  * NOTE: Upload works, but sending a message WITH the attachment via HTTP endpoint
  * does NOT work (UI uses WebSocket). For attachments, use the UI flow.
  *
- * Usage: node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-upload.js)"
+ * Usage: node .agents/skills/browser-automation/scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-upload.js)"
  *
  * Before running: set FILE_SIZE and FILE_NAME below.
  */

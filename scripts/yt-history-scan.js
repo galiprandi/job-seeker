@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const { getSocial } = require('./social');
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 const YT_HANDLE = getSocial().youtube_handle || '<your-handle>';
 const MAX_SCROLLS = 200;
 const SCROLL_STEP = 8000;

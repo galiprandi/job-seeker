@@ -7,7 +7,7 @@
  * submits applications, and registers them in DB.
  *
  * Usage:
- *   node scripts/browser.js open "https://www.linkedin.com"   # ensure session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"   # ensure session
  *   node scripts/linkedin-easy-apply.js                          # keywords from DB profile
  *   node scripts/linkedin-easy-apply.js --keywords '"AI Engineer" OR "GenAI"'
  *   node scripts/linkedin-easy-apply.js --max 5                  # limit to 5 jobs
