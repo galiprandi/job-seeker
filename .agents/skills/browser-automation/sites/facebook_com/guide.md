@@ -1,18 +1,17 @@
 ---
 name: facebook
 description: Automate Facebook groups for post scraping, member directory extraction, and content monitoring.
+verified: 2026-09-02
 ---
 
 # Facebook Groups Automation Guide
-
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
 
 ## Setup
 
 ### Open Facebook
 
 ```bash
-node scripts/browser.js goto "https://www.facebook.com/"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.facebook.com/"
 ```
 
 Wait 5-8 seconds for the feed to load. Facebook is a SPA that hydrates progressively.
@@ -22,7 +21,7 @@ Wait 5-8 seconds for the feed to load. Facebook is a SPA that hydrates progressi
 Facebook requires manual login (email + password + possible 2FA). If the session is expired, open in headed mode:
 
 ```bash
-node scripts/browser.js open "https://www.facebook.com/" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.facebook.com/" --headed
 ```
 
 The session persists in `.browser-profile`. Do NOT attempt to log in programmatically with user credentials.
@@ -93,24 +92,24 @@ The session persists in `.browser-profile`. Do NOT attempt to log in programmati
 | `Ctrl+/` | Search communities |
 | `e` | Create event (single-char) |
 
-### Usage with playwright-cli
+### Usage with the wrapper
 
 ```bash
 # Show keyboard shortcuts
-playwright-cli press Shift+?
+node .agents/skills/browser-automation/scripts/browser.js exec press Shift+?
 
 # New chat
-playwright-cli press Alt+Control+n
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+Control+n
 
 # Search Messenger
-playwright-cli press Alt+Control+s
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+Control+s
 
 # Next/previous chat
-playwright-cli press Alt+ArrowDown
-playwright-cli press Alt+ArrowUp
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+ArrowDown
+node .agents/skills/browser-automation/scripts/browser.js exec press Alt+ArrowUp
 
 # Search communities
-playwright-cli press Control+Slash
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Slash
 ```
 
 ### Enabling single-character shortcuts
@@ -123,7 +122,7 @@ Single-character shortcuts are disabled by default. To enable:
 
 ```bash
 # Open shortcuts dialog
-playwright-cli press Shift+?
+node .agents/skills/browser-automation/scripts/browser.js exec press Shift+?
 # The switch is at the bottom of the dialog — click it via snapshot ref
 ```
 
@@ -136,7 +135,7 @@ Facebook uses `dialog` role for the shortcuts panel:
 | Keyboard shortcuts (`Shift+?`) | `dialog "Todos los métodos abreviados de teclado de Facebook"` |
 
 ```bash
-node scripts/browser.js exec snapshot | grep "dialog"
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot | grep "dialog"
 ```
 
 ## Core flows
@@ -144,7 +143,7 @@ node scripts/browser.js exec snapshot | grep "dialog"
 ### Open a group
 
 ```bash
-node scripts/browser.js goto "https://www.facebook.com/groups/<GROUP_ID>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.facebook.com/groups/<GROUP_ID>"
 ```
 
 Wait 6-8 seconds for the group feed to load.
@@ -172,12 +171,26 @@ By default, Facebook shows "Más relevantes" (algorithmic sort). To see recent p
 1. Click the sort button: `button "ordenar feed del grupo por Más relevantes"`
 2. Select "Publicaciones nuevas": `menuitemradio "Publicaciones nuevas"`
 
+**Preferred (using `find` — more robust than parsing snapshot text):**
+
 ```bash
-SORT_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep 'ordenar feed del grupo por' | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node scripts/browser.js exec click $SORT_REF
+# Find the sort button by text
+node .agents/skills/browser-automation/scripts/browser.js exec find "ordenar feed del grupo por"
+# Click the ref returned by find
+node .agents/skills/browser-automation/scripts/browser.js exec click <sort_ref>
+# Wait for the dropdown, then find the recency option
+node .agents/skills/browser-automation/scripts/browser.js exec find "Publicaciones nuevas"
+node .agents/skills/browser-automation/scripts/browser.js exec click <recent_ref>
+```
+
+**Alternative (fragile — relies on `sed` parsing of snapshot output, breaks if ref format changes):**
+
+```bash
+SORT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep 'ordenar feed del grupo por' | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click $SORT_REF
 sleep 2
-RECENT_REF=$(node scripts/browser.js exec snapshot 2>/dev/null | grep "Publicaciones nuevas" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node scripts/browser.js exec click $RECENT_REF
+RECENT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep "Publicaciones nuevas" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click $RECENT_REF
 ```
 
 ### Extract posts
@@ -268,13 +281,3 @@ async () => {
 ## Validation
 
 **Validated:** 2026-08-21 against live Facebook Groups.
-
-## Anti-patterns
-
-- **Do NOT assume a group is active.** Check for pause banners first.
-- **Do NOT rely on DOM selectors alone.** Facebook changes its DOM frequently. Use text extraction as fallback.
-- **Do NOT attempt to log in programmatically.** Always use headed mode for manual login.
-- **Do NOT scrape without keyword filtering.** Open groups contain spam and irrelevant content.
-- **Do NOT forget to sort by recency.** Default sort is algorithmic, not chronological.
-- **Do NOT assume single-character shortcuts work.** They are disabled by default. Enable them in the shortcuts dialog (`Shift+?`) first, or use modifier-based shortcuts which work without enabling.
-- **Do NOT click buttons when a keyboard shortcut exists** — prefer `press` over `eval` + click. Modifier-based shortcuts (Alt, Ctrl, Shift) work without enabling single-char mode.

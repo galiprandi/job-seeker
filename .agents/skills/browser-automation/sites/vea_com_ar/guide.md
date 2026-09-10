@@ -1,6 +1,7 @@
 ---
 name: vea
 description: Automate Vea supermercado (vea.com.ar). Covers login via Google, delivery mode selection, product search, adding to cart. Vea uses VTEX IO platform with React components. Use when buying groceries online on Vea Argentina.
+verified: 2026-09-02
 ---
 
 # Vea Supermercado Automation
@@ -13,15 +14,15 @@ Automate `vea.com.ar` — online grocery shopping. Vea runs on **VTEX IO** (Reac
 
 ```bash
 # Open Vea (headed for login, headless if already logged in)
-node scripts/browser.js open "https://www.vea.com.ar/" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.vea.com.ar/" --headed
 
 # If login needed: user logs in manually, then save state
-node scripts/browser.js save-state
-node scripts/browser.js close
+node .agents/skills/browser-automation/scripts/browser.js save-state
+node .agents/skills/browser-automation/scripts/browser.js close
 
 # Next sessions: load state and go headless
-node scripts/browser.js open "https://www.vea.com.ar/"
-node scripts/browser.js load-state
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.vea.com.ar/"
+node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Login
@@ -30,17 +31,17 @@ Vea supports Google login and email/password.
 
 ```bash
 # Click "Mi Cuenta" button (top right area)
-node scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Mi Cuenta')); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Mi Cuenta')); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
 
 # Click "Google" button in the login modal
-node scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Google' && b.offsetParent !== null); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Google' && b.offsetParent !== null); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
 ```
 
 **Google login opens a popup window.** The agent cannot interact with the Google popup (cross-origin). The user must select their Google account manually. After login completes, the page shows "Hola, <Name>" in the account button.
 
 **Verification:** Check if the account button contains "Hola":
 ```bash
-node scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Hola')); return btn ? btn.textContent.trim() : 'not_logged_in'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Hola')); return btn ? btn.textContent.trim() : 'not_logged_in'; })()"
 ```
 
 ## Delivery mode selection (required after first login)
@@ -53,10 +54,10 @@ The modal uses class prefix `veaargentina-delivery-modal-1-x-`. The options are 
 
 ```bash
 # Click "Recibirlo a domicilio" (home delivery)
-node scripts/browser.js exec eval "(() => { const el = Array.from(document.querySelectorAll('p')).find(p => p.textContent.trim() === 'Recibirlo a domicilio'); if (el) { const clickable = el.closest('[class*=\"deliveryInfo\"]') || el.parentElement; clickable.click(); return 'clicked'; } return 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const el = Array.from(document.querySelectorAll('p')).find(p => p.textContent.trim() === 'Recibirlo a domicilio'); if (el) { const clickable = el.closest('[class*=\"deliveryInfo\"]') || el.parentElement; clickable.click(); return 'clicked'; } return 'not_found'; })()"
 
 # Click "Retirar en una tienda" (store pickup)
-node scripts/browser.js exec eval "(() => { const el = Array.from(document.querySelectorAll('p')).find(p => p.textContent.trim() === 'Retirar en una tienda'); if (el) { const clickable = el.closest('[class*=\"deliveryInfo\"]') || el.parentElement; clickable.click(); return 'clicked'; } return 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const el = Array.from(document.querySelectorAll('p')).find(p => p.textContent.trim() === 'Retirar en una tienda'); if (el) { const clickable = el.closest('[class*=\"deliveryInfo\"]') || el.parentElement; clickable.click(); return 'clicked'; } return 'not_found'; })()"
 ```
 
 **Note:** The modal says "Antes de finalizar la compra te pediremos que nos lo confirmes" — the selection can be changed later at checkout.
@@ -67,22 +68,22 @@ The search bar is a combobox with placeholder "¡Hola! ¿Qué estás buscando?".
 
 ```bash
 # Find the search input (by placeholder)
-node scripts/browser.js exec eval "(() => { const input = document.querySelector('input[placeholder*=\"buscando\"]') || document.querySelector('input[placeholder*=\"Hola\"]'); return input ? 'found' : 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const input = document.querySelector('input[placeholder*=\"buscando\"]') || document.querySelector('input[placeholder*=\"Hola\"]'); return input ? 'found' : 'not_found'; })()"
 
 # Search for a product (fill + Enter)
 # Use the find command to get the ref, then fill + submit
-node scripts/browser.js exec find "¿Qué estás buscando?"
-# Then: node scripts/browser.js exec fill <ref> "café instantáneo dorca" --submit
+node .agents/skills/browser-automation/scripts/browser.js exec find "¿Qué estás buscando?"
+# Then: node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "café instantáneo dorca" --submit
 
 # Or directly via eval:
-node scripts/browser.js exec eval "(() => { const input = document.querySelector('input[placeholder*=\"buscando\"]'); if (input) { input.focus(); input.value = 'café instantáneo dorca'; input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); return 'searched'; } return 'not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const input = document.querySelector('input[placeholder*=\"buscando\"]'); if (input) { input.focus(); input.value = 'café instantáneo dorca'; input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); return 'searched'; } return 'not_found'; })()"
 ```
 
 **Search URL pattern:** `https://www.vea.com.ar/<query>?_q=<query>&map=ft` — can navigate directly for faster results.
 
 ```bash
 # Direct URL navigation (faster than UI search)
-node scripts/browser.js goto "https://www.vea.com.ar/cafe%20instantaneo%20dorca?_q=cafe%20instantaneo%20dorca&map=ft"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.vea.com.ar/cafe%20instantaneo%20dorca?_q=cafe%20instantaneo%20dorca&map=ft"
 ```
 
 ## Product listing and add to cart
@@ -94,7 +95,7 @@ Products are rendered as `region` elements with `aria-label` starting with "Prod
 
 ```bash
 # Get all visible products with names and prices
-node scripts/browser.js exec eval "(() => {
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const regions = Array.from(document.querySelectorAll('[aria-label*=\"Producto\"]'));
   return JSON.stringify(regions.map(r => {
     const link = r.querySelector('a');
@@ -110,7 +111,7 @@ node scripts/browser.js exec eval "(() => {
 })()"
 
 # Add first product to cart
-node scripts/browser.js exec eval "(() => {
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const regions = Array.from(document.querySelectorAll('[aria-label*=\"Producto\"]'));
   if (!regions.length) return 'no products';
   const addBtn = Array.from(regions[0].querySelectorAll('button')).find(b => b.textContent.trim() === 'Agregar');
@@ -121,7 +122,7 @@ node scripts/browser.js exec eval "(() => {
 
 **Verification after adding:** The cart counter (button showing "0" initially) should increment. Check:
 ```bash
-node scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '0' || /^\\d+$/.test(b.textContent.trim())); return btn ? btn.textContent.trim() : 'cart_not_found'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '0' || /^\\d+$/.test(b.textContent.trim())); return btn ? btn.textContent.trim() : 'cart_not_found'; })()"
 ```
 
 ## VTEX IO platform notes

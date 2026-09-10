@@ -14,11 +14,11 @@ Playwright's `fill` command works directly on the DraftJS editor used in Strider
 
 ```bash
 # Find the editor via find
-node scripts/browser.js exec find "Description"
+node .agents/skills/browser-automation/scripts/browser.js exec find "Description"
 # Result: textbox "Description" [ref=eXXX]
 
 # Fill directly
-node scripts/browser.js exec fill <ref> "<long text content>"
+node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "<long text content>"
 ```
 
 The text appears in the editor and persists after save. The character counter (`NNN/800`) updates correctly.
@@ -30,8 +30,8 @@ This may not generalize to all DraftJS implementations — DraftJS version, wrap
 1. Navigate to `https://app.onstrider.com/profile`
 2. Click "Add new" in the Work experience section
 3. Fill company name, title, and other fields to reach the description editor
-4. Run `node scripts/browser.js exec find "Description"` to get the textbox ref
-5. Run `node scripts/browser.js exec fill <ref> "<text>"` — text appears in the editor
+4. Run `node .agents/skills/browser-automation/scripts/browser.js exec find "Description"` to get the textbox ref
+5. Run `node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "<text>"` — text appears in the editor
 6. Save the work experience — text persists
 
 ## Suggested guide update

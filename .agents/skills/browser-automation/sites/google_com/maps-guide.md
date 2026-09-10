@@ -1,11 +1,9 @@
 # Google Maps Web Automation Guide
 
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
-
 ## Setup
 
 ```bash
-node scripts/browser.js goto "https://www.google.com/maps"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps"
 ```
 
 Wait 3-5 seconds for the SPA to load.
@@ -49,27 +47,27 @@ Wait 3-5 seconds for the SPA to load.
 
 ```bash
 # Show keyboard shortcuts (press Esc first if search is focused)
-playwright-cli press Escape
-playwright-cli press Control+Slash
+node .agents/skills/browser-automation/scripts/browser.js exec press Escape
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Slash
 
 # Focus search box
-playwright-cli press "/"
+node .agents/skills/browser-automation/scripts/browser.js exec press "/"
 
 # Move map
-playwright-cli press ArrowUp
-playwright-cli press ArrowDown
-playwright-cli press ArrowLeft
-playwright-cli press ArrowRight
+node .agents/skills/browser-automation/scripts/browser.js exec press ArrowUp
+node .agents/skills/browser-automation/scripts/browser.js exec press ArrowDown
+node .agents/skills/browser-automation/scripts/browser.js exec press ArrowLeft
+node .agents/skills/browser-automation/scripts/browser.js exec press ArrowRight
 
 # Zoom
-playwright-cli press "+"
-playwright-cli press "-"
+node .agents/skills/browser-automation/scripts/browser.js exec press "+"
+node .agents/skills/browser-automation/scripts/browser.js exec press "-"
 
 # Show my location
-playwright-cli press Control+Shift+l
+node .agents/skills/browser-automation/scripts/browser.js exec press Ctrl+Shift+L
 
 # Toggle traffic layer
-playwright-cli press Control+Shift+1
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Shift+1
 ```
 
 ## Detecting modals
@@ -81,7 +79,7 @@ Google Maps uses `dialog` role for the shortcuts panel:
 | Keyboard shortcuts (`Ctrl+/`) | `dialog` > `heading "Keyboard Shortcuts"` |
 
 ```bash
-node scripts/browser.js exec snapshot | grep "dialog"
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot | grep "dialog"
 ```
 
 ## Verifying map position
@@ -105,28 +103,28 @@ Extract with:
 
 ```bash
 # 1. Focus search box
-playwright-cli press "/"
+node .agents/skills/browser-automation/scripts/browser.js exec press "/"
 
 # 2. Type the place
-playwright-cli type "Obelisco Buenos Aires"
+node .agents/skills/browser-automation/scripts/browser.js exec type "Obelisco Buenos Aires"
 
 # 3. Press Enter to search
-playwright-cli press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 ## Getting directions
 
 ```bash
 # 1. Click "Cómo llegar" / "Directions" button
-node scripts/browser.js exec click "button[aria-label=\"Cómo llegar\"]"
+node .agents/skills/browser-automation/scripts/browser.js exec click "button[aria-label=\"Cómo llegar\"]"
 
 # 2. Fill destination
-node scripts/browser.js exec click "input[aria-label=\"Elige un destino...\"]"
-node scripts/browser.js exec type "Obelisco Buenos Aires"
-node scripts/browser.js exec press Enter
+node .agents/skills/browser-automation/scripts/browser.js exec click "input[aria-label=\"Elige un destino...\"]"
+node .agents/skills/browser-automation/scripts/browser.js exec type "Obelisco Buenos Aires"
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 
 # 3. Add another destination (Ctrl+Shift+D requires directions panel open)
-playwright-cli press Control+Shift+d
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Shift+d
 ```
 
 **URL pattern:** After opening directions, the URL changes to `/dir/<from>/<to>/@<lat>,<lng>,<zoom>z`.

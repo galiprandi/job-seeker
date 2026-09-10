@@ -14,7 +14,7 @@ Read the main Browser Automation `SKILL.md` for profile setup and the safe wrapp
 ## Setup
 
 ```bash
-node scripts/browser.js open "https://discord.com/login" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://discord.com/login" --headed
 ```
 
 ## Flow
@@ -45,13 +45,13 @@ playwright-cli eval "() => !location.pathname.includes('/login')"
 After a successful login, save the storage state for headless reuse:
 
 ```bash
-node scripts/browser.js exec state-save discord-state.json
+node .agents/skills/browser-automation/scripts/browser.js exec state-save discord-state.json
 ```
 
 On the next run, load the state:
 
 ```bash
-node scripts/browser.js exec state-load discord-state.json
+node .agents/skills/browser-automation/scripts/browser.js exec state-load discord-state.json
 ```
 
 ## Anti-patterns

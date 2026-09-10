@@ -16,7 +16,7 @@ clickRef(ref)  # may fail, ref may be stale
 **Right:**
 ```bash
 # Use eval to find and click by text in one atomic call
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const els = document.querySelectorAll('a, button, [role=\"link\"]');
   for (const el of els) {
     if (el.textContent.includes('Message')) { el.click(); return 'clicked'; }
@@ -31,16 +31,16 @@ Shell `sleep` between browser commands kills the playwright-cli daemon session. 
 
 **Wrong:**
 ```bash
-node scripts/browser.js goto "https://example.com"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://example.com"
 sleep 4                        # session may die here
-node scripts/browser.js exec snapshot        # fails: "No active session"
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot        # fails: "No active session"
 ```
 
 **Right:**
 ```bash
 # Use eval with in-page polling (keeps connection alive)
-node scripts/browser.js goto "https://example.com"
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://example.com"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelector('div.target-element')) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -57,7 +57,7 @@ When `exec snapshot` fails (session briefly busy), the `open`/`goto` commands au
 
 ```bash
 # Try exec snapshot first
-node scripts/browser.js exec snapshot
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 # If it fails, read the latest snapshot file
 ls -t .playwright-cli/page-*.yml | head -1 | xargs cat
 ```
@@ -67,10 +67,10 @@ ls -t .playwright-cli/page-*.yml | head -1 | xargs cat
 Navigating to a specific URL is more reliable than clicking navigation links.
 
 **Wrong:** Click "Messaging" icon in header
-**Right:** `node scripts/browser.js goto "https://www.linkedin.com/messaging/"`
+**Right:** `node .agents/skills/browser-automation/scripts/browser.js goto "https://www.linkedin.com/messaging/"`
 
 **Wrong:** Click "Saved Jobs" menu item
-**Right:** `node scripts/browser.js goto "https://www.linkedin.com/jobs-tracker/?stage=saved"`
+**Right:** `node .agents/skills/browser-automation/scripts/browser.js goto "https://www.linkedin.com/jobs-tracker/?stage=saved"`
 
 ### Rule 5: Verify with DOM content, not URL
 
@@ -80,7 +80,7 @@ SPAs (LinkedIn, Gmail, React apps) update the right panel without changing the U
 **Right:** Check if the target container exists and matches expected content
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const panel = document.querySelector('.msg-s-message-list-container');
   const header = document.querySelector('h2');
   if (panel && header && header.textContent.includes('Person Name')) return 'ok';
@@ -94,14 +94,14 @@ Doing wait + click + verify in one `eval` call is more robust than multiple sepa
 
 **Wrong:**
 ```bash
-node scripts/browser.js exec eval "document.querySelector('#btn')"
-node scripts/browser.js exec eval "document.querySelector('#btn').click()"
-node scripts/browser.js exec eval "document.querySelector('#result')"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('#btn')"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('#btn').click()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('#result')"
 ```
 
 **Right:**
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('#btn');
   if (!btn) return 'not_found';
   btn.click();
@@ -116,13 +116,13 @@ Chain `open && eval` in a single shell command to prevent session death between 
 
 **Wrong:**
 ```bash
-node scripts/browser.js open "https://mail.google.com"
+node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"
 # session may die here
-node scripts/browser.js exec eval "document.title"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
 ```
 
 **Right:**
 ```bash
-node scripts/browser.js open "https://mail.google.com" && \
-  node scripts/browser.js exec eval "document.title"
+node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com" && \
+  node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
 ```

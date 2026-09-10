@@ -1,11 +1,10 @@
 ---
 name: property-directory
 description: Scrape property rental directories for owner contacts, addresses, and WhatsApp links.
+verified: 2026-09-02
 ---
 
 # Property Directory Scraping Guide
-
-> **Prerequisite:** Read the parent [SKILL.md](../../SKILL.md) for golden rules, wrapper usage, and session management.
 
 ## Use case
 
@@ -57,7 +56,7 @@ Each match is approximately one block (~100m) from the reference point.
 The `wa.me/<phone>` URL format uses international format without `+` or spaces. Convert to `send?phone=` URL:
 
 ```
-wa.me/541158519822  →  web.whatsapp.com/send?phone=541158519822
+wa.me/<PHONE>  →  web.whatsapp.com/send?phone=<PHONE>
 ```
 
 ### Bulk contact pattern
@@ -70,7 +69,7 @@ wa.me/541158519822  →  web.whatsapp.com/send?phone=541158519822
 
 ```bash
 for phone in <PHONE1> <PHONE2> <PHONE3>; do
-  node scripts/browser.js goto "https://web.whatsapp.com/send?phone=$phone"
+  node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/send?phone=$phone"
   sleep 5
   # Fill compose box and send
   # See whatsapp_com/guide.md for message sending flow

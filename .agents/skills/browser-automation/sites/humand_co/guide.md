@@ -1,16 +1,18 @@
+---
+name: humand
+description: Automate job applications on Humand.co-based career sites via guest session API.
+verified: 2026-09-02
+---
+
 # Humand.co Automation
 
 Automate job applications on Humand.co-based career sites. Humand is an ATS used by some companies. Applications are submitted via their internal API with a guest session.
-
-**Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
-
-**Before doing anything manually, check if the consuming repo has scripts that wrap these operations.** Run `ls scripts/humand*.js` to see what's available.
 
 ## Setup
 
 ```bash
 # Open the company's career site
-node scripts/browser.js open "https://<company>.humand.co" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://<company>.humand.co" --headed
 ```
 
 ## Apply via API (guest session)
@@ -20,8 +22,8 @@ Humand uses a guest session flow: get the job, upload CV to S3, POST the applica
 ### 1. Get the job
 
 ```bash
-node scripts/browser.js goto "https://<company>.humand.co/jobs/<job-id>/apply"
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://<company>.humand.co/jobs/<job-id>/apply"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 30; i++) {
     if (document.querySelector('form') || document.querySelector('input')) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -36,7 +38,7 @@ Humand uploads files to S3 before submitting the application. The upload URL is 
 
 ```bash
 # Get the S3 upload URL (capture the actual request from a browser session)
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   // Humand's frontend requests a presigned S3 URL, then PUTs the file there
   // Capture this request to get the exact endpoint
   const r = await fetch('/api/uploads/sign', {
@@ -53,7 +55,7 @@ node scripts/browser.js exec eval "(async function(){
 
 ```bash
 # POST /api/jobs/apply with the form data + S3 CV URL
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   const r = await fetch('/api/jobs/apply', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -76,7 +78,7 @@ node scripts/browser.js exec eval "(async function(){
 
 ```bash
 # Check for thank you page or success message
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   if (document.body.innerText.includes('thank you') || document.body.innerText.includes('gracias')) return 'success';
   return 'no_confirmation';
 })()"

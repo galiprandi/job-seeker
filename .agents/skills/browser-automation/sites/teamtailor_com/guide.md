@@ -1,16 +1,18 @@
+---
+name: teamtailor
+description: Automate job applications on Teamtailor-based career sites via browser UI or HTTP API.
+verified: 2026-09-02
+---
+
 # Teamtailor Automation
 
 Automate job applications on Teamtailor-based career sites. Teamtailor is a popular ATS used by many companies. Applications can be submitted via browser UI or directly via HTTP API.
-
-**Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
-
-**Before doing anything manually, check if the consuming repo has scripts that wrap these operations.** Run `ls scripts/teamtailor*.js` to see what's available.
 
 ## Setup
 
 ```bash
 # Open the company's career site (headed for first visit, headless after)
-node scripts/browser.js open "https://<company>.teamtailor.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://<company>.teamtailor.com" --headed
 ```
 
 ## Apply with LinkedIn (browser flow)
@@ -19,10 +21,10 @@ Teamtailor supports "Apply with LinkedIn" which auto-fills name, email, photo, a
 
 ```bash
 # 1. Navigate to the job page
-node scripts/browser.js goto "https://<company>.teamtailor.com/jobs/<job-id>"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://<company>.teamtailor.com/jobs/<job-id>"
 
 # 2. Click "Apply with LinkedIn" button
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('a, button');
   for (const b of btns) {
     if (b.textContent.includes('Apply with LinkedIn') || b.textContent.includes('LinkedIn')) {
@@ -33,7 +35,7 @@ node scripts/browser.js exec eval "(function(){
 })()"
 
 # 3. If LinkedIn auth popup appears, wait for redirect back
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelector('form') && !location.href.includes('linkedin.com')) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -45,7 +47,7 @@ node scripts/browser.js exec eval "(async function(){
 # Use find or eval to locate each field and fill it
 
 # 5. Submit the application
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btn = document.querySelector('button[type=\"submit\"], input[type=\"submit\"]');
   if (btn) { btn.click(); return 'submitted'; }
   return 'not_found';
@@ -92,8 +94,8 @@ Some Teamtailor applications require email verification:
 
 ```bash
 # Navigate to the verification link (extract from email)
-node scripts/browser.js goto "<verification-link>"
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "<verification-link>"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 30; i++) {
     if (document.body.innerText.includes('verified') || document.body.innerText.includes('confirmed')) return 'verified';
     await new Promise(r => setTimeout(r, 200));

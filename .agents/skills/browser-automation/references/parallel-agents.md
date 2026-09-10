@@ -37,17 +37,17 @@ Coordinator
 
 ```bash
 # 1. Open browser and create named tabs
-node scripts/browser.js open "https://gmail.com" --headless
-node scripts/browser.js tab-new "https://www.linkedin.com" --name linkedin
+node .agents/skills/browser-automation/scripts/browser.js open "https://gmail.com" --headless
+node .agents/skills/browser-automation/scripts/browser.js tab-new "https://www.linkedin.com" --name linkedin
 
 # 2. Run subagent A (gmail) — wait for it to finish
-node scripts/browser.js exec eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');return await r.text()})()" --tab gmail
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{var r=await fetch('https://mail.google.com/mail/feed/atom');return await r.text()})()" --tab gmail
 
 # 3. Run subagent B (linkedin) — only after A is done
-node scripts/browser.js exec eval "document.title" --tab linkedin
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title" --tab linkedin
 
 # 4. Cleanup
-node scripts/browser.js close-all
+node .agents/skills/browser-automation/scripts/browser.js close-all
 ```
 
 ## Why not parallel?
@@ -56,7 +56,7 @@ The browser is a single process with a single active page. Even with `--tab` tar
 
 **What `--tab` does:** tells the wrapper which tab to target before running the command. The wrapper switches to that tab, runs the command, and returns. If two agents do this simultaneously, they fight over the active tab.
 
-**What attached sessions do:** `playwright-cli attach` creates a separate session with its own tab context. In theory this enables parallelism. In practice, the browser still has a single rendering pipeline and commands from different sessions can interfere.
+There is no session attachment, ref-counting, or locking in the wrapper — it does not track which agents are active. This is intentional: the only safe model is sequential execution.
 
 ## When parallel MIGHT work
 
@@ -66,23 +66,19 @@ Only for truly independent operations that don't depend on tab state:
 
 But even this is fragile. Prefer sequential.
 
-## Safe close (ref-count)
+## Closing the browser
 
-`close` and `close-all` check for live attached sessions before killing the browser. If other agents are active:
-- `close` refuses (use `--force` to override)
-- `close-all` refuses (use `--force` to override)
+`close` and `close-all` close the browser immediately without checking for active agents — there is no ref-count to consult. The coordinator is responsible for ensuring subagents have finished before closing.
 
 ```bash
-# Check who is active
-node scripts/browser.js who
+# Close the current session
+node .agents/skills/browser-automation/scripts/browser.js close
 
-# Safe close (refuses if agents active)
-node scripts/browser.js close
-
-# Force close (kills browser even if agents active)
-node scripts/browser.js close --force
-node scripts/browser.js close-all --force
+# Close all sessions
+node .agents/skills/browser-automation/scripts/browser.js close-all
 ```
+
+The `--force` flag is accepted for compatibility but has no special behavior — close always closes.
 
 ## Tab naming convention
 
@@ -96,19 +92,18 @@ Use the app name as the tab name. This makes `--tab` intuitive:
 | YouTube | `youtube` | `https://youtube.com` |
 
 ```bash
-node scripts/browser.js tab-new "https://mail.google.com" --name gmail
-node scripts/browser.js tab-new "https://www.linkedin.com" --name linkedin
+node .agents/skills/browser-automation/scripts/browser.js tab-new "https://mail.google.com" --name gmail
+node .agents/skills/browser-automation/scripts/browser.js tab-new "https://www.linkedin.com" --name linkedin
 
 # Target by app name
-node scripts/browser.js exec eval "..." --tab gmail
-node scripts/browser.js exec eval "..." --tab linkedin
+node .agents/skills/browser-automation/scripts/browser.js exec eval "..." --tab gmail
+node .agents/skills/browser-automation/scripts/browser.js exec eval "..." --tab linkedin
 ```
 
 ## Pitfalls
 
 - **Don't** run browser subagents in parallel — they'll interfere with each other
-- **Don't** close the browser while other agents might still be working (use `who` to check)
-- **Don't** open a second browser with `playwright-cli open` directly (use `attach` or the wrapper's auto-attach)
-- **Don't** forget to clean up tabs when finished (use `tab-close <name>`)
-- **Don't** use `kill-all` when one session is zombie (use targeted `close --session <name>`)
+- **Don't** close the browser until all subagents have finished (the coordinator must track this; the wrapper will not refuse)
+- **Don't** open a second browser with `playwright-cli open` directly — always go through the wrapper so the profile and tab state stay consistent
 - **Don't** create temp tabs ad hoc — create all needed tabs upfront with clear names
+- **Don't** forget to clean up with `close-all` when finished

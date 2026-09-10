@@ -14,7 +14,7 @@ Read the main Browser Automation `SKILL.md` for profile setup and the safe wrapp
 ## Setup
 
 ```bash
-node scripts/browser.js open "https://web.whatsapp.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://web.whatsapp.com" --headed
 ```
 
 ## Flow
@@ -47,13 +47,13 @@ playwright-cli eval "() => document.querySelector('[data-testid=\"chat-list\"]')
 After a successful link, save the storage state for later headless reuse:
 
 ```bash
-node scripts/browser.js exec state-save whatsapp-state.json
+node .agents/skills/browser-automation/scripts/browser.js exec state-save whatsapp-state.json
 ```
 
 Load it next time:
 
 ```bash
-node scripts/browser.js exec state-load whatsapp-state.json
+node .agents/skills/browser-automation/scripts/browser.js exec state-load whatsapp-state.json
 ```
 
 ## Anti-patterns

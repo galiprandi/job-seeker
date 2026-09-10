@@ -1,6 +1,7 @@
 ---
 name: reddit
 description: Automate Reddit with playwright-cli. Covers navigating posts, reading comments, posting top-level submissions, replying to comments, posting in megathreads, and extracting post/comment data. Use when checking post status, responding to comments, or submitting to subreddits.
+verified: 2026-09-02
 ---
 
 # Reddit Automation
@@ -13,38 +14,16 @@ Automate Reddit via `playwright-cli` using a mix of UI interactions, eval-based 
 
 ```bash
 # Open Reddit — ALWAYS headed (headless triggers 403 bot detection, see below)
-node scripts/browser.js open "https://www.reddit.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.reddit.com" --headed
 
 # If login needed: user logs in manually, then save state
-node scripts/browser.js save-state
-node scripts/browser.js close
+node .agents/skills/browser-automation/scripts/browser.js save-state
+node .agents/skills/browser-automation/scripts/browser.js close
 
 # Next sessions: reopen headed and load state
-node scripts/browser.js open "https://www.reddit.com" --headed
-node scripts/browser.js load-state
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.reddit.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
-
-## Critical: Reddit access patterns (validated empirically 2026-08-13)
-
-### What works
-
-- **Headed browser**: `node scripts/browser.js open "https://www.reddit.com/..." --headed` works consistently. Subreddit feeds, post pages, user profiles, comment sections, submit pages — all load fully. Reading, clicking, filling editors, submitting comments — all work.
-- **eval-based content extraction**: `document.body.innerText`, `document.querySelectorAll()` all work normally in headed mode.
-- **Reading posts and comments**: Full access to post text, comment text, author names, timestamps.
-- **Replying to comments and posting in megathreads**: Works via contenteditable editor (see below).
-- **Navigating user profiles**: `https://www.reddit.com/user/<username>/` and `/submitted/` and `/comments/` all work in headed mode.
-
-### What does NOT work
-
-- **curl/HTTP requests to Reddit JSON API**: `curl https://www.reddit.com/r/<sub>/comments/<id>.json` returns HTTP 403. Reddit blocks non-browser User-Agents on all HTTP endpoints (.json, .rss, profile pages, subreddit pages). Always 403, never returns data.
-- **curl to RSS feeds**: `curl https://www.reddit.com/...rss` returns HTTP 403. Same block as JSON.
-- **Headless browser**: `node scripts/browser.js open "https://www.reddit.com/..." --headless` is unreliable. Reddit detects the headless browser and returns 403 "You've been blocked by network security". This can happen on the first navigation or after a few successful ones. Once the 403 triggers, the entire session is poisoned — all subsequent navigations to any Reddit URL also return 403. The only fix is `close --force` and reopen `--headed`.
-
-### Key takeaway
-
-**Always use `--headed` for Reddit.** Headless mode triggers Reddit's bot detection and results in 403 blocks that poison the entire session. If you get 403 in the browser, `close --force` and reopen with `--headed`. Do NOT retry in headless — it will keep failing.
-
-**Do NOT use curl for Reddit.** All HTTP endpoints return 403 for non-browser User-Agents. Use the browser instead.
 
 ## Reading posts and comments
 
@@ -52,22 +31,22 @@ node scripts/browser.js load-state
 
 ```bash
 # Navigate to post
-node scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<id>/"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<id>/"
 
 # Wait for load
-node scripts/browser.js exec eval "(async function(){ for (let i = 0; i < 50; i++) { if (document.body.innerText.length > 500) return 'ready'; await new Promise(r => setTimeout(r, 200)); } return 'timeout'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){ for (let i = 0; i < 50; i++) { if (document.body.innerText.length > 500) return 'ready'; await new Promise(r => setTimeout(r, 200)); } return 'timeout'; })()"
 
 # Extract full page text (includes post body + all visible comments)
-node scripts/browser.js exec eval "() => document.body.innerText.substring(0, 5000)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(0, 5000)"
 
 # Extract more if needed
-node scripts/browser.js exec eval "() => document.body.innerText.substring(5000, 10000)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(5000, 10000)"
 ```
 
 ### Extract structured comment data
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const text = document.body.innerText;
   const idx = text.indexOf('Sección de comentarios');
   if (idx === -1) {
@@ -88,7 +67,7 @@ Posts removed by mods show one of these phrases in `document.body.innerText`:
 - Also: `"Publicación bloqueada. No se pueden publicar nuevos comentarios."` (post locked, no new comments)
 
 ```bash
-node scripts/browser.js exec eval "() => {
+node .agents/skills/browser-automation/scripts/browser.js exec eval "() => {
   const t = document.body.innerText;
   if (t.includes('retirada por los moderadores') || t.includes('removed by the moderators')) return 'removed';
   if (t.includes('Publicación bloqueada') || t.includes('post has been locked')) return 'locked';
@@ -99,8 +78,8 @@ node scripts/browser.js exec eval "() => {
 ### Find all posts by a user
 
 ```bash
-node scripts/browser.js goto "https://www.reddit.com/user/<username>/submitted/"
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/user/<username>/submitted/"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const links = Array.from(document.querySelectorAll('a[href*=\"/comments/\"]'));
   return links.map(a => a.href).filter((v,i,arr) => arr.indexOf(v) === i).slice(0, 20);
 })()"
@@ -109,8 +88,8 @@ node scripts/browser.js exec eval "(function(){
 ### Read a specific comment by URL
 
 ```bash
-node scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<post_id>/comment/<comment_id>/"
-node scripts/browser.js exec eval "() => document.body.innerText.substring(0, 3000)"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<post_id>/comment/<comment_id>/"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(0, 3000)"
 ```
 
 ## Posting a top-level submission
@@ -118,7 +97,7 @@ node scripts/browser.js exec eval "() => document.body.innerText.substring(0, 30
 ### Navigate to submit page
 
 ```bash
-node scripts/browser.js goto "https://www.reddit.com/r/<subreddit>/submit/"
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<subreddit>/submit/"
 ```
 
 ### Fill title and body
@@ -127,7 +106,7 @@ Reddit's new UI uses a rich-text editor. The title is an input, the body is a co
 
 ```bash
 # Wait for editor to load
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     const inputs = document.querySelectorAll('input, textarea, div[contenteditable=true]');
     if (inputs.length > 0) return 'ready';
@@ -137,7 +116,7 @@ node scripts/browser.js exec eval "(async function(){
 })()"
 
 # Fill title (find the title input - it's usually the first visible text input)
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const inputs = document.querySelectorAll('input[type=\"text\"], input:not([type])');
   for (const inp of inputs) {
     const r = inp.getBoundingClientRect();
@@ -152,7 +131,7 @@ node scripts/browser.js exec eval "(function(){
 })()"
 
 # Fill body (contenteditable div)
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   const all = document.querySelectorAll('div[contenteditable=true]');
   for (const e of all) {
     const r = e.getBoundingClientRect();
@@ -171,7 +150,7 @@ node scripts/browser.js exec eval "(async function(){
 
 ```bash
 # Find and click the submit button
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('button, div[role=button]');
   for (const b of btns) {
     const t = b.textContent.trim().toLowerCase();
@@ -195,7 +174,7 @@ This is the most reliable pattern, validated empirically. Reddit's comment edito
 
 ```bash
 # Scroll to where the comment section starts
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   window.scrollTo(0, 800);
   await new Promise(r => setTimeout(r, 500));
   const btns = document.querySelectorAll('button');
@@ -214,7 +193,7 @@ node scripts/browser.js exec eval "(async function(){
 ### Step 2: Wait for the contenteditable editor to appear
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 25; i++) {
     const all = document.querySelectorAll('div[contenteditable=true]');
     for (const e of all) {
@@ -232,7 +211,7 @@ node scripts/browser.js exec eval "(async function(){
 Use `document.execCommand('insertText', ...)` — this is the reliable method for Reddit's contenteditable. Do NOT use `innerText =` alone (React state doesn't update). Do NOT use `fill` (it's not a textarea).
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   const all = document.querySelectorAll('div[contenteditable=true]');
   for (const e of all) {
     const r = e.getBoundingClientRect();
@@ -251,7 +230,7 @@ node scripts/browser.js exec eval "(async function(){
 ### Step 4: Click "Comentar" / "Comment" to submit
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('button');
   for (const b of btns) {
     const t = b.textContent.trim();
@@ -271,7 +250,7 @@ node scripts/browser.js exec eval "(function(){
 
 ```bash
 # Wait and check if the editor closed (indicates success)
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 15; i++) {
     const all = document.querySelectorAll('div[contenteditable=true]');
     let visible = false;
@@ -294,8 +273,8 @@ Posting in megathreads (e.g. "Built with Claude Project Showcase Megathread", "W
 
 ```bash
 # Search for the megathread in a subreddit
-node scripts/browser.js goto "https://www.reddit.com/r/<subreddit>/search/?q=showcase+megathread&sort=new&restrict_sr=on"
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<subreddit>/search/?q=showcase+megathread&sort=new&restrict_sr=on"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const links = Array.from(document.querySelectorAll('a[href*=\"/comments/\"]'));
   return links.map(a => ({text: a.innerText.substring(0, 80), href: a.href})).filter(l => l.text.length > 10).slice(0, 10);
 })()"
@@ -340,7 +319,7 @@ Many subreddits have automated moderation bots (AutoModerator, ClaudeAI-mod-bot)
 ## Extracting comment authors and timestamps
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const comments = document.querySelectorAll('[data-testid=\"comment\"], shreddit-comment');
   if (comments.length === 0) {
     // Fallback: parse from body text
@@ -360,7 +339,7 @@ node scripts/browser.js exec eval "(function(){
 Reddit is a heavy SPA. After `goto`, use in-page polling:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.body.innerText.length > 500) return 'ready';
     await new Promise(r => setTimeout(r, 200));
@@ -373,16 +352,12 @@ node scripts/browser.js exec eval "(async function(){
 
 The `div[contenteditable=true]` editor only appears after clicking "Responder". It has `width: 0, height: 0` before that. Do NOT try to find the editor before clicking "Responder".
 
-### Use eval, not ref-based clicks
-
-Reddit's React UI re-renders frequently. Refs from `snapshot` or `find` become stale quickly. Use `eval` to find and click elements by text content in a single atomic call (Browser Automation Golden Rule 1).
-
 ### Scrolling reveals more comments
 
 Reddit lazy-loads comments on scroll. To see all comments:
 
 ```bash
-node scripts/browser.js exec eval "(async function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 5; i++) {
     window.scrollTo(0, document.body.scrollHeight);
     await new Promise(r => setTimeout(r, 1000));
@@ -396,7 +371,7 @@ node scripts/browser.js exec eval "(async function(){
 If you see this button, click it to expand collapsed comment threads:
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('button');
   for (const b of btns) {
     const t = b.textContent.trim();
