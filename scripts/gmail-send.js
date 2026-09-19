@@ -68,7 +68,10 @@ function fill(ref, value) {
 
 function goto(url) {
   const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
-  execSync(`node ${__dirname}/browser.js goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
+  const repoLocal = path.resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
+  const global = path.resolve(require('os').homedir(), '.agents/skills/browser-automation/scripts/browser.js');
+  const wrapper = fs.existsSync(repoLocal) ? repoLocal : global;
+  execSync(`node "${wrapper}" goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: path.resolve(__dirname, '..') });
 }
 
 function dbWrite(sql) {
@@ -165,14 +168,14 @@ function main() {
   // Get compose dialog refs
   snap = snapshot();
 
-  const toRef = extractRef(snap, /combobox "Destinatarios" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /combobox "To" \[ref=(f[0-9a-f]+)\]/);
-  const subjectRef = extractRef(snap, /textbox "Asunto" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Subject" \[ref=(f[0-9a-f]+)\]/);
-  const bodyRef = extractRef(snap, /textbox "Cuerpo del mensaje" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Message body" \[ref=(f[0-9a-f]+)\]/);
-  const attachRef = extractRef(snap, /button "Adjuntar archivos" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /button "Attach files" \[ref=(f[0-9a-f]+)\]/);
+  const toRef = extractRef(snap, /combobox "Destinatarios"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /combobox "To"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const subjectRef = extractRef(snap, /textbox "Asunto"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /textbox "Subject"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const bodyRef = extractRef(snap, /textbox "Cuerpo del mensaje"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /textbox "Message body"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const attachRef = extractRef(snap, /button "Adjuntar archivos"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /button "Attach files"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
   const sendRef = extractRef(snap, /button "Enviar[^\]]*" \[ref=(f[0-9a-f]+)\]/)
     || extractRef(snap, /button "Send[^\]]*" \[ref=(f[0-9a-f]+)\]/);
 
@@ -194,7 +197,7 @@ function main() {
       click(ccLink);
       sleep(1000);
       snap = snapshot();
-      const ccRef = extractRef(snap, /combobox "Cc" \[ref=(f[0-9a-f]+)\]/);
+      const ccRef = extractRef(snap, /combobox "Cc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
       if (ccRef) fill(ccRef, cc);
       sleep(1000);
     }
@@ -208,8 +211,8 @@ function main() {
       click(bccLink);
       sleep(1000);
       snap = snapshot();
-      const bccRef = extractRef(snap, /combobox "Cco" \[ref=(f[0-9a-f]+)\]/)
-        || extractRef(snap, /combobox "Bcc" \[ref=(f[0-9a-f]+)\]/);
+      const bccRef = extractRef(snap, /combobox "Cco"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+        || extractRef(snap, /combobox "Bcc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
       if (bccRef) fill(bccRef, bcc);
       sleep(1000);
     }

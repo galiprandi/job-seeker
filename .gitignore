@@ -16,3 +16,4 @@ docs/.vitepress/cache/
 .tmp-*
 .tmp_*
 .claude/
+data/
