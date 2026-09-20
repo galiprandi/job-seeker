@@ -51,12 +51,13 @@ function parseArgs() {
     else if (args[i] === '--subject' && args[i + 1]) { out.subject = args[i + 1]; i++; }
     else if (args[i] === '--body' && args[i + 1]) { out.body = args[i + 1]; i++; }
     else if (args[i] === '--from' && args[i + 1]) { out.from = args[i + 1]; i++; }
+    else if (args[i] === '--attach' && args[i + 1]) { out.attach = args[i + 1]; i++; }
     else if (args[i] === '--html') { out.html = true; }
   }
   return out;
 }
 
-function sendEmail({ to, subject, body, from, html = false }) {
+function sendEmail({ to, subject, body, from, html = false, attach = null }) {
   const host = env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(env.SMTP_PORT || '465', 10);
   const secure = env.SMTP_SECURE !== 'false';
@@ -84,6 +85,10 @@ function sendEmail({ to, subject, body, from, html = false }) {
     message.html = body;
   } else {
     message.text = body;
+  }
+
+  if (attach) {
+    message.attachments = [{ filename: path.basename(attach), path: attach }];
   }
 
   return transporter.sendMail(message);
