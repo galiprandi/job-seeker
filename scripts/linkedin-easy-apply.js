@@ -76,6 +76,10 @@ function selectOption(ref, value) {
   return cli(`select ${ref} "${value.replace(/"/g, '\\"')}"`);
 }
 
+function press(key) {
+  return cli(`press ${key}`);
+}
+
 function goto(url) {
   helperGoto(url, { session: SESSION });
 }
@@ -108,7 +112,7 @@ function dbWrite(sql) {
 
 function loadAuthState() {
   try {
-    execSync(`node browser.js load-state`, {
+    execSync(`node scripts/browser.js load-state`, {
       encoding: 'utf-8',
       timeout: 10000,
       cwd: path.dirname(__dirname), // Use repo root, not scripts/ dir
@@ -227,9 +231,20 @@ function findEasyApplyJobsFromDOM() {
 }
 
 function applyToJob(jobRef, userData) {
-  // Click Easy Apply button
-  click(jobRef);
-  sleep(3000);
+  // Click Easy Apply button - try eval first (more reliable), then ref-based click
+  const evalResult = evalJSON(`(function(){
+    // Try multiple selectors for the Easy Apply button
+    const btn = document.querySelector('a[href*="openSDUIApplyFlow"]') ||
+                document.querySelector('.jobs-apply-button') ||
+                document.querySelector('.job-card-container__easy-apply');
+    if (btn) { btn.click(); return JSON.stringify({clicked: true}); }
+    return JSON.stringify({clicked: false});
+  })()`, { session: SESSION });
+  if (!evalResult || !evalResult.clicked) {
+    // Fallback: ref-based click
+    click(jobRef);
+  }
+  sleep(5000);
 
   let steps = 0;
   const maxSteps = 15;
@@ -238,9 +253,25 @@ function applyToJob(jobRef, userData) {
     steps++;
     const snap = snapshot();
 
-    // Check if submitted
-    if (snap.includes('application was sent to')) {
-      const companyMatch = snap.match(/application was sent to (.+?)!/);
+    // Debug: log what we see in each step
+    const hasDialog = snap.includes('dialog');
+    const hasProgress = snap.match(/Valor actual: (\d+)/);
+    const hasNext = snap.includes('Ir al siguiente paso') || snap.includes('Continue to next step');
+    const hasReview = snap.includes('Revisar tu solicitud') || snap.includes('Review your application');
+    const hasSubmit = snap.includes('Enviar solicitud') || snap.includes('Submit application');
+    const hasRadio = snap.includes('- group ');
+    const hasText = snap.includes('textbox ');
+    const hasCombo = snap.includes('combobox ');
+    // Extract field labels for debugging
+    const textLabels = [...snap.matchAll(/- textbox "(.+?)(?:\*)?"(?: \[ref=)?/g)].map(m => m[1].trim()).slice(0, 5);
+    const comboLabels = [...snap.matchAll(/- combobox "(.+?)(?:\*)?" /g)].map(m => m[1].trim()).slice(0, 5);
+    process.stdout.write(`\n[step ${steps} prog=${hasProgress?.[1]||'-'} next=${hasNext} review=${hasReview} submit=${hasSubmit}] `);
+    if (textLabels.length) process.stdout.write(`texts=[${textLabels.join('|')}] `);
+    if (comboLabels.length) process.stdout.write(`combos=[${comboLabels.join('|')}] `);
+
+    // Check if submitted (English or Spanish)
+    if (snap.includes('application was sent to') || snap.includes('Solicitud enviada') || snap.includes('solicitud fue enviada') || snap.includes('se ha enviado tu solicitud') || snap.includes('tu solicitud se ha enviado')) {
+      const companyMatch = snap.match(/application was sent to (.+?)!/) || snap.match(/solicitud (?:fue enviada|se ha enviado|enviada) a (.+?)[!.]/i);
       return { status: 'applied', company: companyMatch ? companyMatch[1] : 'Unknown' };
     }
 
@@ -250,20 +281,39 @@ function applyToJob(jobRef, userData) {
     }
 
     // Fill required text fields
-    const textFields = snap.matchAll(/- textbox "(.+?)(\*)?"(?: \[ref=([a-z][0-9a-z]+)\])?(?:: "(.+)")?/g);
+    // Regex captures values both with quotes ("value") and without quotes (value)
+    const textFields = snap.matchAll(/- textbox "(.+?)(\*)?"(?: \[ref=([a-z][0-9a-z]+)\])?(?:: (?:"([^"]+)"|([^\n]+)))?/g);
     for (const field of textFields) {
-      const [, label, required, ref, existingValue] = field;
+      const [, label, required, ref, existingValueQuoted, existingValueUnquoted] = field;
+      const existingValue = existingValueQuoted || existingValueUnquoted;
       if (!ref || existingValue) continue; // skip if already filled or no ref
 
       const labelLower = label.toLowerCase();
       let value = null;
-
-      if (labelLower.includes('python')) value = ANSWERS.python_experience;
+      if (labelLower.includes('first name') || labelLower.includes('nombre')) value = ANSWERS.first_name;
+      else if (labelLower.includes('last name') || labelLower.includes('apellido')) value = ANSWERS.last_name;
+      else if (labelLower.includes('python')) value = ANSWERS.python_experience;
+      else if (labelLower.includes('javascript') || labelLower.includes('java script')) value = ANSWERS.javascript_experience;
+      else if (labelLower.includes('typescript') || labelLower.includes('type script')) value = ANSWERS.typescript_experience;
+      else if (labelLower.includes('react')) value = ANSWERS.react_experience;
+      else if (labelLower.includes('next.js') || labelLower.includes('nextjs') || labelLower.includes('next js')) value = ANSWERS.nextjs_experience || ANSWERS.react_experience;
+      else if (labelLower.includes('node') || labelLower.includes('nodejs') || labelLower.includes('node.js')) value = ANSWERS.nodejs_experience;
+      else if (labelLower.includes('software engineering') || labelLower.includes('software development')) value = ANSWERS.years_of_experience;
       else if (labelLower.includes('artificial intelligence') || labelLower.includes('ai)')) value = ANSWERS.ai_experience;
       else if (labelLower.includes('openai')) value = ANSWERS.openai_experience;
       else if (labelLower.includes('location') || labelLower.includes('country') || labelLower.includes('city')) value = ANSWERS.location;
+      else if (labelLower.includes('phone') || labelLower.includes('mobile') || labelLower.includes('celular') || labelLower.includes('teléfono')) {
+        // LinkedIn splits phone: country code goes in a separate combobox, this field wants the local number
+        const rawPhone = (userData?.personal?.phone || ANSWERS.phone || '').replace(/\D/g, '');
+        value = rawPhone.startsWith('549') ? rawPhone.substring(3) : rawPhone.replace(/^54/, '');
+      }
+      else if (labelLower.includes('school') || labelLower.includes('escuela') || labelLower.includes('university') || labelLower.includes('universidad')) value = ANSWERS.school_name;
+      else if (labelLower.includes('degree') || labelLower.includes('título') || labelLower.includes('titulo')) value = ANSWERS.degree;
+      else if (labelLower.includes('field of study') || labelLower.includes('major') || labelLower.includes('carrera')) value = ANSWERS.field_of_study;
       else if (labelLower.includes('company')) value = ANSWERS.current_company;
       else if (labelLower.includes('linkedin')) value = ANSWERS.linkedin_url;
+      else if (labelLower.includes('headline') || labelLower.includes('título profesional') || labelLower.includes('titular')) value = ANSWERS.headline || userData?.profile?.headline;
+      else if (labelLower.includes('summary') || labelLower.includes('resumen')) value = ANSWERS.summary || userData?.profile?.summary;
       else if (labelLower.includes('salary') && labelLower.includes('cop')) value = ANSWERS.salary_cop;
       else if (labelLower.includes('salary') && labelLower.includes('usd')) value = ANSWERS.salary_usd;
       else if (labelLower.includes('salary')) value = ANSWERS.salary_usd;
@@ -279,20 +329,55 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('genai') || labelLower.includes('ai assisted') || labelLower.includes('development tools')) {
         value = ANSWERS.genai_tools;
       }
+      // Generic fallback: "How many years of work experience do you have with X?"
+      else if (labelLower.includes('years') && (labelLower.includes('experience') || labelLower.includes('working'))) {
+        value = ANSWERS.years_of_experience;
+      }
 
       if (value) {
-        fill(ref, value);
-        sleep(1000);
+        process.stdout.write(`FILL val="${value}" `);
+        // Use eval with native value setter for React-compatible filling
+        const fillResult = evalJSON(`(function(){
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+          const labelPart = ${JSON.stringify(label.substring(0, 40))};
+          for (const inp of inputs) {
+            const ariaLabel = inp.getAttribute('aria-label') || '';
+            const placeholder = inp.getAttribute('placeholder') || '';
+            if (ariaLabel.includes(labelPart) || placeholder.includes(labelPart) || labelPart.includes(ariaLabel)) {
+              nativeSetter.call(inp, ${JSON.stringify(value)});
+              inp.dispatchEvent(new Event('input', {bubbles: true}));
+              inp.dispatchEvent(new Event('change', {bubbles: true}));
+              inp.dispatchEvent(new Event('blur', {bubbles: true}));
+              return JSON.stringify({filled: true});
+            }
+          }
+          return JSON.stringify({filled: false});
+        })()`, { session: SESSION });
+        if (!fillResult || !fillResult.filled) {
+          // Fallback: ref-based fill
+          fill(ref, value);
+        }
+        sleep(1500);
+      } else {
+        process.stdout.write(`SKIP label="${label.substring(0,40)}" `);
       }
     }
 
-    // Select required comboboxes (only if "Select an option" is selected)
-    const comboMatches = [...snap.matchAll(/- combobox "(.+?)(\*)?" \[ref=([a-z][0-9a-z]+)\]:?\n((?:.+\n){0,10})/g)];
+    // Select required comboboxes (only if no selection is made)
+    const comboMatches = [...snap.matchAll(/- combobox "(.+?)(\*)?" \[ref=([a-z][0-9a-z]+)\][^\n]*:?\n((?:(?!\s*- combobox|\s*- textbox|\s*- group)[^\n]*\n){0,20})/g)];
     for (const combo of comboMatches) {
       const [, label, required, ref, optionsBlock] = combo;
-      if (!optionsBlock.includes('Select an option')) continue; // already has a selection
-
+      // Skip non-form comboboxes (LinkedIn UI elements)
+      if (label.toLowerCase().includes('seleccionar idioma') || label.toLowerCase().includes('select language')) continue;
+      // Skip if a real option is selected (not "Select an option")
+      // For autocomplete fields (location/city), a highlighted suggestion can show as [selected]
+      // without being a committed selection, so always process them
       const labelLower = label.toLowerCase();
+      const isAutocomplete = labelLower.includes('location') || labelLower.includes('city');
+      const hasRealSelection = optionsBlock.includes('[selected]') && !optionsBlock.match(/option "Select an option"\s*\[selected\]/);
+      if (hasRealSelection && !isAutocomplete) continue;
+
       let optionValue = null;
 
       if (labelLower.includes('english')) {
@@ -304,6 +389,24 @@ function applyToJob(jobRef, userData) {
         const level = ANSWERS.spanish_level || 'Proficient';
         const optMatch = optionsBlock.match(new RegExp(`option "(${level}|Proficient|Advanced|Native or bilingual|Profesional)"`));
         optionValue = optMatch ? optMatch[1] : level;
+      }
+      else if (labelLower.includes('email')) {
+        const email = ANSWERS.email || userData?.profile?.email || '';
+        if (email) {
+          const optMatch = optionsBlock.match(new RegExp(`option "(${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})"`));
+          optionValue = optMatch ? optMatch[1] : email;
+        }
+      }
+      else if (labelLower.includes('phone country') || labelLower.includes('country code')) {
+        const optMatch = optionsBlock.match(/option "Argentina \(\+54\)"/);
+        optionValue = optMatch ? optMatch[1] : null;
+      }
+      else if (labelLower.includes('location') || labelLower.includes('city')) {
+        const city = userData?.personal?.city || userData?.profile?.location || '';
+        if (city) {
+          const optMatch = optionsBlock.match(new RegExp(`option "([^"]*${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^"]*)"`));
+          optionValue = optMatch ? optMatch[1] : null;
+        }
       }
       else if (labelLower.includes('built') && labelLower.includes('ai') || labelLower.includes('rag')) {
         const optMatch = optionsBlock.match(/option "(Yes)"/);
@@ -318,19 +421,140 @@ function applyToJob(jobRef, userData) {
         const optMatch = optionsBlock.match(new RegExp(`option "(${level})"`));
         optionValue = optMatch ? optMatch[1] : level;
       }
+      else if (labelLower.includes('mes de from') || (labelLower.includes('from') && labelLower.includes('month')) || labelLower === 'from') {
+        optionValue = ANSWERS.edu_from_month || null;
+      }
+      else if (labelLower.includes('año de from') || (labelLower.includes('from') && labelLower.includes('year'))) {
+        optionValue = ANSWERS.edu_from_year || null;
+      }
+      else if (labelLower.includes('mes de to') || (labelLower.includes('to') && labelLower.includes('month'))) {
+        optionValue = ANSWERS.edu_to_month || null;
+      }
+      else if (labelLower.includes('año de to') || (labelLower.includes('to') && labelLower.includes('year'))) {
+        optionValue = ANSWERS.edu_to_year || null;
+      }
+      // Generic Yes/No combobox questions
+      else if (optionsBlock.match(/option "(Yes|No)"/)) {
+        // Answer Yes for most questions, No for sponsorship/visa/authorization
+        let answer = 'Yes';
+        if (labelLower.includes('sponsorship') || labelLower.includes('visa')) answer = 'No';
+        if (labelLower.includes('authorized') && labelLower.includes('work')) answer = 'No';
+        if (labelLower.includes('based in') && (labelLower.includes('latin america') || labelLower.includes('latam'))) answer = 'Yes';
+        const optMatch = optionsBlock.match(new RegExp(`option "(${answer})"`));
+        optionValue = optMatch ? optMatch[1] : answer;
+      }
 
       if (optionValue) {
-        selectOption(ref, optionValue);
+        process.stdout.write(`COMBO val="${optionValue}" `);
+        // Use eval-based selection for React compatibility
+        const selResult = evalJSON(`(function(){
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+          const selects = document.querySelectorAll('select');
+          const labelPart = ${JSON.stringify(label.substring(0, 40))};
+          for (const sel of selects) {
+            const ariaLabel = sel.getAttribute('aria-label') || '';
+            if (ariaLabel.includes(labelPart) || labelPart.includes(ariaLabel)) {
+              for (const opt of sel.options) {
+                if (opt.text === ${JSON.stringify(optionValue)} || opt.text.trim() === ${JSON.stringify(optionValue)}) {
+                  nativeSetter.call(sel, opt.value);
+                  sel.dispatchEvent(new Event('change', {bubbles: true}));
+                  sel.dispatchEvent(new Event('input', {bubbles: true}));
+                  return JSON.stringify({selected: true, value: opt.value});
+                }
+              }
+            }
+          }
+          return JSON.stringify({selected: false});
+        })()`, { session: SESSION });
+        if (!selResult || !selResult.selected) {
+          // Fallback: ref-based selectOption
+          selectOption(ref, optionValue);
+        }
+        sleep(1000);
+      } else if (labelLower.includes('location') || labelLower.includes('city')) {
+        // Autocomplete combobox: type and select from suggestions
+        process.stdout.write(`COMBO_AUTO label="${label.substring(0,30)}" `);
+        const city = userData?.personal?.city || userData?.profile?.location || ANSWERS.location || '';
+        click(ref);
+        sleep(500);
+        // Clear any existing value, then type real keystrokes to trigger the autocomplete search
+        evalJSON(`(function(){
+          const el = document.activeElement;
+          if (el) { el.value=''; el.dispatchEvent(new Event('input',{bubbles:true})); }
+          return 'ok';
+        })()`, { session: SESSION });
+        cli(`type "${city.replace(/"/g, '\\"')}"`);
+        sleep(3000);
+        // Try to click the first suggestion (accent-insensitive match)
+        const sugResult = evalJSON(`(function(){
+          const norm = s => s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+          const cityN = norm(${JSON.stringify(city)});
+          const options = document.querySelectorAll('[role="option"], [role="listitem"]');
+          for (const opt of options) {
+            const text = opt.textContent.trim();
+            if (text && norm(text).includes(cityN)) {
+              opt.click();
+              return JSON.stringify({clicked: true, text: text.substring(0, 40)});
+            }
+          }
+          if (options.length > 0) {
+            options[0].click();
+            return JSON.stringify({clicked: true, text: options[0].textContent.trim().substring(0, 40)});
+          }
+          return JSON.stringify({clicked: false});
+        })()`, { session: SESSION });
+        if (!sugResult || !sugResult.clicked) {
+          // Fallback: accept the highlighted suggestion with keyboard
+          press('ArrowDown');
+          sleep(500);
+          press('Enter');
+          sleep(1000);
+        }
+        sleep(1000);
+      } else {
+        // For comboboxes with no matching handler, try eval-based selection
+        // This handles Yes/No comboboxes that don't show options in snapshot
+        process.stdout.write(`COMBO_EVAL label="${label.substring(0,30)}" `);
+        let answer = 'Yes';
+        if (labelLower.includes('sponsorship') || labelLower.includes('visa')) answer = 'No';
+        if (labelLower.includes('authorized') && labelLower.includes('work')) answer = 'No';
+        if (labelLower.includes('citizen') && labelLower.includes('us')) answer = 'No';
+        if (labelLower.includes('manufacturing') || labelLower.includes('mes') || labelLower.includes('scada')) answer = 'No';
+        if (labelLower.includes('based in') && (labelLower.includes('latin america') || labelLower.includes('latam'))) answer = 'Yes';
+        if (labelLower.includes('remote') && labelLower.includes('year')) answer = 'Yes';
+
+        // Try to select via eval
+        const selectResult = evalJSON(`(function(){
+          const select = document.querySelector('[aria-label="${label.replace(/"/g, '\\"').substring(0, 80)}"]');
+          if (select && select.tagName === 'SELECT') {
+            for (const opt of select.options) {
+              if (opt.text === '${answer}') {
+                opt.selected = true;
+                select.dispatchEvent(new Event('change', {bubbles: true}));
+                return JSON.stringify({selected: true, value: opt.value});
+              }
+            }
+          }
+          return JSON.stringify({selected: false});
+        })()`, { session: SESSION });
+        if (!selectResult || !selectResult.selected) {
+          // Fallback: try selectOption with ref
+          try { selectOption(ref, answer); } catch(e) {}
+        }
         sleep(1000);
       }
     }
 
     // Click required radio buttons (Yes/No groups)
-    const radioGroups = [...snap.matchAll(/- group "(.+?)(\*)?" \[ref=([a-z][0-9a-z]+)\]:[\s\S]*?(?=- group |- heading |- paragraph)/g)];
+    // Regex handles both English ("Required") and Spanish ("Obligatorio") required indicators
+    const radioGroups = [...snap.matchAll(/- group "(.+?)" \[ref=([a-z][0-9a-z]+)\]:([\s\S]*?)(?=- group |- heading |- paragraph)/g)];
     for (const group of radioGroups) {
-      const [, label, required, groupRef] = group;
+      const [, label, groupRef, blockContent] = group;
       const block = group[0];
-      if (!required && !block.includes('Required')) continue;
+      // Check if required: look for *, Required, or Obligatorio in label or block
+      const isRequired = label.includes('*') || label.includes('Required') || label.includes('Obligatorio')
+        || block.includes('Required') || block.includes('Obligatorio');
+      if (!isRequired) continue;
 
       // Check if already has a checked radio
       if (block.includes('[checked]') || block.includes('[active]')) continue;
@@ -342,6 +566,7 @@ function applyToJob(jobRef, userData) {
       let targetLabel = 'Yes';
       if (labelLower.includes('disability') || labelLower.includes('discapacid')) targetLabel = ANSWERS.disability || 'No';
       if (labelLower.includes('sponsorship') || labelLower.includes('visa')) targetLabel = ANSWERS.sponsorship || 'No';
+      if (labelLower.includes('authorized') && labelLower.includes('work')) targetLabel = ANSWERS.work_authorization_us || 'No';
       if (labelLower.includes('relative') || labelLower.includes('familiar')) targetLabel = ANSWERS.relative_at_company || 'No';
       if (labelLower.includes('accessibility') || labelLower.includes('accesibilidad')) {
         targetLabel = ANSWERS.diversity_accessibility || 'I do not require any accessibility';
@@ -349,13 +574,28 @@ function applyToJob(jobRef, userData) {
       if (labelLower.includes('gender') || labelLower.includes('genero')) targetLabel = ANSWERS.diversity_gender || 'Prefer not to say';
       if (labelLower.includes('ethnic') || labelLower.includes('etnia')) targetLabel = ANSWERS.diversity_ethnicity || 'I do not wish to disclose';
       if (labelLower.includes('consent') || labelLower.includes('future job')) targetLabel = ANSWERS.consent_future_jobs || 'Yes';
+      if (labelLower.includes('background check') || labelLower.includes('antecedentes')) targetLabel = ANSWERS.background_check || 'Yes';
 
-      // Find the generic label ref for the target option
-      const targetRegex = new RegExp(`- generic \\[ref=([a-z][0-9a-z]+)\\]: "?${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?`);
-      const targetMatch = block.match(targetRegex);
-      if (targetMatch) {
-        click(targetMatch[1]);
-        sleep(1000);
+      // Find the radio element ref for the target option
+      // Try matching radio "Label" first, then generic ref: "Label"
+      const radioRegex = new RegExp(`radio "${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'i');
+      const radioMatch = block.match(radioRegex);
+      if (radioMatch) {
+        // Find the ref of the generic element containing this radio
+        const refRegex = new RegExp(`- generic \\[ref=([a-z][0-9a-z]+)\\]:\\s*\\n\\s*- radio "${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'i');
+        const refMatch = block.match(refRegex);
+        if (refMatch) {
+          click(refMatch[1]);
+          sleep(1000);
+        }
+      } else {
+        // Fallback: find generic label ref
+        const targetRegex = new RegExp(`- generic \\[ref=([a-z][0-9a-z]+)\\]: "?${targetLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?`);
+        const targetMatch = block.match(targetRegex);
+        if (targetMatch) {
+          click(targetMatch[1]);
+          sleep(1000);
+        }
       }
     }
 
@@ -368,22 +608,36 @@ function applyToJob(jobRef, userData) {
       sleep(1000);
     }
 
-    // Find and click Continue/Review/Submit button
+    // Find and click Continue/Review/Submit button (English or Spanish)
     let actionRef = null;
-    if (snap.includes('Submit application')) {
-      actionRef = extractRef(snap, /button "Submit application" \[ref=([a-z][0-9a-z]+)\]/);
-    } else if (snap.includes('Review your application')) {
-      actionRef = extractRef(snap, /button "Review your application" \[ref=([a-z][0-9a-z]+)\]/);
-    } else if (snap.includes('Continue to next step')) {
-      actionRef = extractRef(snap, /button "Continue to next step" \[ref=([a-z][0-9a-z]+)\]/);
+    if (snap.includes('Submit application') || snap.includes('Enviar solicitud') || snap.includes('Presentar solicitud')) {
+      actionRef = extractRef(snap, /button "(?:Submit application|Enviar solicitud|Presentar solicitud)" \[ref=([a-z][0-9a-z]+)\]/);
+    } else if (snap.includes('Review your application') || snap.includes('Revisar tu solicitud') || snap.includes('Revisa tu solicitud')) {
+      actionRef = extractRef(snap, /button "(?:Review your application|Revisar tu solicitud|Revisa tu solicitud)" \[ref=([a-z][0-9a-z]+)\]/);
+    } else if (snap.includes('Continue to next step') || snap.includes('Ir al siguiente paso') || snap.includes('Continuar al siguiente paso') || snap.includes('Siguiente')) {
+      actionRef = extractRef(snap, /button "(?:Continue to next step|Ir al siguiente paso|Continuar al siguiente paso|Siguiente)" \[ref=([a-z][0-9a-z]+)\]/);
     }
 
     if (actionRef) {
+      process.stdout.write(`actionRef=${actionRef} `);
       click(actionRef);
       sleep(3000);
     } else {
-      // No action button found, might be stuck
-      sleep(2000);
+      process.stdout.write('NO ACTION REF ');
+      // Try eval-based click as fallback
+      const evalClick = evalJSON(`(function(){
+        const btns = document.querySelectorAll('button');
+        for (const b of btns) {
+          const text = b.textContent.trim();
+          if (text.includes('Revisar') || text.includes('Review') || text.includes('Enviar') || text.includes('Submit') || text.includes('Siguiente') || text.includes('Next')) {
+            b.click();
+            return JSON.stringify({clicked: true, text: text});
+          }
+        }
+        return JSON.stringify({clicked: false});
+      })()`, { session: SESSION });
+      process.stdout.write(`evalClick=${JSON.stringify(evalClick)} `);
+      sleep(3000);
     }
   }
 
@@ -494,7 +748,9 @@ function main() {
   const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&f_AL=true&f_WT=2${expFilter}&sortBy=DD`;
 
   // Load auth state to maintain LinkedIn session
-  loadAuthState();
+  // Skipped: state-load hangs in current playwright-cli version.
+  // Session is already active via browser.js open, so auth state is not needed.
+  // loadAuthState();
 
   goto(searchUrl);
 
@@ -536,17 +792,44 @@ function main() {
   for (const job of jobsToProcess) {
     process.stdout.write(`Applying to ${job.role} at ${job.company}... `);
 
-    // Click the job title first to load it, then click Easy Apply
-    const currentSnap = snapshot();
-    const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-    if (titleRef) {
-      click(titleRef);
+    // Navigate directly to the job URL (more reliable than clicking title in search results)
+    if (job.url) {
+      goto(job.url);
       sleep(3000);
+    } else {
+      // Fallback: try clicking the job title
+      const currentSnap = snapshot();
+      const cleanRole = job.role.split('\n')[0].trim();
+      const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${cleanRole.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+      if (titleRef) {
+        click(titleRef);
+        sleep(3000);
+      }
+    }
+
+    // Check if already applied (Spanish: "Solicitud enviada", English: "Application sent")
+    const preSnap = snapshot();
+    if (preSnap.includes('Solicitud enviada') || preSnap.includes('Application sent') || preSnap.includes('application was sent')) {
+      console.log('ALREADY APPLIED - SKIPPING');
+      results.push({ ...job, status: 'already_applied' });
+      continue;
     }
 
     // Re-find the Easy Apply button (refs change after navigation)
+    // Try multiple patterns: English/ Spanish, button/ link
     const jobSnap = snapshot();
-    const easyApplyRef = extractRef(jobSnap, new RegExp(`button "Easy Apply to ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?" \\[ref=([a-z][0-9a-z]+)\\]`));
+    const escapedRole = job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split('\\n')[0].trim();
+    const patterns = [
+      new RegExp(`button "Easy Apply to ${escapedRole}.*?" \\[ref=([a-z][0-9a-z]+)\\]`),
+      new RegExp(`link "Easy Apply to ${escapedRole}.*?" \\[ref=([a-z][0-9a-z]+)\\]`),
+      new RegExp(`(?:button|link) "Solicitud sencilla[^"]*" \\[ref=([a-z][0-9a-z]+)\\]`),
+      new RegExp(`(?:button|link) "Easy Apply[^"]*" \\[ref=([a-z][0-9a-z]+)\\]`),
+    ];
+    let easyApplyRef = null;
+    for (const p of patterns) {
+      easyApplyRef = extractRef(jobSnap, p);
+      if (easyApplyRef) break;
+    }
     if (!easyApplyRef) {
       console.log('NO EASY APPLY BUTTON');
       results.push({ ...job, status: 'no_button' });

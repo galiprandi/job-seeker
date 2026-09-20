@@ -158,6 +158,18 @@ npm install
 - The agent should mention when an update brings new features (e.g: "pulled latest, new platform adapter for Otta added") so the user knows what changed.
 - This rule applies to any agent consuming this repo, not just the owner's agent.
 
+### Gold Rule 14 — LinkedIn ↔ CV coherence
+LinkedIn and the user's online CV repo are two views of the same profile. **Whenever the agent modifies one, it must apply the equivalent change to the other** — no exceptions, no partial sync.
+
+**Rules:**
+- The CV repo path lives in `users.data.profile.cv_repo_path` (read it from DB at runtime, never hardcode it — Gold Rule 9).
+- Changing LinkedIn (headline, about, experience, skills, dates, titles) → update the CV repo to match.
+- Changing the CV repo (content, roles, descriptions, summary) → update LinkedIn to match (via the `polish` flow / browser automation).
+- Same language, same dates, same role titles, same bullet content in both.
+- The CV repo may have its own `AGENTS.md` with print/SEO rules (e.g: one-page A4 fit). Read it before editing and respect it — after changing CV content, re-verify its print output still fits.
+- After syncing, verify both sides: LinkedIn via the profile details pages, the CV repo via its build + print check.
+- This rule applies to any agent consuming this repo, not just the owner's agent.
+
 ## Strategy levels
 
 The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
