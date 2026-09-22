@@ -302,7 +302,7 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('artificial intelligence') || labelLower.includes('ai)')) value = ANSWERS.ai_experience;
       else if (labelLower.includes('openai')) value = ANSWERS.openai_experience;
       else if (labelLower.includes('location') || labelLower.includes('country') || labelLower.includes('city')) value = ANSWERS.location;
-      else if (labelLower.includes('phone') || labelLower.includes('mobile') || labelLower.includes('celular') || labelLower.includes('teléfono')) {
+      else if (labelLower.includes('phone') || labelLower.includes('mobile') || labelLower.includes('celular') || labelLower.includes('cellulare') || labelLower.includes('telefon') || labelLower.includes('teléfono')) {
         // LinkedIn splits phone: country code goes in a separate combobox, this field wants the local number
         const rawPhone = (userData?.personal?.phone || ANSWERS.phone || '').replace(/\D/g, '');
         value = rawPhone.startsWith('549') ? rawPhone.substring(3) : rawPhone.replace(/^54/, '');
@@ -329,8 +329,8 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('genai') || labelLower.includes('ai assisted') || labelLower.includes('development tools')) {
         value = ANSWERS.genai_tools;
       }
-      // Generic fallback: "How many years of work experience do you have with X?"
-      else if (labelLower.includes('years') && (labelLower.includes('experience') || labelLower.includes('working'))) {
+      // Generic fallback: "How many years of work experience do you have with X?" (EN/ES/PT)
+      else if ((labelLower.includes('years') || labelLower.includes('anos') || labelLower.includes('años')) && (labelLower.includes('experience') || labelLower.includes('experiencia') || labelLower.includes('experiência') || labelLower.includes('working') || labelLower.includes('trabajando') || labelLower.includes('estud') || labelLower.includes('tienes') || labelLower.includes('tens') || labelLower.includes('têm'))) {
         value = ANSWERS.years_of_experience;
       }
 
@@ -375,7 +375,8 @@ function applyToJob(jobRef, userData) {
       // without being a committed selection, so always process them
       const labelLower = label.toLowerCase();
       const isAutocomplete = labelLower.includes('location') || labelLower.includes('city');
-      const hasRealSelection = optionsBlock.includes('[selected]') && !optionsBlock.match(/option "Select an option"\s*\[selected\]/);
+      const placeholderRe = /option "(Select an option|Seleccionar[^"]*|Selecionar[^"]*|Elige[^"]*|Choose[^"]*|Bitte[^"]*|Sélectionner[^"]*)"\s*\[selected\]/i;
+      const hasRealSelection = optionsBlock.includes('[selected]') && !placeholderRe.test(optionsBlock);
       if (hasRealSelection && !isAutocomplete) continue;
 
       let optionValue = null;
@@ -397,7 +398,7 @@ function applyToJob(jobRef, userData) {
           optionValue = optMatch ? optMatch[1] : email;
         }
       }
-      else if (labelLower.includes('phone country') || labelLower.includes('country code')) {
+      else if (labelLower.includes('phone country') || labelLower.includes('country code') || labelLower.includes('prefisso') || labelLower.includes('código') || labelLower.includes('codigo') || labelLower.includes('paese') || labelLower.includes('país') || labelLower.includes('pais')) {
         const optMatch = optionsBlock.match(/option "Argentina \(\+54\)"/);
         optionValue = optMatch ? optMatch[1] : null;
       }
