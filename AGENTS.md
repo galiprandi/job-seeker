@@ -29,6 +29,11 @@ Before filling any form field, the agent must **check the DB first** (`users.dat
 ### Gold Rule 6 — Draft before replying
 Before replying to any recruiter or job-related contact message, the agent must **always show a draft or at least the idea** of the response to the user. Never send without approval. The flow is: detect message that requires a reply → **extract action items from the original message** (is there a calendar link? do they ask for a CV? do they ask to schedule?) → analyze the proposal → research the company → present analysis + action items + draft → wait for approval → send.
 
+### Gold Rule 6b — No public job-search signals
+The user is currently employed, so public job-seeking signals are forbidden: **never post public comments or replies that express interest in a role, apply intent, or outreach to a potential employer/recruiter** on LinkedIn or any public surface. If DM/messaging is blocked (connection degree, InMail limits), the allowed sequence is: **send connection invite first, wait for acceptance, then send the DM**. If the invite cannot include a note (free-tier limit reached), send it without a note and register the pending state. Other allowed channel: email to a publicly listed address (with draft approval per Gold Rule 6).
+
+**What IS allowed publicly:** comments unrelated to the user's own job search — e.g., promoting the job-seeker open source project, sharing technical content, congratulating or thanking contacts, community participation. When in doubt whether a comment reads as a job-search signal, treat it as forbidden.
+
 ### Gold Rule 7 — Anti-LLM style in messages
 Every message drafted for recruiters or job-related contacts must pass an **anti-LLM checklist** before showing the draft to the user:
 

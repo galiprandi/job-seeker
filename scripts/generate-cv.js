@@ -39,7 +39,9 @@ const {
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DB_JS = path.join(REPO_ROOT, 'scripts', 'db.js');
-const BROWSER_JS = path.join(REPO_ROOT, 'scripts', 'browser.js');
+const BROWSER_JS = fs.existsSync(path.join(REPO_ROOT, 'scripts', 'browser.js'))
+  ? path.join(REPO_ROOT, 'scripts', 'browser.js')
+  : path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 const PROFILE_DIR = path.join(REPO_ROOT, '.browser-profile');
 
 // ---------------------------------------------------------------------------
