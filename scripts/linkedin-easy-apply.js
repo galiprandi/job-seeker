@@ -286,7 +286,7 @@ function applyToJob(jobRef, userData) {
     for (const field of textFields) {
       const [, label, required, ref, existingValueQuoted, existingValueUnquoted] = field;
       const existingValue = existingValueQuoted || existingValueUnquoted;
-      if (!ref || existingValue) continue; // skip if already filled or no ref
+      if (existingValue) continue; // skip if already filled (fields without ref still get eval-filled below)
 
       const labelLower = label.toLowerCase();
       let value = null;
@@ -315,8 +315,8 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('headline') || labelLower.includes('título profesional') || labelLower.includes('titular')) value = ANSWERS.headline || userData?.profile?.headline;
       else if (labelLower.includes('summary') || labelLower.includes('resumen')) value = ANSWERS.summary || userData?.profile?.summary;
       else if (labelLower.includes('salary') && labelLower.includes('cop')) value = ANSWERS.salary_cop;
-      else if (labelLower.includes('salary') && labelLower.includes('usd')) value = ANSWERS.salary_usd;
-      else if (labelLower.includes('salary')) value = ANSWERS.salary_usd;
+      else if (labelLower.includes('usd') && (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario'))) value = ANSWERS.salary_usd;
+      else if (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç')) value = ANSWERS.salary_usd;
       else if (labelLower.includes('notice') || labelLower.includes('availability') || labelLower.includes('start')) {
         value = labelLower.includes('dd/mm') ? ANSWERS.availability_date : ANSWERS.notice_period;
       }
@@ -355,8 +355,8 @@ function applyToJob(jobRef, userData) {
           return JSON.stringify({filled: false});
         })()`, { session: SESSION });
         if (!fillResult || !fillResult.filled) {
-          // Fallback: ref-based fill
-          fill(ref, value);
+          // Fallback: ref-based fill (only when the snapshot exposed a ref)
+          if (ref) fill(ref, value);
         }
         sleep(1500);
       } else {
@@ -381,9 +381,9 @@ function applyToJob(jobRef, userData) {
 
       let optionValue = null;
 
-      if (labelLower.includes('english')) {
+      if (labelLower.includes('english') || labelLower.includes('inglés') || labelLower.includes('ingles')) {
         const level = ANSWERS.english_level || 'Professional';
-        const optMatch = optionsBlock.match(new RegExp(`option "(${level}|Professional|Advanced|Proficient|Native or bilingual)"`));
+        const optMatch = optionsBlock.match(new RegExp(`option "(${level}|Professional|Advanced|Proficient|Native or bilingual|Competencia profesional|Intermedio|Intermedio-alto|Bilingüe|Bilingue)[^"]*"`));
         optionValue = optMatch ? optMatch[1] : level;
       }
       else if (labelLower.includes('spanish')) {
@@ -434,13 +434,15 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('año de to') || (labelLower.includes('to') && labelLower.includes('year'))) {
         optionValue = ANSWERS.edu_to_year || null;
       }
-      // Generic Yes/No combobox questions
-      else if (optionsBlock.match(/option "(Yes|No)"/)) {
+      // Generic Yes/No combobox questions (EN/ES/PT)
+      else if (optionsBlock.match(/option "(Yes|No|Sí|Si|Sim|Não)"/)) {
         // Answer Yes for most questions, No for sponsorship/visa/authorization
-        let answer = 'Yes';
-        if (labelLower.includes('sponsorship') || labelLower.includes('visa')) answer = 'No';
-        if (labelLower.includes('authorized') && labelLower.includes('work')) answer = 'No';
-        if (labelLower.includes('based in') && (labelLower.includes('latin america') || labelLower.includes('latam'))) answer = 'Yes';
+        const yesWord = optionsBlock.match(/option "(Yes|Sí|Si|Sim)"/)?.[1] || 'Yes';
+        const noWord = optionsBlock.match(/option "(No|Não)"/)?.[1] || 'No';
+        let answer = yesWord;
+        if (labelLower.includes('sponsorship') || labelLower.includes('visa')) answer = noWord;
+        if (labelLower.includes('authorized') && labelLower.includes('work')) answer = noWord;
+        if (labelLower.includes('currently located in') || labelLower.includes('based in') || labelLower.includes('residing in') || labelLower.includes('located in') || labelLower.includes('ubicado') || labelLower.includes('resides')) answer = noWord;
         const optMatch = optionsBlock.match(new RegExp(`option "(${answer})"`));
         optionValue = optMatch ? optMatch[1] : answer;
       }
@@ -478,28 +480,40 @@ function applyToJob(jobRef, userData) {
         const city = userData?.personal?.city || userData?.profile?.location || ANSWERS.location || '';
         click(ref);
         sleep(500);
-        // Clear any existing value, then type real keystrokes to trigger the autocomplete search
+        // Focus the inner input explicitly (the combobox ref may be a wrapper div)
         evalJSON(`(function(){
-          const el = document.activeElement;
+          const lb = ${JSON.stringify(label.substring(0, 30))};
+          const inputs = document.querySelectorAll('input[role="combobox"], input[aria-autocomplete="list"], input[type="text"]');
+          let el = null;
+          for (const i of inputs) {
+            const al = (i.getAttribute('aria-label') || '').toLowerCase();
+            if (al.includes('location') || al.includes('city') || al.includes('ubicaci') || al.includes('ciudad') || al.includes(lb.toLowerCase())) { el = i; break; }
+          }
+          el = el || document.activeElement;
+          if (el && el.focus) el.focus();
           if (el) { el.value=''; el.dispatchEvent(new Event('input',{bubbles:true})); }
           return 'ok';
         })()`, { session: SESSION });
         cli(`type "${city.replace(/"/g, '\\"')}"`);
         sleep(3000);
-        // Try to click the first suggestion (accent-insensitive match)
+        // Try to click the first suggestion (accent-insensitive match); dispatch pointer events because LinkedIn listens to mousedown
         const sugResult = evalJSON(`(function(){
           const norm = s => s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
           const cityN = norm(${JSON.stringify(city)});
-          const options = document.querySelectorAll('[role="option"], [role="listitem"]');
+          const options = document.querySelectorAll('[role="option"], [role="listitem"], li[class*="basic-typeahead"], [id*="typeahead"] li');
+          const fire = (el) => {
+            ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(t =>
+              el.dispatchEvent(new MouseEvent(t, {bubbles:true, cancelable:true, view:window})));
+          };
           for (const opt of options) {
             const text = opt.textContent.trim();
             if (text && norm(text).includes(cityN)) {
-              opt.click();
+              fire(opt);
               return JSON.stringify({clicked: true, text: text.substring(0, 40)});
             }
           }
           if (options.length > 0) {
-            options[0].click();
+            fire(options[0]);
             return JSON.stringify({clicked: true, text: options[0].textContent.trim().substring(0, 40)});
           }
           return JSON.stringify({clicked: false});
@@ -511,6 +525,8 @@ function applyToJob(jobRef, userData) {
           press('Enter');
           sleep(1000);
         }
+        // Extra fallback: Tab out to commit whatever was typed
+        press('Tab');
         sleep(1000);
       } else {
         // For comboboxes with no matching handler, try eval-based selection
@@ -645,6 +661,40 @@ function applyToJob(jobRef, userData) {
   return { status: 'timeout', error: 'Max steps reached without submission' };
 }
 
+// --- Title filtering ---
+// Easy Apply search results are noisy: LinkedIn returns non-tech roles
+// (attorney, sales, tutors, support) even for tech keyword searches.
+// A job is only applied if its title matches a tech role AND does not
+// match the blocklist. The blocklist is extended with job_preferences.avoid
+// from DB (user-specific, Gold Rule 9).
+
+const TECH_TITLE_RE = /\b(developer|desarrollador|desenvolvedor|d[ée]veloppeur|engineer|ingeniero|engenheiro|ing[ée]nieur|software|programador|frontend|front[- ]?end|backend|back[- ]?end|full[- ]?stack|fullstack|devops|sre|site reliability|data (scientist|engineer|analyst)|machine learning|\bml\b|\bai\b|artificial intelligence|\bllm\b|genai|cloud|architect|arquitecto|\bqa\b|sdet|test automation|security engineer|platform engineer|mobile|ios|android|react|angular|vue|svelte|node\.?js|python|java(?!script)|golang|rust|ruby|php|typescript|javascript|tech lead|technical lead|engineering manager|cto|product manager|data engineer|analytics|blockchain|web3|firmware|embedded)\b/i;
+
+const BLOCK_TITLE_RE = /\b(attorney|lawyer|paralegal|legal|abogado|sales|account executive|tutor|teacher|tefl|tesol|esl|profesor|docente|customer support|customer service|customer success|soporte|recruiter|talent acquisition|marketing|seo|copywriter|content writer|social media|community manager|nurse|medical|doctor|physician|pharmacist|dentist|driver|warehouse|receptionist|assistant|asistente|real estate|insurance(?! tech)|accountant|contador|finance|finanzas|\bhr\b|human resources|recursos humanos|chef|cleaner|technician|mechanic|electrician|plumber|retail|cashier|barista|translator|interpreter|traductor|surveyor|logistics|supply chain|procurement|consultor funcional|functional consultant)\b/i;
+
+/**
+ * Returns { pass: boolean, reason: string } for a job title.
+ * Pass requires: title matches a tech role AND does not hit the blocklist.
+ */
+function checkJobTitle(job, userData) {
+  const title = job.role || '';
+  const userAvoid = userData.prefs?.avoid || [];
+  const avoidRe = userAvoid.length
+    ? new RegExp(userAvoid.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'i')
+    : null;
+
+  if (BLOCK_TITLE_RE.test(title)) {
+    return { pass: false, reason: 'non_tech_title' };
+  }
+  if (avoidRe && avoidRe.test(title)) {
+    return { pass: false, reason: 'user_avoid' };
+  }
+  if (!TECH_TITLE_RE.test(title)) {
+    return { pass: false, reason: 'no_tech_keyword' };
+  }
+  return { pass: true, reason: 'title_ok' };
+}
+
 // --- Derive search keywords from DB profile ---
 
 function deriveKeywordsFromProfile(userData) {
@@ -773,8 +823,21 @@ function main() {
     process.exit(1);
   }
 
+  // Title filter: only tech roles, drop blocklisted / off-target titles
+  const skipped = [];
+  const matching = [];
+  for (const j of jobs) {
+    const check = checkJobTitle(j, userData);
+    if (check.pass) matching.push(j);
+    else skipped.push({ ...j, status: 'skipped', reason: check.reason });
+  }
+  if (!jsonOutput && skipped.length) {
+    console.log(`\nFiltered out ${skipped.length} off-target jobs:`);
+    skipped.forEach((j) => console.log(`  - ${j.role} at ${j.company} [${j.reason}]`));
+  }
+
   // Limit to maxJobs
-  const jobsToProcess = jobs.slice(0, maxJobs);
+  const jobsToProcess = matching.slice(0, maxJobs);
 
   if (dryRun) {
     if (jsonOutput) {
@@ -846,7 +909,8 @@ function main() {
         // Register in DB
         const safeCompany = job.company.replace(/'/g, "''");
         const safeRole = job.role.replace(/'/g, "''");
-        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (1, 'linkedin', '${safeCompany}', '${safeRole}', '', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "high"}')`);
+        const safeUrl = (job.url || '').replace(/'/g, "''");
+        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (1, 'linkedin', '${safeCompany}', '${safeRole}', '${safeUrl}', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "title_pass"}')`);
         break;
       case 'captcha':
         console.log('CAPTCHA - STOPPING');
@@ -871,7 +935,7 @@ function main() {
   if (jsonOutput) {
     console.log(JSON.stringify(results, null, 2));
   } else {
-    console.log(`\nSummary: ${applied} applied, ${failed} failed`);
+    console.log(`\nSummary: ${applied} applied, ${failed} failed, ${skipped.length} filtered off-target`);
   }
 
   process.exit(0);
