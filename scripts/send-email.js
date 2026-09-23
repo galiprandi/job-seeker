@@ -15,6 +15,7 @@
  * Optional:
  *   --from "Your Name <you@example.com>"
  *   --html           (send body as HTML instead of plain text)
+ *   --attach <path>  (attach a file; repeatable)
  */
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -52,11 +53,12 @@ function parseArgs() {
     else if (args[i] === '--body' && args[i + 1]) { out.body = args[i + 1]; i++; }
     else if (args[i] === '--from' && args[i + 1]) { out.from = args[i + 1]; i++; }
     else if (args[i] === '--html') { out.html = true; }
+    else if (args[i] === '--attach' && args[i + 1]) { (out.attach = out.attach || []).push(args[i + 1]); i++; }
   }
   return out;
 }
 
-function sendEmail({ to, subject, body, from, html = false }) {
+function sendEmail({ to, subject, body, from, html = false, attach = [] }) {
   const host = env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(env.SMTP_PORT || '465', 10);
   const secure = env.SMTP_SECURE !== 'false';
@@ -84,6 +86,10 @@ function sendEmail({ to, subject, body, from, html = false }) {
     message.html = body;
   } else {
     message.text = body;
+  }
+
+  if (attach.length) {
+    message.attachments = attach.map((p) => ({ path: p }));
   }
 
   return transporter.sendMail(message);

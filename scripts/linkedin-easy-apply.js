@@ -113,7 +113,8 @@ function extractRef(text, pattern) {
 // --- DB data loader ---
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${process.env.USER_ID || 1}")[0];
+  const userId = parseInt(process.env.USER_ID || '1', 10);
+  const row = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`)[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
@@ -171,17 +172,19 @@ function findEasyApplyJobs(snap) {
  */
 function findEasyApplyJobsFromDOM() {
   return evalJSON(`(function(){
-    const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item');
+    const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id]');
     if (cards.length === 0) return JSON.stringify([]);
     return JSON.stringify(Array.from(cards).map(c => {
       const titleEl = c.querySelector('h3, .job-title, .job-card-list__title');
-      const companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name');
       const linkEl = c.querySelector('a[href*="/jobs/view/"]');
-      // Easy Apply badge: check text, aria-label, and button class
+      const companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name, .artdeco-entity-lockup__subtitle');
+      const role = (titleEl && titleEl.textContent.trim())
+        || (linkEl && (linkEl.getAttribute('aria-label') || linkEl.innerText.split(String.fromCharCode(10))[0].trim()))
+        || '';
       const hasEasyApplyText = c.textContent.includes('Easy Apply') || c.textContent.includes('Solicitud sencilla');
       const hasEasyApplyBtn = !!c.querySelector('button[aria-label*="Easy Apply"], button[aria-label*="Solicitud sencilla"], .job-card-container__easy-apply, .jobs-apply-button');
       return {
-        role: titleEl ? titleEl.textContent.trim() : '',
+        role,
         company: companyEl ? companyEl.textContent.trim() : '',
         easyApply: hasEasyApplyText || hasEasyApplyBtn,
         url: linkEl ? linkEl.href : '',

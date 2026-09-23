@@ -162,6 +162,14 @@ When applying directly to a company career page (not via LinkedIn Easy Apply), t
 8. Verify submission confirmation on screen.
 9. Register in DB via db CLI (same INSERT as LinkedIn flow, with `platform` = the ATS detected: 'lever', 'greenhouse', 'workday', etc.).
 
+### 6.1. Known ATS failure modes (validated 2026-09-19)
+
+- **Lever + hCaptcha rejects the automation browser fingerprint.** Even a correctly human-solved challenge returns "verification failed" — the problem is the browser fingerprint, not the captcha answer. Do NOT retry in a loop. Workarounds, in order: (a) search the same req on LinkedIn Jobs — most Lever postings are cross-posted with Easy Apply; (b) check the company careers page for a general "Submit CV" / talent pool form (often has no captcha); (c) apply from the user's normal browser manually.
+- **Captcha tokens expire in minutes.** Solve challenges immediately after triggering them, and one form at a time — solving two forms' captchas back-to-back kills the second token.
+- **Failed submits clear file inputs.** After any submit error, re-attach the CV before retrying — the `<input type=file>` value does not survive validation failures.
+- **Forms asking for "real numbers / traction"** (e.g. "users you got, with figures"): fetch real metrics via public APIs instead of guessing — npm `https://api.npmjs.org/downloads/point/last-month/<package>`, GitHub `https://api.github.com/users/<user>/repos` (stars, forks). Never invent figures (Gold Rule 5c applies to metrics too).
+- **Human-only deliverables** (demo video, recorded answers, portfolio review calls): fill every other field first, keep the form open, register the application in DB with `status='pending_user_action'` and `data.blocker` describing the exact artifact needed, then ask the user for it at the end of the round (Gold Rule 5d).
+
 ## Dependencies
 
 - Depends on `onboarding` (DB to register)

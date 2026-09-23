@@ -43,13 +43,23 @@ Run the full `news` flow:
   - Send
 - If no relevant updates: continue to step 2
 
-### 2. Cleanup inbox
+### 2. Pending invite DMs
+
+Check for connection invites awaiting acceptance with an approved follow-up message:
+
+```bash
+node scripts/db.js "SELECT id, company, url, data->'pending_dm' AS dm FROM applications WHERE user_id = <user_id> AND status = 'invite_pending' AND data->>'pending_dm_approved' = 'true'"
+```
+
+For each: open the contact's profile — if the invite was accepted (Message button works / no "Pending"), send the stored `pending_dm` via LinkedIn messaging, then set `status = 'contacted'` and remove `pending_dm`. If still pending, leave as is. Never post public comments (Gold Rule 6b).
+
+### 3. Cleanup inbox
 
 - Archive processed job emails (old alerts, read newsletters)
 - Mark obvious spam as spam
 - Don't archive unanswered recruiter messages
 
-### 3. Decide whether to apply
+### 4. Decide whether to apply
 
 Query DB via db CLI:
 
