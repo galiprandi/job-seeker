@@ -52,7 +52,7 @@ node scripts/linkedin-easy-apply.js --max 10
 node scripts/linkedin-easy-apply.js --max 10 --session apply-1
 ```
 
-The script handles: search with Easy Apply filter, form filling with standard answers, radio/combobox/checkbox handling, DB registration, and captcha detection (stops on captcha). The `--session` flag allows running in parallel with other agents by using an attached session instead of the default one.
+The script handles: search with Easy Apply filter, **title filtering** (only applies to tech roles — a job must match a tech keyword and not hit the blocklist of non-tech roles like attorney/sales/tutor/support; extendable via `job_preferences.avoid` in DB), form filling with standard answers, radio/combobox/checkbox handling, DB registration, and captcha detection (stops on captcha). The `--session` flag allows running in parallel with other agents by using an attached session instead of the default one.
 
 **Manual fallback** (when script fails or forms have complex open-ended questions):
 

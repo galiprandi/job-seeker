@@ -299,9 +299,9 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('next.js') || labelLower.includes('nextjs') || labelLower.includes('next js')) value = ANSWERS.nextjs_experience || ANSWERS.react_experience;
       else if (labelLower.includes('node') || labelLower.includes('nodejs') || labelLower.includes('node.js')) value = ANSWERS.nodejs_experience;
       else if (labelLower.includes('software engineering') || labelLower.includes('software development')) value = ANSWERS.years_of_experience;
-      else if (labelLower.includes('artificial intelligence') || labelLower.includes('ai)')) value = ANSWERS.ai_experience;
+      else if (labelLower.includes('artificial intelligence') || labelLower.includes('ai)') || labelLower.includes('generative ai') || labelLower.includes('genai') || labelLower.includes('gen ai')) value = ANSWERS.ai_experience || ANSWERS.genai_tools;
       else if (labelLower.includes('openai')) value = ANSWERS.openai_experience;
-      else if (labelLower.includes('location') || labelLower.includes('country') || labelLower.includes('city')) value = ANSWERS.location;
+      else if (labelLower.includes('location') || labelLower.includes('country') || labelLower.includes('city') || labelLower.includes('ciudad') || labelLower.includes('ubicaci') || labelLower.includes('localidad')) value = ANSWERS.location;
       else if (labelLower.includes('phone') || labelLower.includes('mobile') || labelLower.includes('celular') || labelLower.includes('cellulare') || labelLower.includes('telefon') || labelLower.includes('teléfono')) {
         // LinkedIn splits phone: country code goes in a separate combobox, this field wants the local number
         const rawPhone = (userData?.personal?.phone || ANSWERS.phone || '').replace(/\D/g, '');
@@ -330,16 +330,18 @@ function applyToJob(jobRef, userData) {
         value = ANSWERS.genai_tools;
       }
       // Generic fallback: "How many years of work experience do you have with X?" (EN/ES/PT)
-      else if ((labelLower.includes('years') || labelLower.includes('anos') || labelLower.includes('años')) && (labelLower.includes('experience') || labelLower.includes('experiencia') || labelLower.includes('experiência') || labelLower.includes('working') || labelLower.includes('trabajando') || labelLower.includes('estud') || labelLower.includes('tienes') || labelLower.includes('tens') || labelLower.includes('têm'))) {
+      else if ((labelLower.includes('years') || labelLower.includes('anos') || labelLower.includes('años') || labelLower.includes('tiempo')) && (labelLower.includes('experience') || labelLower.includes('experiencia') || labelLower.includes('experiência') || labelLower.includes('working') || labelLower.includes('trabajando') || labelLower.includes('estud') || labelLower.includes('tienes') || labelLower.includes('tiene') || labelLower.includes('tens') || labelLower.includes('têm'))) {
         value = ANSWERS.years_of_experience;
       }
 
       if (value) {
         process.stdout.write(`FILL val="${value}" `);
-        // Use eval with native value setter for React-compatible filling
+        // Prefer Playwright fill (real focus + input events that commit React state)
+        if (ref) fill(ref, value);
+        // Also run eval setter as backup for non-React-controlled fields
         const fillResult = evalJSON(`(function(){
           const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-          const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+          const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="tel"], input[type="email"], input:not([type]), textarea');
           const labelPart = ${JSON.stringify(label.substring(0, 40))};
           for (const inp of inputs) {
             const ariaLabel = inp.getAttribute('aria-label') || '';
@@ -355,8 +357,16 @@ function applyToJob(jobRef, userData) {
           return JSON.stringify({filled: false});
         })()`, { session: SESSION });
         if (!fillResult || !fillResult.filled) {
-          // Fallback: ref-based fill (only when the snapshot exposed a ref)
-          if (ref) fill(ref, value);
+          // Field had no snapshot ref and eval found no matching input
+          process.stdout.write('[nofill] ');
+        }
+        // Location-like textboxes are often autocompletes: pick the first suggestion
+        if (labelLower.includes('location') || labelLower.includes('city') || labelLower.includes('ciudad') || labelLower.includes('ubicaci')) {
+          sleep(1500);
+          press('ArrowDown');
+          sleep(400);
+          press('Enter');
+          sleep(800);
         }
         sleep(1500);
       } else {
@@ -399,8 +409,8 @@ function applyToJob(jobRef, userData) {
         }
       }
       else if (labelLower.includes('phone country') || labelLower.includes('country code') || labelLower.includes('prefisso') || labelLower.includes('código') || labelLower.includes('codigo') || labelLower.includes('paese') || labelLower.includes('país') || labelLower.includes('pais')) {
-        const optMatch = optionsBlock.match(/option "Argentina \(\+54\)"/);
-        optionValue = optMatch ? optMatch[1] : null;
+        const optMatch = optionsBlock.match(/option "([^"]*Argentina[^"]*)"/) || optionsBlock.match(/option "([^"]*\+54[^"]*)"/);
+        optionValue = optMatch ? optMatch[1] : 'Argentina (+54)';
       }
       else if (labelLower.includes('location') || labelLower.includes('city')) {
         const city = userData?.personal?.city || userData?.profile?.location || '';
@@ -422,16 +432,16 @@ function applyToJob(jobRef, userData) {
         const optMatch = optionsBlock.match(new RegExp(`option "(${level})"`));
         optionValue = optMatch ? optMatch[1] : level;
       }
-      else if (labelLower.includes('mes de from') || (labelLower.includes('from') && labelLower.includes('month')) || labelLower === 'from') {
+      else if ((labelLower.match(/mes de (from|inicio|desde)/) || (labelLower.match(/\bfrom\b|\bstart\b/) && labelLower.match(/\bmonth\b|\bmes\b/)) || labelLower === 'from') && optionsBlock.match(/January|February|Enero|Febrero|Jan|Feb/)) {
         optionValue = ANSWERS.edu_from_month || null;
       }
-      else if (labelLower.includes('año de from') || (labelLower.includes('from') && labelLower.includes('year'))) {
+      else if ((labelLower.match(/año de (from|inicio|desde)/) || (labelLower.match(/\bfrom\b|\bstart\b/) && labelLower.match(/\byear\b|\baño\b/))) && optionsBlock.match(/\b(19|20)\d{2}\b/)) {
         optionValue = ANSWERS.edu_from_year || null;
       }
-      else if (labelLower.includes('mes de to') || (labelLower.includes('to') && labelLower.includes('month'))) {
+      else if ((labelLower.match(/mes de (to|hasta|fin)/) || (labelLower.match(/\bto\b|\bend\b|\bhasta\b/) && labelLower.match(/\bmonth\b|\bmes\b/))) && optionsBlock.match(/January|February|Enero|Febrero|Jan|Feb/)) {
         optionValue = ANSWERS.edu_to_month || null;
       }
-      else if (labelLower.includes('año de to') || (labelLower.includes('to') && labelLower.includes('year'))) {
+      else if ((labelLower.match(/año de (to|hasta|fin)/) || (labelLower.match(/\bto\b|\bend\b|\bhasta\b/) && labelLower.match(/\byear\b|\baño\b/))) && optionsBlock.match(/\b(19|20)\d{2}\b/)) {
         optionValue = ANSWERS.edu_to_year || null;
       }
       // Generic Yes/No combobox questions (EN/ES/PT)
@@ -478,24 +488,19 @@ function applyToJob(jobRef, userData) {
         // Autocomplete combobox: type and select from suggestions
         process.stdout.write(`COMBO_AUTO label="${label.substring(0,30)}" `);
         const city = userData?.personal?.city || userData?.profile?.location || ANSWERS.location || '';
-        click(ref);
+        // Focus the inner input of the combobox (the ref is often a wrapper div)
+        const focusRes = cli(`eval "(el) => { const i = el.tagName === 'INPUT' ? el : el.querySelector('input'); if (i) { i.focus(); i.click(); } return i ? i.tagName + ':' + (i.getAttribute('aria-label') || '') : 'none'; }" ${ref}`);
+        process.stdout.write(`[focus ${String(focusRes).substring(0,60)}] `);
         sleep(500);
-        // Focus the inner input explicitly (the combobox ref may be a wrapper div)
-        evalJSON(`(function(){
-          const lb = ${JSON.stringify(label.substring(0, 30))};
-          const inputs = document.querySelectorAll('input[role="combobox"], input[aria-autocomplete="list"], input[type="text"]');
-          let el = null;
-          for (const i of inputs) {
-            const al = (i.getAttribute('aria-label') || '').toLowerCase();
-            if (al.includes('location') || al.includes('city') || al.includes('ubicaci') || al.includes('ciudad') || al.includes(lb.toLowerCase())) { el = i; break; }
-          }
-          el = el || document.activeElement;
-          if (el && el.focus) el.focus();
-          if (el) { el.value=''; el.dispatchEvent(new Event('input',{bubbles:true})); }
-          return 'ok';
-        })()`, { session: SESSION });
+        // Type real keystrokes so LinkedIn's typeahead search fires
         cli(`type "${city.replace(/"/g, '\\"')}"`);
-        sleep(3000);
+        sleep(2500);
+        const dbg = evalJSON(`(function(){
+          const ae = document.activeElement;
+          const opts = document.querySelectorAll('[role="option"], [role="listitem"], li[class*="typeahead"]');
+          return JSON.stringify({tag: ae && ae.tagName, val: ae && ae.value ? ae.value.substring(0,30) : '', opts: opts.length});
+        })()`, { session: SESSION });
+        process.stdout.write(`[dbg ${JSON.stringify(dbg)}] `);
         // Try to click the first suggestion (accent-insensitive match); dispatch pointer events because LinkedIn listens to mousedown
         const sugResult = evalJSON(`(function(){
           const norm = s => s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
@@ -518,8 +523,14 @@ function applyToJob(jobRef, userData) {
           }
           return JSON.stringify({clicked: false});
         })()`, { session: SESSION });
-        if (!sugResult || !sugResult.clicked) {
-          // Fallback: accept the highlighted suggestion with keyboard
+        // If the suggestion list is still open (DOM click didn't commit), use keyboard selection
+        const listOpen = evalJSON(`(function(){
+          const lb = document.querySelector('[role="listbox"]:not([hidden]), [role="listbox"][aria-expanded="true"], ul[class*="typeahead"]');
+          const anyInput = document.activeElement;
+          const expanded = anyInput && anyInput.getAttribute && anyInput.getAttribute('aria-expanded') === 'true';
+          return JSON.stringify({open: !!(lb || expanded)});
+        })()`, { session: SESSION });
+        if (!sugResult || !sugResult.clicked || (listOpen && listOpen.open)) {
           press('ArrowDown');
           sleep(500);
           press('Enter');
