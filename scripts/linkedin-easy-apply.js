@@ -288,7 +288,7 @@ function applyToJob(jobRef, userData) {
       const existingValue = existingValueQuoted || existingValueUnquoted;
       if (existingValue) continue; // skip if already filled (fields without ref still get eval-filled below)
 
-      const labelLower = label.toLowerCase();
+      const labelLower = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       let value = null;
       if (labelLower.includes('first name') || labelLower.includes('nombre')) value = ANSWERS.first_name;
       else if (labelLower.includes('last name') || labelLower.includes('apellido')) value = ANSWERS.last_name;
@@ -312,8 +312,11 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('field of study') || labelLower.includes('major') || labelLower.includes('carrera')) value = ANSWERS.field_of_study;
       else if (labelLower.includes('company')) value = ANSWERS.current_company;
       else if (labelLower.includes('linkedin')) value = ANSWERS.linkedin_url;
+      else if (labelLower.includes('github')) value = ANSWERS.github_url;
+      else if (labelLower.includes('preferred name') || labelLower.includes('nombre preferido')) value = ANSWERS.first_name;
       else if (labelLower.includes('headline') || labelLower.includes('título profesional') || labelLower.includes('titular')) value = ANSWERS.headline || userData?.profile?.headline;
       else if (labelLower.includes('summary') || labelLower.includes('resumen')) value = ANSWERS.summary || userData?.profile?.summary;
+      else if (labelLower.includes('compens') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç') || labelLower.includes('ctc') || labelLower.includes('lpa') || labelLower.includes('maas') || labelLower.includes('beklent') || labelLower.includes('ucret') || (labelLower.includes('expected') && labelLower.includes('salary'))) value = ANSWERS.salary_usd;
       else if (labelLower.includes('salary') && labelLower.includes('cop')) value = ANSWERS.salary_cop;
       else if (labelLower.includes('usd') && (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario'))) value = ANSWERS.salary_usd;
       else if (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç')) value = ANSWERS.salary_usd;
@@ -330,14 +333,42 @@ function applyToJob(jobRef, userData) {
         value = ANSWERS.genai_tools;
       }
       // Generic fallback: "How many years of work experience do you have with X?" (EN/ES/PT)
+      else if (labelLower.includes('how many years') || labelLower.includes('quantos anos') || labelLower.includes('cuantos anos') || labelLower.includes('cuántos años') || labelLower.includes('kac yil') || labelLower.includes('kaç yıl') || labelLower.includes('deneyim')) {
+        value = ANSWERS.years_of_experience;
+      }
       else if ((labelLower.includes('years') || labelLower.includes('anos') || labelLower.includes('años') || labelLower.includes('tiempo')) && (labelLower.includes('experience') || labelLower.includes('experiencia') || labelLower.includes('experiência') || labelLower.includes('working') || labelLower.includes('trabajando') || labelLower.includes('estud') || labelLower.includes('tienes') || labelLower.includes('tiene') || labelLower.includes('tens') || labelLower.includes('têm'))) {
         value = ANSWERS.years_of_experience;
       }
 
       if (value) {
         process.stdout.write(`FILL val="${value}" `);
-        // Prefer Playwright fill (real focus + input events that commit React state)
-        if (ref) fill(ref, value);
+        const isLocationText = labelLower.includes('location') || labelLower.includes('city') || labelLower.includes('ciudad') || labelLower.includes('ubicaci') || labelLower.includes('school') || labelLower.includes('escuela') || labelLower.includes('universidad') || labelLower.includes('university') || labelLower.includes('company');
+        if (isLocationText) {
+          // Typeahead field: focus the real input and type keystrokes (fill() doesn't trigger suggestions)
+          if (ref) click(ref);
+          else evalJSON(`(function(){ const ins=[...document.querySelectorAll('input[type="text"], input:not([type])')]; const lp=${JSON.stringify(label.substring(0,40).toLowerCase())}; const inp=ins.find(i=>{const al=(i.getAttribute('aria-label')||'').toLowerCase(); return al.includes(lp)||lp.includes(al)&&al.length>5;}); if(inp){inp.focus();inp.click();} return inp?'focused':'nf'; })()`, { session: SESSION });
+          sleep(400);
+          evalJSON(`(function(){ const ae=document.activeElement; if(ae&&ae.value!==undefined){ae.value='';ae.dispatchEvent(new Event('input',{bubbles:true}));} return 'ok'; })()`, { session: SESSION });
+          cli(`type "${String(value).replace(/"/g, '\\"')}"`);
+          sleep(2500);
+          const dbg = evalJSON(`(function(){ const ae=document.activeElement; const lb=document.querySelectorAll('[role="option"], [role="listbox"] li, li[role="option"], [class*="typeahead"] [class*="selectable"], [class*="typeahead"] li, ul[class*="suggestion"] li, [data-test-single-typeahead-entity-form] li'); return JSON.stringify({tag:ae&&ae.tagName, val:ae&&ae.value, opts:lb.length, opt0:lb[0]&&lb[0].innerText}); })()`, { session: SESSION });
+          process.stdout.write(`[dbgL ${JSON.stringify(dbg)}] `);
+          // If suggestions rendered, click the first one; else ArrowDown+Enter
+          const clickedSug = evalJSON(`(function(){
+            const sels = '[role="option"], [role="listbox"] li, li[role="option"], [class*="typeahead"] [class*="selectable"], [class*="typeahead"] li, ul[class*="suggestion"] li';
+            const first = document.querySelector(sels);
+            if (!first) return JSON.stringify({clicked:false});
+            first.dispatchEvent(new MouseEvent('mousedown', {bubbles:true, view:window}));
+            first.dispatchEvent(new MouseEvent('mouseup', {bubbles:true, view:window}));
+            first.dispatchEvent(new MouseEvent('click', {bubbles:true, view:window}));
+            return JSON.stringify({clicked:true, text:first.innerText&&first.innerText.substring(0,60)});
+          })()`, { session: SESSION });
+          process.stdout.write(`[sug ${JSON.stringify(clickedSug)}] `);
+          sleep(800);
+        } else if (ref) {
+          // Prefer Playwright fill (real focus + input events that commit React state)
+          fill(ref, value);
+        }
         // Also run eval setter as backup for non-React-controlled fields
         const fillResult = evalJSON(`(function(){
           const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -383,11 +414,18 @@ function applyToJob(jobRef, userData) {
       // Skip if a real option is selected (not "Select an option")
       // For autocomplete fields (location/city), a highlighted suggestion can show as [selected]
       // without being a committed selection, so always process them
-      const labelLower = label.toLowerCase();
+      const labelLower = label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
       const isAutocomplete = labelLower.includes('location') || labelLower.includes('city');
-      const placeholderRe = /option "(Select an option|Seleccionar[^"]*|Selecionar[^"]*|Elige[^"]*|Choose[^"]*|Bitte[^"]*|Sélectionner[^"]*)"\s*\[selected\]/i;
+      const placeholderRe = /option "(|Select an option|Selecc[^"]*|Selec[^"]*|Elige[^"]*|Choose[^"]*|Bitte[^"]*|Sélectionner[^"]*)"\s*\[selected\]/i;
       const hasRealSelection = optionsBlock.includes('[selected]') && !placeholderRe.test(optionsBlock);
-      if (hasRealSelection && !isAutocomplete) continue;
+      const isCountryCode = !labelLower.includes('postal') && !labelLower.includes('zip') && (labelLower.includes('phone country') || labelLower.includes('country code') || labelLower.includes('prefisso') || labelLower.includes('código') || labelLower.includes('codigo') || labelLower.includes('paese') || labelLower.includes('país') || labelLower.includes('pais'));
+      // Country code: never trust the preselection (LinkedIn defaults to Andorra etc.) — never skip, always enforce Argentina below
+      const hasRealSelectionEff = isCountryCode ? false : hasRealSelection;
+      if (hasRealSelectionEff && !isAutocomplete) {
+        const selOpt = optionsBlock.match(/option "([^"]+)"[^\n]*\[selected\]/)?.[1];
+        process.stdout.write(`[combo-skip "${label.substring(0,30)}" sel="${(selOpt||'').substring(0,40)}"] `);
+        continue;
+      }
 
       let optionValue = null;
 
@@ -540,9 +578,11 @@ function applyToJob(jobRef, userData) {
         press('Tab');
         sleep(1000);
       } else {
-        // For comboboxes with no matching handler, try eval-based selection
-        // This handles Yes/No comboboxes that don't show options in snapshot
+        // For comboboxes with no matching handler, try eval-based selection.
+        // Pick the best candidate from the visible options when available.
         process.stdout.write(`COMBO_EVAL label="${label.substring(0,30)}" `);
+        const opts = [...optionsBlock.matchAll(/option "([^"]+)"/g)].map(m => m[1]);
+        const nonPlaceholder = opts.filter(o => !/select|selecc|selec|elige|choose|bitte|sélectionner/i.test(o));
         let answer = 'Yes';
         if (labelLower.includes('sponsorship') || labelLower.includes('visa')) answer = 'No';
         if (labelLower.includes('authorized') && labelLower.includes('work')) answer = 'No';
@@ -550,23 +590,46 @@ function applyToJob(jobRef, userData) {
         if (labelLower.includes('manufacturing') || labelLower.includes('mes') || labelLower.includes('scada')) answer = 'No';
         if (labelLower.includes('based in') && (labelLower.includes('latin america') || labelLower.includes('latam'))) answer = 'Yes';
         if (labelLower.includes('remote') && labelLower.includes('year')) answer = 'Yes';
+        if (labelLower.includes('hear about') || labelLower.includes('how did you hear') || labelLower.includes('cómo supiste') || labelLower.includes('como te enteraste')) {
+          answer = opts.find(o => /linkedin/i.test(o)) || 'LinkedIn';
+        }
+        if (labelLower.includes('government official')) answer = 'No';
+        if (labelLower.includes('privacy') || labelLower.includes('receipt') || labelLower.includes('acknowledge') || labelLower.includes('understand that') || labelLower.includes('confirm')) {
+          answer = opts.find(o => /yes|i have read|i acknowledge|i understand|confirm/i.test(o)) || 'Yes';
+        }
+        if (labelLower.includes('use ai') || labelLower.includes('ai tools')) {
+          answer = opts.find(o => /regularly|daily|frequent|everyday|productiv/i.test(o)) || (nonPlaceholder[0] || 'Yes');
+        }
+        // If no options visible in snapshot, try the computed answer; else prefer it if it exists in options
+        if (opts.length && !opts.includes(answer)) {
+          answer = nonPlaceholder[0] || answer;
+        }
 
-        // Try to select via eval
         const selectResult = evalJSON(`(function(){
-          const select = document.querySelector('[aria-label="${label.replace(/"/g, '\\"').substring(0, 80)}"]');
-          if (select && select.tagName === 'SELECT') {
+          const labelPart = ${JSON.stringify(label.replace(/"/g, '\\"').substring(0, 80))};
+          const selects = document.querySelectorAll('select');
+          for (const select of selects) {
+            const al = select.getAttribute('aria-label') || '';
+            if (!(al.includes(labelPart) || labelPart.includes(al) && al.length > 5)) continue;
             for (const opt of select.options) {
-              if (opt.text === '${answer}') {
+              if (opt.text.trim() === ${JSON.stringify(answer)}) {
                 opt.selected = true;
                 select.dispatchEvent(new Event('change', {bubbles: true}));
                 return JSON.stringify({selected: true, value: opt.value});
+              }
+            }
+            // Fallback: first non-placeholder option in this select
+            for (const opt of select.options) {
+              if (!/select|selecc|selec|elige|choose/i.test(opt.text)) {
+                opt.selected = true;
+                select.dispatchEvent(new Event('change', {bubbles: true}));
+                return JSON.stringify({selected: true, value: opt.value, fallback: opt.text});
               }
             }
           }
           return JSON.stringify({selected: false});
         })()`, { session: SESSION });
         if (!selectResult || !selectResult.selected) {
-          // Fallback: try selectOption with ref
           try { selectOption(ref, answer); } catch(e) {}
         }
         sleep(1000);
@@ -587,7 +650,7 @@ function applyToJob(jobRef, userData) {
       // Check if already has a checked radio
       if (block.includes('[checked]') || block.includes('[active]')) continue;
 
-      const labelLower = label.toLowerCase();
+      const labelLower = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
       // Default: click "Yes" for experience/skills questions, "No" for disability/sponsorship
       // Values come from DB form_answers. Fallbacks are generic defaults.
@@ -627,6 +690,63 @@ function applyToJob(jobRef, userData) {
       }
     }
 
+    // DOM fallback: required radiogroups not visible in snapshot (e.g. custom fieldsets)
+    const radioResult = evalJSON(`(function(){
+      const answered = [];
+      const groups = document.querySelectorAll('fieldset, [role="radiogroup"], [data-test-form-builder-radio-button-form-component]');
+      for (const g of groups) {
+        const radios = g.querySelectorAll('input[type="radio"]');
+        if (!radios.length) continue;
+        if (g.querySelector('input[type="radio"]:checked')) continue;
+        const legend = (g.querySelector('legend')?.textContent || g.getAttribute('aria-label') || g.closest('.fb-form-element')?.querySelector('label,legend')?.textContent || '').trim().toLowerCase();
+        const labels = [...radios].map(r => (r.closest('label')?.textContent || r.value || '').trim());
+        let pick = labels.findIndex(l => /^yes|sí$|si$|sim$/i.test(l));
+        if (/sponsor|visa|authorized|citizen|clearance|disab|relative|government|residen|work in (the )?(us|usa|canada|eu|uk)|authorized to work/i.test(legend)) {
+          const noIdx = labels.findIndex(l => /^no|não|non$/i.test(l));
+          if (noIdx >= 0) pick = noIdx;
+        }
+        if (pick < 0) pick = 0;
+        const r = radios[pick];
+        r.click();
+        r.dispatchEvent(new Event('change', {bubbles:true}));
+        answered.push({legend: legend.substring(0,50), picked: labels[pick]});
+      }
+      return JSON.stringify(answered);
+    })()`, { session: SESSION });
+    const radioArr = Array.isArray(radioResult) ? radioResult : (() => { try { return JSON.parse(radioResult || '[]'); } catch { return []; } })();
+    if (radioArr.length) {
+      process.stdout.write(`[radios ${JSON.stringify(radioArr)}] `);
+      sleep(1000);
+    }
+
+    // DOM fallback: required selects still empty (snapshot may show placeholder as [selected])
+    const selRes = evalJSON(`(function(){
+      const done = [];
+      document.querySelectorAll('select').forEach(s => {
+        if (s.value && s.selectedOptions[0] && s.selectedOptions[0].text.trim() !== '') return;
+        const wrapper = s.closest('.fb-form-element, .jobs-easy-apply-form-section__element, [class*="form-element"]') || s.parentElement;
+        const label = ((wrapper && (wrapper.querySelector('label,legend')?.textContent || '')) || s.getAttribute('aria-label') || '').trim().toLowerCase();
+        const opts = [...s.options].filter(o => o.value !== '' && !/selec|elig|choos|select/i.test(o.text));
+        if (!opts.length) return;
+        let pick = null;
+        const noQ = /sponsor|visa|authorized|autoriz|citizen|clearance|disab|relative|government|residen|indigenous|autochton|travail|canada|french|anglais/i.test(label);
+        if (noQ) pick = opts.find(o => /^(no|não|non)$/i.test(o.text.trim())) || null;
+        if (!pick && /english|anglais|ingl/i.test(label)) pick = opts.find(o => /professional|advanced|proficien|fluent|interm/i.test(o.text));
+        if (!pick && /salary|salarial|attentes/i.test(label)) pick = opts[Math.min(1, opts.length - 1)];
+        if (!pick) pick = opts.find(o => /linkedin|yes|sí|si$/i.test(o.text.trim())) || opts[0];
+        pick.selected = true;
+        s.dispatchEvent(new Event('change', {bubbles: true}));
+        s.dispatchEvent(new Event('input', {bubbles: true}));
+        done.push({label: label.substring(0,40), val: pick.text.trim().substring(0,40)});
+      });
+      return JSON.stringify(done);
+    })()`, { session: SESSION });
+    const selArr = (() => { try { return JSON.parse(selRes || '[]'); } catch { return []; } })();
+    if (selArr.length) {
+      process.stdout.write(`[selects ${JSON.stringify(selArr)}] `);
+      sleep(1000);
+    }
+
     // Check required checkboxes and click them
     const checkboxMatches = [...snap.matchAll(/- generic \[ref=([a-z][0-9a-z]+)\]:\s*\n\s*- checkbox "(.+?)"/g)];
     for (const cb of checkboxMatches) {
@@ -655,16 +775,48 @@ function applyToJob(jobRef, userData) {
       // Try eval-based click as fallback
       const evalClick = evalJSON(`(function(){
         const btns = document.querySelectorAll('button');
+        let disabledFound = null;
         for (const b of btns) {
           const text = b.textContent.trim();
           if (text.includes('Revisar') || text.includes('Review') || text.includes('Enviar') || text.includes('Submit') || text.includes('Siguiente') || text.includes('Next')) {
+            if (b.disabled || b.getAttribute('aria-disabled') === 'true' || b.getAttribute('disabled') !== null) {
+              disabledFound = disabledFound || text;
+              continue;
+            }
             b.click();
             return JSON.stringify({clicked: true, text: text});
           }
         }
-        return JSON.stringify({clicked: false});
+        return JSON.stringify({clicked: false, disabledBtn: disabledFound});
       })()`, { session: SESSION });
+      // If the button is disabled, surface the validation error(s) blocking it
+      if (evalClick && evalClick.disabledBtn) {
+        const errs = evalJSON(`(function(){
+          const msgs = [...document.querySelectorAll('[role="alert"], .fb-form-element__error-text, [class*="error-message"], [class*="error-text"], [aria-live]')]
+            .map(e => e.textContent.trim()).filter(t => t.length > 2 && t.length < 200);
+          return JSON.stringify(msgs.slice(0, 5));
+        })()`, { session: SESSION });
+        process.stdout.write(`[errs ${JSON.stringify(errs)}] `);
+      }
       process.stdout.write(`evalClick=${JSON.stringify(evalClick)} `);
+      // Diagnostic: dump required-but-empty or invalid fields (helps see what blocks Next/Review)
+      const blockers = evalJSON(`(function(){
+        const out = [];
+        document.querySelectorAll('[aria-invalid="true"], .artdeco-text-input--error, select[required]:not([value]), input[required]').forEach(el => {
+          out.push({tag: el.tagName, label: (el.getAttribute('aria-label')||el.id||'').substring(0,50), val: el.value});
+        });
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+          if (el.required && !el.value) out.push({req: true, label: (el.getAttribute('aria-label')||'').substring(0,50)});
+        });
+        document.querySelectorAll('fieldset, [role="radiogroup"]').forEach(g => {
+          if (!g.querySelector('input:checked')) out.push({radio: (g.getAttribute('aria-label')||g.querySelector('legend')?.textContent||'').substring(0,60)});
+        });
+        return JSON.stringify(out.slice(0,8));
+      })()`, { session: SESSION });
+      const blockerArr = Array.isArray(blockers) ? blockers : (() => { try { return JSON.parse(blockers || '[]'); } catch { return []; } })();
+      if (blockerArr.length) {
+        process.stdout.write(`[blocked ${JSON.stringify(blockerArr)}] `);
+      }
       sleep(3000);
     }
   }
