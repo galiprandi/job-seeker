@@ -1,0 +1,13 @@
+[Mon Sep 28 08:00:00 AM -03 2026] === Daily job application started ===
+hint: Diverging branches can't be fast-forwarded, you need to either:
+hint:
+hint: 	git merge --no-ff
+hint:
+hint: or:
+hint:
+hint: 	git rebase
+hint:
+hint: Disable this message with "git config set advice.diverging false"
+fatal: Not possible to fast-forward, aborting.
+[Mon Sep 28 08:00:02 AM -03 2026] WARNING: git pull failed, continuing with local state
+/home/santialiprandi/Github/job-seeker/scripts/daily-apply.sh: line 42: devin: command not found

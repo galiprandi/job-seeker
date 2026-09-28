@@ -301,6 +301,7 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('software engineering') || labelLower.includes('software development')) value = ANSWERS.years_of_experience;
       else if (labelLower.includes('artificial intelligence') || labelLower.includes('ai)') || labelLower.includes('generative ai') || labelLower.includes('genai') || labelLower.includes('gen ai')) value = ANSWERS.ai_experience || ANSWERS.genai_tools;
       else if (labelLower.includes('openai')) value = ANSWERS.openai_experience;
+      else if (labelLower === 'state' || labelLower === 'estado' || labelLower.includes('state/province') || labelLower === 'province' || labelLower === 'provincia') value = userData?.personal?.state || ANSWERS.state || ANSWERS.location;
       else if (labelLower.includes('location') || labelLower.includes('country') || labelLower.includes('city') || labelLower.includes('ciudad') || labelLower.includes('ubicaci') || labelLower.includes('localidad')) value = ANSWERS.location;
       else if (labelLower.includes('phone') || labelLower.includes('mobile') || labelLower.includes('celular') || labelLower.includes('cellulare') || labelLower.includes('telefon') || labelLower.includes('teléfono')) {
         // LinkedIn splits phone: country code goes in a separate combobox, this field wants the local number
@@ -316,8 +317,9 @@ function applyToJob(jobRef, userData) {
       else if (labelLower.includes('preferred name') || labelLower.includes('nombre preferido')) value = ANSWERS.first_name;
       else if (labelLower.includes('headline') || labelLower.includes('título profesional') || labelLower.includes('titular')) value = ANSWERS.headline || userData?.profile?.headline;
       else if (labelLower.includes('summary') || labelLower.includes('resumen')) value = ANSWERS.summary || userData?.profile?.summary;
-      else if (labelLower.includes('compens') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç') || labelLower.includes('ctc') || labelLower.includes('lpa') || labelLower.includes('maas') || labelLower.includes('beklent') || labelLower.includes('ucret') || (labelLower.includes('expected') && labelLower.includes('salary'))) value = ANSWERS.salary_usd;
-      else if (labelLower.includes('salary') && labelLower.includes('cop')) value = ANSWERS.salary_cop;
+      else if (labelLower.includes('compens') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç') || labelLower.includes('ctc') || labelLower.includes('lpa') || labelLower.includes('maas') || labelLower.includes('beklent') || labelLower.includes('ucret') || labelLower.includes('pay') || labelLower.includes('sueldo') || labelLower.includes('expectativ') || labelLower.includes('expectation') || (labelLower.includes('rate') && labelLower.includes('usd')) || labelLower.includes('hourly rate') || labelLower.includes('preferred rate') || labelLower.includes('asp salarial') || labelLower.includes('aspiración') || (labelLower.includes('expected') && labelLower.includes('salary'))) value = ANSWERS.salary_usd;
+      else if (labelLower.includes('1 to 10') || labelLower.includes('del 1 al 10') || labelLower.includes('from 1 to 10')) value = '7';
+      else if (labelLower.includes('salary') && labelLower.includes('cop')) value = ANSWERS.salary_cop || ANSWERS.salary_usd;
       else if (labelLower.includes('usd') && (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario'))) value = ANSWERS.salary_usd;
       else if (labelLower.includes('salary') || labelLower.includes('salarial') || labelLower.includes('salario') || labelLower.includes('remuneraci') || labelLower.includes('remuneraç')) value = ANSWERS.salary_usd;
       else if (labelLower.includes('notice') || labelLower.includes('availability') || labelLower.includes('start')) {
