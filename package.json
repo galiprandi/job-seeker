@@ -8,6 +8,11 @@
     "test:watch": "vitest",
     "test:browser": "vitest run tests/browser/",
     "db": "node scripts/db.js",
+    "connect": "npx --yes acp-connector",
+    "connect:setup": "npx --yes acp-connector setup",
+    "daemon": "npx --yes pm2 start \"npx --yes acp-connector\" --name job-seeker-bridge && npx --yes pm2 save",
+    "daemon:stop": "npx --yes pm2 stop job-seeker-bridge",
+    "daemon:logs": "npx --yes pm2 logs job-seeker-bridge",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
