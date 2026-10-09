@@ -480,17 +480,20 @@ function main() {
   for (const job of jobsToProcess) {
     process.stdout.write(`Applying to ${job.role} at ${job.company}... `);
 
-    // Click the job title first to load it, then click Easy Apply
-    const currentSnap = snapshot();
-    const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-    if (titleRef) {
-      click(titleRef);
-      sleep(3000);
+    // Click the job card on the search page (Easy Apply button only renders in the split pane, not on /jobs/view/)
+    const jobId = (job.url.match(/jobs\/view\/(\d+)/) || [])[1];
+    const clicked = jobId ? evalJSON(`(function(){var a=document.querySelector('a[href*="/jobs/view/${jobId}"]');if(!a)return false;a.click();return true;})()`, { session: SESSION }) : false;
+    if (!clicked) {
+      const currentSnap = snapshot();
+      const cleanRole = job.role.replace(/ with verification$/i, '');
+      const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${cleanRole.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 60)}`));
+      if (titleRef) click(titleRef);
     }
+    sleep(3000);
 
     // Re-find the Easy Apply button (refs change after navigation)
     const jobSnap = snapshot();
-    const easyApplyRef = extractRef(jobSnap, new RegExp(`button "Easy Apply to ${job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?" \\[ref=([a-z][0-9a-z]+)\\]`));
+    const easyApplyRef = extractRef(jobSnap, /button "(?:Easy Apply|Solicitud sencilla)[^"]*" \[ref=([a-z][0-9a-z]+)\]/);
     if (!easyApplyRef) {
       console.log('NO EASY APPLY BUTTON');
       results.push({ ...job, status: 'no_button' });

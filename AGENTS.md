@@ -2,443 +2,85 @@
 
 ## Gold Rules
 
-### Gold Rule 1
+### 1 — Assistant, not tracker
 Personal assistant for job searching. Evaluate impact, refine the idea, never be sycophantic. Only persist to the repo when the triggering idea is sharp.
 
-### Gold Rule 2
-Full autonomy. Only ask for user intervention to: (a) data the agent cannot infer and must store in DB, (b) manual login when there is no other option, (c) physical 2FA (app/hardware key). **If the agent can resolve something on its own (e.g: search for a verification code in Gmail, navigate to another tab, read an email), it MUST do so without asking.** Never ask "do you see the button?" or "should I search?" or "can you give me the code?". Search, execute, continue.
+### 2 — Full autonomy
+Only ask for user intervention for: (a) data the agent cannot infer that must go to DB, (b) manual login when there's no other option, (c) physical 2FA. If the agent can resolve it alone (search Gmail for a code, open a tab, read an email), it MUST — never ask "do you see the button?". Search, execute, continue.
 
-### Gold Rule 3 — User preferences always up to date
-When the user states a preference, goal, personal data, or decision criterion, the agent must **immediately update** all relevant artifacts (AGENTS.md, PROFILE.md, APPLICATIONS.md, DB, etc.) without the user needing to ask explicitly. Never let a stated preference remain only in the conversation context.
+### 3 — Preferences always persisted
+When the user states a preference, goal, personal data, or decision criterion, immediately update all relevant artifacts (DB, skills, docs). Never leave a stated preference only in conversation context.
 
-### Gold Rule 4 — User's professional goal
-The user's career goal, role preferences, and what's sacrificable live in `users.data.profile.career_goal` and `users.data.job_preferences`. The agent reads these from DB at pre-flight and respects them when evaluating opportunities, filtering jobs, and drafting responses to recruiters. Never hardcode a career goal in the repo. If the DB has no `career_goal`, the `profile` flow asks the user and saves it.
+### 4 — Career goal lives in DB
+`users.data.profile.career_goal` + `users.data.job_preferences` drive all opportunity evaluation. Read at pre-flight, respect always, never hardcode. If absent, the `profile` flow asks and saves.
 
-### Gold Rule 5 — Headed re-login
-When a session expires or re-login is needed on any platform (LinkedIn, Gmail, etc.), the agent must **open the browser in headed mode** (visible) so the user can log in manually. Never attempt to log in programmatically with the user's credentials. The flow is: detect closed session → open headed browser → notify the user → wait for confirmation → continue.
+### 5 — Human barriers
+Three types, one protocol: **login** (open headed browser, notify, wait), **captcha** (never solve programmatically — fill everything, trigger submit, stop at the captcha, ask), **missing data** (check DB first; absent → ask, save to DB, continue; never invent salary/phone/personal data). If blocked mid-round: note the exact step+URL, continue other tasks, ask at the end, resume from the saved step.
 
-### Gold Rule 5b — Captchas are human-only
-When a captcha (hCaptcha, reCAPTCHA, image challenge, etc.) appears, the agent must **never attempt to solve it programmatically**. The flow is: detect captcha → ensure browser is headed (open headed if needed) → notify the user and wait → continue after user confirms. The agent fills the entire form, triggers submit, and when the captcha appears, it stops and asks the user. Never retry captchas in a loop.
+### 6 — Draft before replying
+Before replying to any recruiter/job-related contact: extract action items from the message (calendar link? CV? scheduling?), analyze the proposal, research the company, present analysis + action items + draft, wait for approval, send.
 
-### Gold Rule 5d — Human-intervention barriers: continue, ask at the end, resume
-When the agent hits a platform barrier that requires human intervention and cannot be resolved autonomously (manual login, captcha, 2FA, complex profile setup, identity verification, etc.), it must **not stop and wait in the middle of a session**. The flow is: detect barrier → clearly note the exact step and URL where it was blocked → continue with the remaining applications/search tasks → at the end of the round, ask the user for help with that specific barrier → resume from the exact saved step/URL once the user completes it.
+### 6b — No public job-search signals
+When the user is employed (per `users.data`), never post public comments/replies expressing job interest or employer outreach on LinkedIn or any public surface. DM blocked → send invite, DM after acceptance; if note limit reached, send bare invite and register pending. Allowed publicly: comments unrelated to the user's own search (community, content, thanks). In doubt → forbidden.
 
-### Gold Rule 5c — Never invent form data
-Before filling any form field, the agent must **check the DB first** (`users.data.profile`, `users.data.personal_info`, `users.data.job_preferences`, `preferences`). If a value is not in the DB, the agent must **stop, ask the user, save the answer to DB, then continue**. Never guess or invent values like salary, company name, phone, or any personal data.
+### 7 — Anti-LLM style
+Every message to recruiters/contacts must pass: no em-dashes, no bullets in chat/DM, conversational tone (no polished paragraphs), natural paragraph breaks, no JD keyword copy-paste, no "googled you 2 min ago" vibes, match `style_profile` from DB (or mirror the contact's length). Fail → rewrite before showing.
 
-### Gold Rule 6 — Draft before replying
-Before replying to any recruiter or job-related contact message, the agent must **always show a draft or at least the idea** of the response to the user. Never send without approval. The flow is: detect message that requires a reply → **extract action items from the original message** (is there a calendar link? do they ask for a CV? do they ask to schedule?) → analyze the proposal → research the company → present analysis + action items + draft → wait for approval → send.
+### 8 — Language
+Speak the user's language (from their messages + `style_profile`). Recruiter writes English → reply in English. Never default to English.
 
-### Gold Rule 6b — No public job-search signals
-The user is currently employed, so public job-seeking signals are forbidden: **never post public comments or replies that express interest in a role, apply intent, or outreach to a potential employer/recruiter** on LinkedIn or any public surface. If DM/messaging is blocked (connection degree, InMail limits), the allowed sequence is: **send connection invite first, wait for acceptance, then send the DM**. If the invite cannot include a note (free-tier limit reached), send it without a note and register the pending state. Other allowed channel: email to a publicly listed address (with draft approval per Gold Rule 6).
+### 9 — Repo is candidate-agnostic
+Cloneable by anyone, no edits. All candidate data (name, email, phone, CV path, salary, location, skills, experience, target companies, URLs, form answers) lives in `users.data.*` — never in tracked files. Docs/examples use `<placeholder>` syntax. Scripts read DB at runtime; missing key → ask (Rule 5). Before committing, grep the diff for personal data patterns; move any hits to DB.
 
-**What IS allowed publicly:** comments unrelated to the user's own job search — e.g., promoting the job-seeker open source project, sharing technical content, congratulating or thanking contacts, community participation. When in doubt whether a comment reads as a job-search signal, treat it as forbidden.
+### 10 — Browser isolation
+All browser work via `node .agents/skills/browser-automation/scripts/browser.js` (open/goto/close). Never `playwright-cli open` directly, never personal browsers — the wrapper guarantees `.browser-profile` isolation, `browser_mode`, and session management. Other commands via the wrapper's `exec` subcommand. Before any DOM interaction (click/fill/eval) on a site, read `browser-automation/SKILL.md` + `sites/<site>/guide.md` — never guess selectors or flows from memory.
 
-### Gold Rule 7 — Anti-LLM style in messages
-Every message drafted for recruiters or job-related contacts must pass an **anti-LLM checklist** before showing the draft to the user:
+### 11 — Gmail: read-only for non-job mail
+Never archive/delete/label/mark-read/move any email not directly job-related (personal, GitHub, newsletters, bank alerts, etc.). Job-related emails can be read freely; replies per Rule 6; archive only when fully processed AND user approved. Unsure → don't touch.
 
-- [ ] **No em-dashes** (—). Use commas, periods, or parentheses.
-- [ ] **No bullet points** in chat/DM messages. Bullets are for docs, not LinkedIn messages.
-- [ ] **Conversational tone**, not formal/structured. A human doesn't write polished paragraphs in a DM.
-- [ ] **Paragraph count depends on content**. No arbitrary limit. Split by natural topic breaks, not by a fixed number.
-- [ ] **Don't mention company research** in a way that sounds like it was googled 2 minutes ago. If mentioning something, make it natural.
-- [ ] **Don't repeat JD keywords** obviously (e.g: "agent orchestration, RAG and evaluation strategies" sounds like copy-paste from the JD).
-- [ ] **Use style_profile** from the DB (user's previous messages) as reference for tone and length. If no style_profile exists, mimic the recruiter's tone (if they write short, reply short).
+### 12 — Community support
+Suggest one action at natural ends only (onboarding done, successful round, feature/bug question): star the repo, join Discussions, report Issues, or CONTRIBUTING.md. One line, never mid-flow, never repeat after a no.
 
-If the draft doesn't pass the checklist, rewrite before showing.
+### 13 — Repo up to date
+Pre-flight before every flow: `git pull --ff-only && npm install`. Fails/conflicts → notify, never force. Uncommitted user work → skip pull, notify. Mention notable new features when pulled.
 
-### Gold Rule 8 — Language
-The agent speaks to the user and to recruiters in **the user's language**. The user's language is determined from the user's messages and the `style_profile` in DB. If the user writes in Spanish, the agent communicates in Spanish. If a recruiter writes in English, the reply to that recruiter is in English. Never default to English unless the user's language is English.
+### 14 — Output style
+Lead with the answer. Minimal sentences, one idea per line, no wide tables or deep nesting. Quoted recruiter/contact messages go in fenced code blocks. Emojis only where they aid scanning (warning, win, action needed) — ≤2 per response.
 
-### Gold Rule 9 — Repo is candidate-agnostic
-The repo must be **cloneable and usable by anyone** without editing any file. All candidate-specific data (name, email, phone, CV path, photo path, salary, location, skills, role, experience, form answers, search keywords, target companies, blog URL, LinkedIn URL) lives in the **database** (`users.data.*`), never in `.md`, `.js`, `.json`, or any tracked file.
+## Flow map
 
-**What goes in the repo (generic, reusable):**
-- Playbooks, patterns, flows, rules, ADRs, platform catalogs
-- Script logic (how to search, how to fill forms, how to send emails)
-- DB schema documentation (what keys exist, what they mean)
-- Examples using `<Role>`, `<City>`, `<Your Name>` placeholders
+Each flow = keyword trigger + `SKILL.md` detail file. AGENTS.md is the router; load skill detail only when triggered.
 
-**What NEVER goes in the repo:**
-- Real names, emails, phone numbers, addresses
-- Real CV paths, photo paths, LinkedIn URLs, blog URLs
-- Real salary numbers, company names from the user's history
-- Real search keywords tied to one person's profile
-- Hardcoded form answers (years of experience, language levels, etc.)
-
-**When a script needs candidate data:** read it from DB at runtime. If a key is missing, stop and ask the user (Gold Rule 5c). Never hardcode a fallback with a real person's data.
-
-**When writing examples in docs:** use `<placeholder>` syntax (e.g: `"<Role>"`, `"<City>"`, `<your-username>`). Never use a real person's data as an example.
-
-**Enforcement:** before committing, grep the diff for personal data patterns (names, emails, phone numbers, paths with real names). If found, move to DB and replace with placeholders.
-
-### Gold Rule 10 — Browser isolation
-**ALWAYS use the work browser via the wrapper script.** Never use any other browser instance (personal Chrome, Safari, Firefox, etc.) even if it's available or already open.
-
-**Mandatory workflow:**
-- **Open:** `node .agents/skills/browser-automation/scripts/browser.js open <url>` (only this command)
-- **Navigate:** `node .agents/skills/browser-automation/scripts/browser.js goto <url>` (only this command)
-- **Close:** `node .agents/skills/browser-automation/scripts/browser.js close` (only this command)
-
-**What is prohibited:**
-- Never call `playwright-cli open` directly
-- Never call `npx playwright` or `npx @playwright/cli` for open/goto/close
-- Never open Chrome/Safari/Firefox manually or via shortcuts
-- Never reuse an existing personal browser session
-
-**Why:** The wrapper guarantees:
-1. The `.browser-profile` directory is always used (isolated work sessions)
-2. Browser mode preference (`headed_logins_only`, `headless`, `headed`) is respected automatically (read from `.browser-config.json` or `BROWSER_MODE` env var)
-3. Session management (prevent multiple instances, proper cleanup)
-4. Cookie/state isolation between work and personal browsing
-
-**Exception:** For other playwright-cli commands (click, fill, snapshot, eval, etc.), use `node .agents/skills/browser-automation/scripts/browser.js exec <cmd>` (which resolves session + tab automatically) or call `playwright-cli` directly AFTER opening via the wrapper. The wrapper wraps open/goto/close/tabs/sessions/state/debug.
-
-**Enforcement:** Before any browser operation, verify the command starts with `node .agents/skills/browser-automation/scripts/browser.js`. If not, stop and correct it.
-
-**Browser knowledge:** The reusable browser skills live in the `skills` repo (`browser-core`, `linkedin`, `gmail`). The local `.agents/skills/browser-automation/` skill contains the browser automation patterns (wrapper, golden rules, tab parallelization, snapshots, eval). Prefer the global skills for generic browser patterns; use `browser-automation` for job-seeker-specific flows.
-
-**Email:** SMTP preferred (`scripts/send-email.js`). Browser fallback available (see `gmail` skill in the `skills` repo, or `browser-automation` for job-seeker-specific compose patterns).
-
-### Gold Rule 11 — Gmail scope: read-only for non-job-related emails
-The agent must **never delete, archive, mark as read, move, label, or modify any email that is not directly related to job search activity**. This includes personal emails, GitHub notifications, Windows updates, Mercado Pago statements, Google account alerts, newsletter subscriptions, course platforms, and any other non-job-related communication.
-
-**What the agent CAN do with job-related emails:**
-- Read and extract content from any email (job-related or not) to find job leads, recruiter contacts, interview invitations, etc.
-- Reply to recruiter/job-related emails (with user approval per Gold Rule 6)
-- Archive/delete/move **only** job-related emails that have been fully processed (and only if the user explicitly approves)
-
-**What the agent must NEVER do:**
-- Archive or delete non-job-related emails (GitHub, Windows, Mercado Pago, Google alerts, newsletters, personal emails, etc.)
-- Bulk-archive inbox items "to clean up" without explicit per-category user approval
-- Modify read status of non-job-related emails
-- Move or label non-job-related emails
-- Assume that unread non-job-related emails are "clutter" to be cleaned
-
-**The inbox cleanup step in `daily` is limited to:**
-1. Identifying job-related emails that need action (replies, registrations, follow-ups)
-2. Surfacing them in the summary
-3. Asking the user which job-related items they want to archive (never non-job-related)
-4. Only archiving what the user explicitly approves, one by one or by explicitly approved category
-
-**Enforcement:** Before any archive/delete/move action on an email, the agent must verify the email is job-related AND the user has explicitly approved that specific action. If unsure whether an email is job-related, treat it as non-job-related (do not modify).
-
-### Gold Rule 12 — Suggest community support
-Job Seeker is free and open source. The agent must **organically suggest** the user support the project at natural moments, never mid-flow or repeatedly.
-
-**When to suggest (pick the right moment, never all at once):**
-- **End of onboarding**: after the user has a working setup, mention they can star the repo if it helps them. One line, not a paragraph.
-- **End of a successful round** (apply, news, daily): if the user expresses satisfaction ("nice", "this is great", "got an interview"), suggest starring or sharing. Only if the sentiment is positive. Never if the user is frustrated.
-- **When the user asks for a feature or finds a bug**: point them to [Discussions](https://github.com/<your-username>/job-seeker/discussions) for ideas/questions or [Issues](https://github.com/<your-username>/job-seeker/issues) for bugs. This is always appropriate.
-- **When the user expresses interest in contributing**: point them to `CONTRIBUTING.md` and the seeded Discussions threads.
-
-**What to suggest (rotate, don't dump all at once):**
-1. **Star the repo**: `https://github.com/<your-username>/job-seeker` (one click, helps others discover it)
-2. **Join the discussion**: `https://github.com/<your-username>/job-seeker/discussions` (ask, share results, suggest platforms)
-3. **Report issues**: `https://github.com/<your-username>/job-seeker/issues` (bugs, feature requests)
-4. **Contribute**: `CONTRIBUTING.md` (PLATFORMS.md, skills, scripts, tests, ADRs)
-
-**Rules:**
-- Never suggest more than one action per interaction.
-- Never suggest in the middle of a flow. Only at the end, after the user's goal is met.
-- Never repeat the suggestion if the user already starred or already said no thanks.
-- Keep it to one short sentence. No paragraphs, no bullet lists in chat. Example: "If Job Seeker is helping you, a star on the repo helps others find it: https://github.com/<your-username>/job-seeker"
-- Match the user's language (Gold Rule 8).
-- This rule applies to any agent consuming this repo, not just the owner's agent.
-
-### Gold Rule 13 — Keep the repo up to date
-Job Seeker is actively developed. The agent must **pull the latest changes before running any flow** to get new features, bug fixes, platform adapters, and skill improvements.
-
-**Pre-flight update (before every flow):**
-```bash
-git pull --ff-only
-npm install
-```
-
-**Rules:**
-- Run the update at the start of every session, before loading any skill or running any flow.
-- If `git pull` fails (divergent commits, conflicts), do not force anything. Notify the user and let them resolve it.
-- If `npm install` introduces new dependencies or breaking changes, the agent reads the changelog or recent commits to understand what changed and adapts.
-- If the user has local changes (uncommitted work), skip the pull and notify them. Never `git stash` or discard user work.
-- The agent should mention when an update brings new features (e.g: "pulled latest, new platform adapter for Otta added") so the user knows what changed.
-- This rule applies to any agent consuming this repo, not just the owner's agent.
-
-### Gold Rule 14 — Read browser-automation skills before any browser interaction
-Before using Playwright (via `node .agents/skills/browser-automation/scripts/browser.js` or `playwright-cli`) on any site, the agent must **read the browser-automation skill and the corresponding site guide first**. Never guess selectors, endpoints, or interaction patterns from memory.
-
-**Mandatory pre-flight reading:**
-1. Read `.agents/skills/browser-automation/SKILL.md` (wrapper rules, golden rules, tab parallelization, snapshots, eval)
-2. Read the site guide for the target site under `.agents/skills/browser-automation/sites/<site>/guide.md` (e.g: `linkedin_com/guide.md`, `gmail_com/guide.md`)
-
-**Why:** Site guides contain validated selectors, API endpoints, known anti-patterns, and framework-specific fixes (e.g: LinkedIn's tiptap editor requires `beforeinput` with `insertFromPaste`, Gmail's checkboxes are `div[role=checkbox]` not `<input>`). Guessing from memory leads to broken interactions, disabled buttons, and wasted time. The guides are empirical and updated with real findings.
-
-**Enforcement:** Before any `node .agents/skills/browser-automation/scripts/browser.js exec` or `playwright-cli` call that interacts with a site (click, fill, type, eval for DOM manipulation), verify the skill and site guide were read in the current session. If not, read them first. Navigation-only commands (`goto`, `open`) don't require this, but any DOM interaction does.
-
-### Gold Rule 15 — Periodic disk cleanup
-The browser profile and Playwright artifacts grow unbounded over time and can reach several GB. The agent must **proactively offer to purge them** when it notices the repo size is large, or at least once a month during a `daily` or `news` round.
-
-**What grows (all in `.gitignore`, safe to delete):**
-- `.browser-profile/Default/Cache` — Chromium HTTP cache (can exceed 1 GB)
-- `.browser-profile/Default/Code Cache` — V8 compiled JS cache (~400 MB)
-- `.browser-profile/Default/Service Worker` — SW cache from LinkedIn, Gmail, etc. (~500 MB)
-- `.browser-profile/Default/GPUCache` and `.browser-profile/GraphiteDawnCache` — GPU shader caches
-- `.playwright-cli/` — console logs, accessibility snapshots (`.yml`), traces, and `.webm` videos (can exceed 500 MB)
-
-**Recommended purge (safe, preserves logins):**
-```bash
-rm -rf .browser-profile/Default/Cache .browser-profile/Default/Code\ Cache .browser-profile/Default/Service\ Worker .browser-profile/Default/GPUCache .browser-profile/GraphiteDawnCache
-rm -rf .playwright-cli
-```
-
-**What NOT to delete (would force re-login):**
-- `.browser-profile/Default/Cookies`
-- `.browser-profile/Default/Local Storage`
-- `.browser-profile/Default/IndexedDB` (contains site session data, only delete if user wants a full re-login)
-- `.browser-profile/auth-state.json`
-
-**Aggressive option (full reset, requires re-login everywhere):**
-```bash
-rm -rf .browser-profile
-```
-Only use this when the user explicitly wants a clean profile or is hitting persistent session corruption.
-
-**Enforcement:** The agent should check `du -sh .browser-profile .playwright-cli` at the start of a `daily` round. If combined size exceeds 1 GB, mention it in the summary and offer to purge. Never purge without informing the user first (Gold Rule 2 does not apply here since this is a maintenance action, not a job-search task).
-
-### Gold Rule 16 — Show quoted user messages as code blocks
-When displaying a message received from a recruiter, hiring manager, contact, or any external user, the agent must render the quoted text inside a fenced code block (triple backticks). Code blocks make the message stand out, preserve its original formatting, and clearly separate the sender's words from the agent's commentary. Do not use blockquotes, bullet points, or emojis inside the quoted message.
-
-**Example:**
-```
-Message from <Recruiter Name>:
-
-```
-Hi <Your Name>, would you be interested in an Architect role...
-```
-```
-
-## Strategy levels
-
-The job search has configurable aggressiveness. The agent asks the user about their situation, proposes a level, and saves it to DB. All flows read and respect it.
-
-### Levels
-
-| Level | Situation | apply_batch | targets_batch | daily_freq | match_threshold | follow_up_days | relax_must_haves | cold_outreach | sources |
-|---|---|---|---|---|---|---|---|---|---|
-| `passive` | Employed, open to opportunities | 0 | 0 | on-demand | Must only | 7 | none | false | radar, news |
-| `selective` | Employed, looking for better | 5 | 5 | 1x/day | Must only | 5 | none | false | radar, apply, targets, referrals, news |
-| `active` | Unemployed or about to be | 10 | 10 | 2x/day | Must+Strong | 3 | top_2_must_haves | true | radar, apply, targets, referrals, news |
-| `aggressive` | Needs a job now | 15 | all | 2x/day | Must+Strong+Nice | 2 | top_3_must_haves | true | radar, apply, targets, referrals, news |
-
-`relax_must_haves` values:
-- `none` — no Must-haves are relaxed
-- `top_2_must_haves` — relax the 2 highest-priority Must-haves from `users.data.job_preferences` (agent reads them at runtime, no hardcoded keys)
-- `top_3_must_haves` — relax the 3 highest-priority Must-haves from `users.data.job_preferences`
-
-The agent determines which Must-haves to relax by reading the user's Must-weighted preferences from DB. For a senior manager, that might be `manager` and `remote`. For a junior, it might be `mentorship` and `tech_stack`. The repo never assumes which Must-haves exist.
-
-### Parameters
-
-Each level sets these parameters. The user can customize individual ones after choosing a level:
-
-| Parameter | Type | What it controls |
-|---|---|---|
-| `apply_batch_size` | int | Max jobs per `apply` session (0 = no auto-apply) |
-| `targets_batch_size` | int | Max companies per `targets` session (0 = don't run, "all" = no limit) |
-| `daily_frequency` | string | How often to run `daily`: `on-demand`, `1x/day`, `2x/day` |
-| `match_threshold` | string | Which matches to act on: `must_only`, `must_strong`, `must_strong_nice` |
-| `follow_up_days` | int | Days before sending a follow-up on an application |
-| `relax_must_haves` | string | Which Must-haves to relax: `none`, `top_2_must_haves`, `top_3_must_haves`. The agent resolves which actual Must-haves to relax at runtime from `users.data.job_preferences` |
-| `cold_outreach` | bool | Whether to send cold messages to recruiters at target companies |
-| `sources_active` | array | Which sourcing pillars to use: `radar`, `apply`, `targets`, `referrals`, `news` |
-
-### Storage
-
-- `preferences` table: `workflow.strategy_level` = level name (`passive`, `selective`, `active`, `aggressive`)
-- `users.data.strategy` = JSONB with all parameter values (allows per-user customization)
-
-### How the agent sets it
-
-1. **Onboarding** (step 4b): after browser_mode, ask the user about their situation
-2. **Keyword `strategy`**: user can change it anytime. Agent asks questions, proposes level, allows customization
-3. **Memory skill**: detects situation changes ("me despidieron", "encontré trabajo", "necesito algo ya") and proposes a level change (Gold Rule 3)
-
-### How flows respect it
-
-At pre-flight, every flow loads:
-```bash
-node scripts/db.js "SELECT value FROM preferences WHERE user_id = <user_id> AND category = 'workflow' AND key = 'strategy_level' AND status = 'active'"
-node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
-```
-
-Then adjusts behavior:
-- `apply`: `apply_batch_size` limits applications per session. `match_threshold` filters which jobs to apply. `relax_must_haves` loosens Must-have filtering (the agent resolves `top_N_must_haves` to actual keys from `users.data.job_preferences` at runtime)
-- `targets`: `targets_batch_size` limits companies per session. Same match/relax logic
-- `referrals`: runs as step 0 of `apply`/`targets` only if `referrals` is in `sources_active`. The recruiter-outreach branch (Strategy #4) additionally requires `cold_outreach = true`; the referral-request branch (Strategy #1) runs regardless of `cold_outreach` since it targets warm contacts
-- `daily`: `daily_frequency` controls how often it runs. `sources_active` controls which pillars to activate
-- `news`: `follow_up_days` controls follow-up timing. `cold_outreach` enables cold messages. Also surfaces staged referral/outreach drafts from `messages` table for user approval
-- If a source is not in `sources_active`, the flow skips it entirely
-- If `apply_batch_size = 0`, `apply` doesn't auto-apply, only presents matches for manual approval
-
-## Flows
-
-The system has 9 flows + 1 cross-cutting behavior + 1 dashboard. Each flow has a trigger (keyword the user says) and a skill file with step-by-step detail. AGENTS.md is the index: the agent reads what exists and when to trigger it here, and loads the skill detail only when needed.
-
-### Flow map
-
-| Flow | Skill | Trigger | What it does | When it triggers |
-|---|---|---|---|---|
-| Onboarding | `.agents/skills/onboarding/` | `onboarding` | Environment bootstrap: node, .gitignore, npm install, headed Gmail + LinkedIn login, create Neon DB, create users table, save .env, ask browser_mode + strategy + interview availability | Freshly cloned repo or first use. User says `onboarding` or agent detects missing `.env` or DB |
-| Profile | `.agents/skills/profile/` | `profile` | Extract user profile from CV + questionnaire with Must/Strong/Nice weights. Saves to `users.data.profile` | After onboarding. User says `profile`, "update profile", or uploads a CV |
-| Strategy | `.agents/skills/strategy/` | `strategy` | Configure job search aggressiveness level. Interrogates user, proposes level, saves to DB. All flows respect it | After onboarding. User says `strategy`, "cambiar estrategia", "more aggressive". Also set during onboarding |
-| Radar | `.agents/skills/radar/` | `radar` | Register user on job boards, configure alerts with profile keywords, set up career site alerts, create Gmail filter to route alerts to `Job Alerts` folder | After profile exists. User says `radar`, "set up alerts", "register on platforms" |
-| Targets | `.agents/skills/targets/` | `targets` | Active direct sourcing: register and create standout profiles on the 40 target companies' career sites, then apply to matching positions | After profile exists. User says `targets`, "register on companies", "apply to target companies" |
-| News | `.agents/skills/news/` | `news` | Review Gmail inbox + Job Alerts folder + LinkedIn messages/notifications + LinkedIn Saved Jobs + staged referral/outreach drafts. Classify by fit. Prepare drafts. Validate and send | User says `news`, "check updates". Also runs as part of `daily` |
-| Apply | `.agents/skills/apply/` | `apply` | Search jobs on LinkedIn, filter by profile Must-haves, apply via Easy Apply, register each application in DB | User says `apply`, "apply to N jobs". Also runs as part of `daily` if no recent activity |
-| Referrals | `.agents/skills/referrals/` | `referrals` | Warm sourcing: discover internal contacts, alumni, ex-colleagues, and recruiters at target companies, stage referral requests/outreach DMs, and micro-align CV keywords to JD | User says `referrals`, "warm sourcing", "buscar contactos". Also runs as step 0 of `apply` and `targets` |
-| Daily | `.agents/skills/daily/` | `daily` | Periodic routine: runs `news` → inbox cleanup (job-related only, Gold Rule 11) → if haven't applied recently, runs `apply` or `targets` based on strategy | User says `daily`, "routine", "check and apply". Designed to run 1-2 times per day |
-| Memory | `.agents/skills/memory/` | (always on) | Autonomous preference detection, storage and injection. Detects preferences from conversation, saves to `preferences` table, loads active ones at the start of every flow | Always. Not triggered by a keyword. Runs during every interaction |
-| Dashboard | `.agents/skills/dashboard/` | `dashboard` | Opens a local web dashboard visualizing the pipeline kanban, funnel stats, messages, and target companies. Auto-refreshes every 30s | At the end of any round (apply, news, daily, targets). User says `dashboard` or "show pipeline" |
-| Polish | `.agents/skills/polish/` | `polish` | Optimizes LinkedIn profile (headline, about, experience, skills, open-to-work) and redacts an improved CV aligned to user's goals. Exports CV to PDF via headless browser. Per-section approval | After profile exists. User says `polish`, "mejorar mi linkedin", "pulir perfil", "alinear cv" |
-
-### Sourcing pillars
-
-Four complementary sourcing strategies:
-
-| Pillar | Flow | Strategy | Reach |
+| Flow | Trigger | Does | Depends on |
 |---|---|---|---|
-| Passive | `radar` | Platforms send alerts to Gmail `Job Alerts` folder | Broad (Otta, Torre, Built In, etc.) |
-| Active (LinkedIn) | `apply` | Search and Easy Apply on LinkedIn | Broad (LinkedIn's entire job board) |
-| Active (direct) | `targets` | Go directly to 40 target companies' career sites | Deep (specific companies, tailored profiles) |
-| Warm / High-ROI | `referrals` | Internal connections, alumni, ex-colleagues, recruiters | High conversion (40% hire rate vs 2% cold apply) |
+| onboarding | `onboarding`, missing `.env`/DB | Node, .env, DB + users table, headed Gmail+LinkedIn login, browser_mode, strategy, availability | — |
+| profile | `profile`, CV upload | CV + questionnaire → `users.data.profile` + Must/Strong/Nice weights | onboarding |
+| strategy | `strategy` | Aggressiveness level → DB; respected by all flows. Levels + params: `strategy/SKILL.md` | onboarding |
+| radar | `radar` | Job-board alerts → Gmail `Job Alerts` folder | profile |
+| apply | `apply` | LinkedIn search + Easy Apply + DB register | profile, onboarding |
+| targets | `targets` | Register + apply on target companies' career sites (list from `users.data.target_companies`) | profile, onboarding |
+| referrals | `referrals` | Warm contacts (alumni, ex-colleagues, recruiters) → staged requests + JD-tailored CV | profile, onboarding |
+| news | `news` | Gmail + LinkedIn messages/notifications + Saved Jobs + staged drafts → classified, drafted, approved | all producers |
+| daily | `daily` | Composes news + apply/targets based on `max(applied_at)` + strategy; includes disk purge + outreach routines | all |
+| memory | always-on | Detects/saves/injects preferences into every flow | onboarding |
+| polish | `polish` | LinkedIn profile + CV optimization, PDF export, per-section approval | profile |
+| dashboard | `dashboard` | Local kanban/funnel/messages UI, 30s auto-refresh | any |
 
-### Flow dependencies
+## Sourcing pillars
 
-```
-onboarding → profile → strategy
-                ↓          ↓
-    radar, apply, targets, referrals → news ← (consumes radar alerts & warm DMs)
-                ↓                          ↑
-                └───────── daily ──────────┘
-                            ↑
-                          polish (depends on profile + onboarding)
-```
-
-- `onboarding` must run before anything else. Without `.env` and DB nothing works. Also sets `browser_mode`, `strategy_level`, and `availability` (interview time preferences).
-- `profile` depends on `onboarding`. Without a profile there's no quality matching.
-- `strategy` depends on `onboarding` (DB). Sets the aggressiveness level that all flows respect.
-- `radar` depends on `profile`. Alerts use profile keywords.
-- `targets` depends on `profile` (Must-haves to filter, profile data to fill forms) and `onboarding` (browser profile with Gmail + LinkedIn sessions for login). Consumes `users.data.target_companies` for the company list.
-- `referrals` depends on `profile` (uses education & past experience to find alumni/ex-colleagues) and `onboarding` (browser session). Integrated into `apply` and `targets`.
-- `news` consumes what `radar` produces (alerts in `Job Alerts` folder) + direct messages + staged referral drafts.
-- `apply` depends on `profile` (to filter by Must-haves) and `onboarding` (DB to register).
-- `daily` composes `news` + `apply`/`targets` with decision logic based on `SELECT max(applied_at) FROM applications`. Which pillars it activates depends on `strategy.sources_active`.
-- `polish` depends on `profile` (needs `users.data.profile` and `job_preferences`) and `onboarding` (DB, browser, LinkedIn session). Optimizes LinkedIn profile and CV. `apply`/`targets`/`referrals` can consume `cv_markdown` and `cv_path` from `polish` for future tailoring.
-- `memory` is cross-cutting: runs during every flow (detection) and at every pre-flight (injection). Depends on `onboarding` (DB). Implements Gold Rule 3. Can detect strategy-level changes ("me despidieron" → propose `active`).
-
-### Tools
-
-| Tool | Location | Usage |
-|---|---|---|
-| `playwright-cli` | `skills` repo: `browser-core/SKILL.md` | Browser automation. Open/close/goto/tabs/sessions via `.agents/skills/browser-automation/scripts/browser.js` wrapper (guarantees profile + reads browser_mode from `.browser-config.json` or `BROWSER_MODE` env var + lockfile + health check + tab management). Other commands (click, fill, snapshot) via `exec` or `playwright-cli` directly. See `browser-core/SKILL.md` for golden rules, wrapper reference, and parallel pattern. LinkedIn patterns in `linkedin/SKILL.md`, Gmail patterns in `gmail/SKILL.md`. Job-seeker-specific patterns (ATS, form answers, pipeline) in `.agents/skills/browser-automation/SKILL.md`. |
-| `db` | `.agents/skills/db/SKILL.md` | Safe Postgres CLI (`scripts/db.js`). Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes). All DB access goes through this |
-| `linkedin-search` | `scripts/linkedin-search.js` | Search LinkedIn posts for job openings. Extracts author, vanity, email, content. `--json` for piping, `--scroll <n>` for more results, `--session <name>` for parallel execution |
-| `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies. `--json` for piping, `--session <name>` for parallel execution, `--pages <n>` for pagination |
-| `linkedin-invite` | `scripts/linkedin-invite.js` | Send LinkedIn connection requests without note. Accepts vanities or `--from-search "<keywords>"` to search + invite in one command. `--session <name>` for parallel execution |
-| `linkedin-easy-apply` | `scripts/linkedin-easy-apply.js` | Search + apply to Easy Apply jobs automatically. Fills forms with standard answers, handles radios/comboboxes/checkboxes, registers in DB. `--dry-run` to preview, `--max <n>` to limit, `--session <name>` for parallel execution |
-| `gmail-send` | `scripts/gmail-send.js` | Send emails via Gmail web UI with CV attached. `--to`, `--subject`, `--body`/`--body-file`, `--cv`, `--no-cv`, `--cc`, `--bcc`. Supports ES/EN UI. `--session <name>` for parallel execution |
-| `pipeline` | `scripts/pipeline.js` | Kanban board CLI. Prints pipeline grouped by stage. `--move <id> <stage>`, `--funnel`, `--card <id>`, `--stage <stage>`, `--company <name>`, `--closed`. No dependencies beyond `pg` |
-
-### Documentation reference matrix
-
-| To understand | Consult |
-|---|---|
-| Architecture decisions | `ADR.md` |
-| Purpose, stack, bootstrap | `README.md` |
-| Operational rules and flow map | `AGENTS.md` (this file) |
-| **What data lives where (tables, JSONB keys, ownership)** | **`DATA.md`** |
-| Job platforms | `PLATFORMS.md` |
-| **Job search & networking strategies (ordered by effectiveness)** | **`STRATEGIES.md`** |
-| Browser automation (generic) | `skills` repo: `browser-core/SKILL.md` |
-| LinkedIn patterns | `skills` repo: `linkedin/SKILL.md` |
-| Gmail patterns | `skills` repo: `gmail/SKILL.md` |
-| Job-seeker browser patterns (ATS, form answers, pipeline, scripts ref) | `.agents/skills/browser-automation/SKILL.md` |
-| Email delivery (SMTP + browser fallback) | `skills` repo: `gmail/SKILL.md` (SMTP snippet) + `.agents/skills/browser-automation/SKILL.md` (job-seeker compose) |
-| DB access (CLI) | `.agents/skills/db/SKILL.md` |
-| Preference memory | `.agents/skills/memory/SKILL.md` |
-| Each flow's detail | `.agents/skills/<flow>/SKILL.md` |
+Passive (`radar`: platforms push alerts) · Active-broad (`apply`: full job board) · Active-deep (`targets`: named companies) · Warm/high-ROI (`referrals`: internal contacts convert ~20x cold apply).
 
 ## Operational constraints
 
-- Always `npx`, never global install. **Exception:** `playwright-cli` is installed as a devDependency via `npm install`, but **always use `node .agents/skills/browser-automation/scripts/browser.js`** for open/close/goto/tabs/sessions (see `skills` repo: `browser-core/SKILL.md`). Never call `playwright-cli open` directly
-- Browser visibility controlled by `.browser-config.json` (`browser_mode`: `headless`, `headed`, `headed_logins_only`). Default: `headless`. Set during onboarding. Can also be overridden via `BROWSER_MODE` env var. Manual login/2FA is always headed (Gold Rule 5). The DB `preferences.tooling.browser_mode` value is synced to `.browser-config.json` during onboarding
-- Custom DB schema: create tables as needed
-- JSONB for semi-structured data in `users.data`
-- Single user (repo owner)
-- `.env`, `.browser-profile/`, `.playwright-cli/`, `.browser-config.json` not tracked
-- Job platforms = output of analysis, never user input
-- **Consult `DATA.md` before assuming where data lives.** Never guess or discover by querying blindly. The data map is the source of truth for tables, JSONB keys, and flow ownership
+- `npx` only, no global installs. Browser via the wrapper only.
+- `.browser-config.json` `browser_mode`: `headless` | `headed` | `headed_logins_only` (default headless; logins/captchas always headed).
+- Untracked: `.env`, `.browser-profile/`, `.playwright-cli/`, `.browser-config.json`.
+- DB: custom schema as needed; semi-structured → `users.data` JSONB; single user.
+- **`DATA.md` is the source of truth for where data lives** — consult before assuming tables/keys.
+- Job platforms are an output of analysis, never user input.
+- Parallel flows: each agent gets `--session <name>` + own tab; `detach` never `close` (ref-counted); `daily` never runs alongside its sub-flows; DB access is parallel-safe. Details: `browser-automation/references/parallel-agents.md`.
+- User job flagging: self-email containing a job URL → detected in `news` inbox scan, evaluated, presented.
 
-### Parallel execution
+## Documentation map
 
-Multiple flows can run in parallel by using **attached sessions**. Each parallel agent gets its own session name and tab, so they don't interfere with each other. The browser wrapper (`.agents/skills/browser-automation/scripts/browser.js`) handles auto-attach, ref-counting, and safe-close (see `skills` repo: `browser-core/references/parallel-agents.md`).
-
-**How to run flows in parallel:**
-
-1. The first agent opens the browser normally (creates the primary session):
-   ```bash
-   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com" --headed
-   ```
-
-2. Each additional agent attaches a session with a unique name:
-   ```bash
-   node .agents/skills/browser-automation/scripts/browser.js attach --session apply-1
-   node .agents/skills/browser-automation/scripts/browser.js attach --session news-1
-   ```
-
-3. Each agent passes `--session <name>` to every script it runs:
-   ```bash
-   node scripts/linkedin-easy-apply.js --max 10 --session apply-1
-   node scripts/linkedin-search.js '"<Role>" "hiring"' --json --session news-1
-   node scripts/gmail-send.js --to <email> --subject "..." --body "..." --session news-1
-   ```
-
-4. All browser wrapper commands accept `--session`:
-   ```bash
-   node .agents/skills/browser-automation/scripts/browser.js goto <url> --session apply-1
-   node .agents/skills/browser-automation/scripts/browser.js exec snapshot --session apply-1
-   node .agents/skills/browser-automation/scripts/browser.js exec eval '<code>' --session news-1
-   ```
-
-5. When done, detach (not close — close is ref-counted and refuses if other agents are active):
-   ```bash
-   node .agents/skills/browser-automation/scripts/browser.js detach --session apply-1
-   ```
-
-**Which flows can run in parallel:**
-
-| Combination | Compatible? | Notes |
-|---|---|---|
-| `apply` + `news` | Yes | Different sites (LinkedIn Jobs vs Gmail/LinkedIn Messaging). Use `--session apply-1` and `--session news-1` |
-| `apply` + `targets` | Yes | Both use LinkedIn/career sites but different pages. Use separate sessions and tabs |
-| `news` + `polish` | Yes | Gmail/LinkedIn Messaging vs LinkedIn profile editing. No overlap |
-| `daily` + anything | No | `daily` composes `news` + `apply`/`targets` internally. Don't run it alongside its sub-flows |
-| `polish` + `apply` | Yes | Profile editing vs job search. Different LinkedIn pages |
-| `onboarding` + anything | No | Onboarding sets up the browser profile. Must complete first |
-
-**Rules for parallel execution:**
-
-- Every script that touches the browser MUST accept and pass `--session`. All scripts in `scripts/` now do (linkedin-easy-apply, linkedin-search, linkedin-invite, gmail-send, generate-cv)
-- Never call `close` or `close-all` from a parallel agent — use `detach`. Close is ref-counted and will refuse unless you use `--force` (which kills the browser for all agents)
-- Use `node .agents/skills/browser-automation/scripts/browser.js who` to check which agents are active before closing
-- Each session should use its own tab (`--tab <name>`) to avoid navigation conflicts within the same session
-- DB access is safe in parallel (Postgres handles concurrent connections)
-
-### User job input mechanisms
-
-The user can flag a job they're interested in via these channels. The agent detects and processes them during `news`:
-
-| Mechanism | How it works | When it's detected |
-|---|---|---|
-| **Self-email** | User sends an email to themselves with the LinkedIn job URL in the body (no subject needed) | `news` Gmail inbox scan. Agent opens the URL, evaluates fit, checks if already applied, presents in summary |
-| **LinkedIn Saved Jobs** | User clicks "Save" on a LinkedIn job posting | `news` navigates to `https://www.linkedin.com/my-items/saved-jobs/`. For each saved job: checks if open, evaluates fit, checks DB for existing application, presents Must/Strong matches |
-| **Direct chat** | User pastes a job URL in the chat | Immediate. Agent opens, evaluates, and proposes action without waiting for `news` |
+ADR.md (decisions) · README.md (bootstrap) · DATA.md (data map — tables, JSONB keys, ownership) · PLATFORMS.md (job platforms) · STRATEGIES.md (networking strategies by effectiveness) · CONTRIBUTING.md · `skills` repo: `browser-core`, `linkedin`, `gmail` SKILL.md · `.agents/skills/browser-automation/` (wrapper, golden rules, site guides) · `.agents/skills/db/` (DB CLI) · `.agents/skills/memory/` (preference memory) · `.agents/skills/<flow>/SKILL.md` (per-flow detail)
