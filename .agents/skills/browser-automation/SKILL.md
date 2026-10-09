@@ -267,6 +267,7 @@ These rules were validated through extensive testing. Breaking them causes failu
 5. **Use URLs directly, not clicks for navigation** — `goto "https://..."` is more reliable than clicking nav links.
 6. **Verify with DOM content, not URL** — SPAs update content without changing the URL. Check DOM state with `eval`.
 7. **Batch operations into a single eval call** — Wait + click + verify in one `eval` is more robust than multiple CLI calls.
+8. **UTF-8 through base64/atob is broken** — `atob()` decodes base64 to a Latin-1 string, so UTF-8 multibyte chars (á, é, í, ó, ú, ñ) become mojibake (`MartÃ­n`). NEVER inject accented text via `eval(atob('...'))`. Use either: (a) JSON payload decoded properly — `eval(decodeURIComponent(escape(atob('$B64'))))`, (b) Unicode escapes in the JS source (`Mart\u00edn`), or (c) write the script to a file and load it — never pipe accented text through atob. **Always verify injected text by reading `el.innerText`/`el.value` back before submitting** (validated 2026-10-09: LinkedIn DM sent with mangled accents to a CEO — user had to hand-fix it).
 
 **Chaining:** Chain `open && eval` in a single shell command to prevent session death between calls.
 

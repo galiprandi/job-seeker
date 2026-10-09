@@ -203,6 +203,8 @@ The composer is `div[contenteditable]` (`div.msg-form__contenteditable`). Linked
 - `playwright-cli type <text>` (after click) → Send stays disabled
 - Solution: `el.innerHTML = '<p>...</p>'` + `InputEvent('beforeinput', {inputType: 'insertFromPaste'})` → Send enables
 
+**Encoding bug (validated 2026-10-09):** accented Spanish text piped through `eval(atob(base64))` arrives as mojibake (`MartÃ­n`, `transacciÃ³n`) — atob decodes to Latin-1, mangling UTF-8. A DM went out to a CEO corrupted and the user had to edit it manually. For any non-ASCII text: use the Voyager API send (fetch sends UTF-8 JSON correctly), or decode properly with `decodeURIComponent(escape(atob(b64)))`, and ALWAYS read the editor content back before clicking Send.
+
 **Caveat (observed 2026-09-22):** on some sessions tiptap reverts `innerHTML` edits entirely (editor ends empty, Send stays disabled even after `beforeinput` + `input`). When that happens, fall back to the Voyager createMessage endpoint below — it is the most reliable send path.
 
 ### Send plain text via Voyager endpoint (validated 2026-09-22)
@@ -486,3 +488,12 @@ See [posting.md](posting.md) for the full posting workflow (composer variants, t
 
 **Job search:**
 - Missing `&location=Worldwide` → results scoped to profile location (0-7 instead of 20+)
+
+## Feed harvesting
+
+The feed paginates via POST `/flagship-web/rsc-action/actions/pagination?sduiid=com.linkedin.sdui.pagers.feed.mainFeed&parentSpanId=<token>` (RSC/Flight format, ~3MB per page). Two-layer harvest:
+
+1. **DOM layer:** scroll `document.querySelector('main')` (NOT window — the feed scrolls main). Split `main.innerText` on `Feed post` markers; LinkedIn virtualizes so harvest into a dedup Map at each step.
+2. **API layer:** hook `window.fetch`, intercept `pagination` responses, extract long strings `/"([^"\\]|\\.){160,}"/g`, `JSON.parse`, filter noise (`urn:`, `http`, `commentBox`, `tracking`, `ariaLabel`, base64 blobs). Yields post text the DOM layer misses (job modules, non-standard post types).
+
+Limits: per-session personalization means the browser feed ≠ the user's app feed. For deterministic coverage use `/jobs/search/?keywords=...&f_WRA=true&sortBy=DD` (remote + sort by date). No public RSS exists for the home feed.

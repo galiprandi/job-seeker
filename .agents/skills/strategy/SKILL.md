@@ -129,14 +129,16 @@ All flows will respect this. Say "strategy" again to change it.
 
 ## Level defaults
 
-See AGENTS.md "Strategy levels" for the full table. Summary:
+Canonical level table (this is the source of truth):
 
-| Level | apply_batch | targets_batch | daily | match | follow_up | relax | cold |
-|---|---|---|---|---|---|---|---|
-| passive | 0 | 0 | on-demand | must_only | 7 | none | false |
-| selective | 5 | 5 | 1x/day | must_only | 5 | none | false |
-| active | 10 | 10 | 2x/day | must_strong | 3 | top_2_must_haves | true |
-| aggressive | 15 | all | 2x/day | must_strong_nice | 2 | top_3_must_haves | true |
+| Level | Situation | apply_batch | targets_batch | daily | match | follow_up | relax | cold | sources |
+|---|---|---|---|---|---|---|---|---|---|
+| passive | Employed, open to opportunities | 0 | 0 | on-demand | must_only | 7 | none | false | radar, news |
+| selective | Employed, looking for better | 5 | 5 | 1x/day | must_only | 5 | none | false | radar, apply, targets, referrals, news |
+| active | Unemployed or about to be | 10 | 10 | 2x/day | must_strong | 3 | top_2_must_haves | true | radar, apply, targets, referrals, news |
+| aggressive | Needs a job now | 15 | all | 2x/day | must_strong_nice | 2 | top_3_must_haves | true | radar, apply, targets, referrals, news |
+
+`relax_must_haves` (`none`/`top_2_must_haves`/`top_3_must_haves`) resolves to actual Must-have keys from `users.data.job_preferences` at runtime — never assume which Must-haves exist. `sources_active` controls which pillars each flow runs; absent source → skipped entirely. `apply_batch_size = 0` → present matches for manual approval only.
 
 ## Rules
 
