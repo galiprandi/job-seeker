@@ -18,17 +18,17 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 - [ ] **Parallel execution:** if running alongside other flows (e.g: `news` or `targets`), attach a session with `node scripts/browser.js attach --session apply-1` and pass `--session apply-1` to `linkedin-easy-apply.js` and all browser commands. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
-  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+  node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
   ```
 - [ ] Load strategy (see AGENTS.md "Strategy levels"):
   ```bash
-  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = 1"
+  node scripts/db.js "SELECT data->'strategy' AS strategy FROM users WHERE id = <user_id>"
   ```
   Respect: `apply_batch_size` (max jobs per session), `match_threshold` (must_only / must_strong / must_strong_nice), `relax_must_haves` (loosen Must-have filtering). If `apply_batch_size = 0`, don't auto-apply, only present matches for manual approval
 - [ ] Read profile and existing applications via db CLI:
   ```bash
-  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'personal_info' AS personal FROM users WHERE id = 1"
-  node scripts/db.js "SELECT url FROM applications WHERE user_id = 1"
+  node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'personal_info' AS personal FROM users WHERE id = <user_id>"
+  node scripts/db.js "SELECT url FROM applications WHERE user_id = <user_id>"
   ```
 - [ ] **DB is the single source of truth for ALL form fields.** Before filling ANY form (LinkedIn, Lever, Greenhouse, Workday, SuccessFactors, custom sites), the agent must have the profile data loaded in context. **Never invent, guess, or fabricate any value.** If a required field is not in the DB, STOP, ask the user, save the answer to DB, then continue. This is Gold Rule 5c.
 - [ ] **Captcha policy: NEVER attempt to solve captchas programmatically.** This is Gold Rule 5b. When a captcha appears (hCaptcha, reCAPTCHA, image challenge, drag-and-drop, etc.), the agent must: (1) ensure browser is headed, (2) notify the user and wait, (3) continue only after user confirms. Never retry in a loop. Never attempt to click captcha elements, solve challenges, or bypass them.
@@ -68,10 +68,10 @@ Paginate until collecting 20-30 candidates.
 
 ### 2. Filter by Must-haves
 
-For each job, verify against profile Must-haves. Discard if:
-- Doesn't match any Must-have
+For each job, verify against profile Must-haves from `users.data.job_preferences`. Discard if:
+- Doesn't match any Must-have (the filter is dynamic, based on the user's Must-weighted preferences, not hardcoded)
 - Requires visa/location the user doesn't have (e.g: US-only, EU-only)
-- Not a software/tech role
+- Not in the user's field/sector (per `users.data.profile.sector` and `job_preferences`)
 - Already applied (check against DB)
 
 Keep 10-15 matching positions.
@@ -117,7 +117,7 @@ For each selected job:
 7. Register in DB via db CLI:
 
 ```bash
-node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, 'linkedin', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
+node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (<user_id>, 'linkedin', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
 ```
 
 `data` should include: match reason, method (easy_apply), location, questions_answered count.
@@ -161,6 +161,14 @@ When applying directly to a company career page (not via LinkedIn Easy Apply), t
 7. **If a captcha appears: STOP, ensure headed, notify user, wait.** Gold Rule 5b. Never solve programmatically.
 8. Verify submission confirmation on screen.
 9. Register in DB via db CLI (same INSERT as LinkedIn flow, with `platform` = the ATS detected: 'lever', 'greenhouse', 'workday', etc.).
+
+### 6.1. Known ATS failure modes (validated 2026-09-19)
+
+- **Lever + hCaptcha rejects the automation browser fingerprint.** Even a correctly human-solved challenge returns "verification failed" — the problem is the browser fingerprint, not the captcha answer. Do NOT retry in a loop. Workarounds, in order: (a) search the same req on LinkedIn Jobs — most Lever postings are cross-posted with Easy Apply; (b) check the company careers page for a general "Submit CV" / talent pool form (often has no captcha); (c) apply from the user's normal browser manually.
+- **Captcha tokens expire in minutes.** Solve challenges immediately after triggering them, and one form at a time — solving two forms' captchas back-to-back kills the second token.
+- **Failed submits clear file inputs.** After any submit error, re-attach the CV before retrying — the `<input type=file>` value does not survive validation failures.
+- **Forms asking for "real numbers / traction"** (e.g. "users you got, with figures"): fetch real metrics via public APIs instead of guessing — npm `https://api.npmjs.org/downloads/point/last-month/<package>`, GitHub `https://api.github.com/users/<user>/repos` (stars, forks). Never invent figures (Gold Rule 5c applies to metrics too).
+- **Human-only deliverables** (demo video, recorded answers, portfolio review calls): fill every other field first, keep the form open, register the application in DB with `status='pending_user_action'` and `data.blocker` describing the exact artifact needed, then ask the user for it at the end of the round (Gold Rule 5d).
 
 ## Dependencies
 
@@ -228,13 +236,13 @@ Searches LinkedIn posts, extracts author + vanity + email + content preview. Fil
 
 ```bash
 # Basic search (human-readable output)
-node scripts/linkedin-search.js '"<Role>" "hiring" LATAM'
+node scripts/linkedin-search.js '"<Role>" "hiring" <Region>'
 
 # Search with more scrolls and JSON output (to pipe to other scripts)
 node scripts/linkedin-search.js '"<Role>" "<City>" "hiring"' --scroll 3 --json
 
 # Validated queries:
-#   '"<Role>" "hiring" LATAM'               (most productive)
+#   '"<Role>" "hiring" <Region>'               (most productive)
 #   '"<Role>" "<City>" "hiring"'      (geo-specific)
 #   '"ingeniero IA" "buscamos"'                  (Spanish)
 ```

@@ -5,7 +5,7 @@
  */
 const { execSync } = require('child_process');
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 
 function run(cmd, timeout = 20000) {
   try { return execSync(cmd, { encoding: 'utf8', timeout, cwd: __dirname + '/..' }); }

@@ -2,7 +2,7 @@
 
 Single source of truth for what data lives where. The agent reads this to know what resources exist without having to discover them by querying.
 
-All access via `scripts/db.js` (see `db` skill). All tables in `public` schema. Single user (`user_id = 1`).
+All access via `scripts/db.js` (see `db` skill). All tables in `public` schema. Single user per DB (`user_id` from `USER_ID` env var, defaults to 1).
 
 ## Tables
 
@@ -38,8 +38,8 @@ Single row. Structured columns + `data` JSONB for semi-structured profile info.
 
 Access:
 ```bash
-node scripts/db.js "SELECT data->'<key>' AS <key> FROM users WHERE id = 1"
-node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{<key>}', '<json>'::jsonb) WHERE id = 1" --write
+node scripts/db.js "SELECT data->'<key>' AS <key> FROM users WHERE id = <user_id>"
+node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{<key>}', '<json>'::jsonb) WHERE id = <user_id>" --write
 ```
 
 ### `applications`
@@ -60,10 +60,10 @@ Every job application registered.
 
 Access:
 ```bash
-node scripts/db.js "SELECT * FROM applications WHERE user_id = 1 ORDER BY applied_at DESC"
-node scripts/db.js "SELECT url FROM applications WHERE user_id = 1"  # dedup check
-node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = 1"  # daily decision
-node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (1, '<platform>', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
+node scripts/db.js "SELECT * FROM applications WHERE user_id = <user_id> ORDER BY applied_at DESC"
+node scripts/db.js "SELECT url FROM applications WHERE user_id = <user_id>"  # dedup check
+node scripts/db.js "SELECT max(applied_at) AS last_application FROM applications WHERE user_id = <user_id>"  # daily decision
+node scripts/db.js "INSERT INTO applications (user_id, platform, company, role, url, status, data) VALUES (<user_id>, '<platform>', '<company>', '<role>', '<url>', 'applied', '<json>'::jsonb)" --write
 ```
 
 Written by: `apply`, `targets`. Read by: `apply` (dedup), `targets` (dedup), `news` (status updates), `daily` (last application date).
@@ -96,8 +96,8 @@ Tracks registration and application status per target company. Enables resumabil
 
 Access:
 ```bash
-node scripts/db.js "SELECT id, company, region, registration_status, ats_platform, profile_completed, applied_jobs_count, notes FROM company_registrations WHERE user_id = 1 ORDER BY registration_status, region, company"
-node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = 1 AND registration_status = 'pending' ORDER BY region, company"
+node scripts/db.js "SELECT id, company, region, registration_status, ats_platform, profile_completed, applied_jobs_count, notes FROM company_registrations WHERE user_id = <user_id> ORDER BY registration_status, region, company"
+node scripts/db.js "SELECT * FROM company_registrations WHERE user_id = <user_id> AND registration_status = 'pending' ORDER BY region, company"
 node scripts/db.js "UPDATE company_registrations SET registration_status = 'registered', profile_completed = true, ats_platform = '<ats>', login_method = '<method>', last_visit_at = NOW(), updated_at = NOW() WHERE id = <id>" --write
 node scripts/db.js "UPDATE company_registrations SET applied_jobs_count = applied_jobs_count + <N>, last_applied_at = NOW(), updated_at = NOW() WHERE id = <id>" --write
 ```
@@ -126,8 +126,8 @@ Recruiter and contact messages, with drafts and send tracking.
 
 Access:
 ```bash
-node scripts/db.js "SELECT * FROM messages WHERE user_id = 1 AND status = 'draft' ORDER BY received_at DESC"
-node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at) VALUES (1, '<channel>', '<direction>', '<sender>', '<subject>', '<body>', '<draft>', 'draft', NOW())" --write
+node scripts/db.js "SELECT * FROM messages WHERE user_id = <user_id> AND status = 'draft' ORDER BY received_at DESC"
+node scripts/db.js "INSERT INTO messages (user_id, channel, direction, sender, subject, body, draft, status, received_at) VALUES (<user_id>, '<channel>', '<direction>', '<sender>', '<subject>', '<body>', '<draft>', 'draft', NOW())" --write
 node scripts/db.js "UPDATE messages SET status = 'sent', sent_at = NOW() WHERE id = <id>" --write
 ```
 
@@ -153,8 +153,8 @@ Autonomous preference storage. Populated by the `memory` skill from conversation
 
 Access:
 ```bash
-node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
-node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, '<category>', '<key>', '<value>', <confidence>, '<source>') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, confidence = EXCLUDED.confidence, source = EXCLUDED.source, updated_at = NOW()" --write
+node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
+node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (<user_id>, '<category>', '<key>', '<value>', <confidence>, '<source>') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, confidence = EXCLUDED.confidence, source = EXCLUDED.source, updated_at = NOW()" --write
 ```
 
 Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`). Read by: every flow at pre-flight.

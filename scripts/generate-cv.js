@@ -19,7 +19,7 @@
  *
  * Requirements:
  *   - playwright-cli must be installed and on PATH
- *   - scripts/browser.js wrapper for browser open/close/exec
+ *   - .agents/skills/browser-automation/scripts/browser.js wrapper for browser open/close/exec
  *   - scripts/db.js for DB access (reading cv_markdown, writing cv_path)
  *
  * No npm dependencies — the Markdown parser is inline.
@@ -39,7 +39,9 @@ const {
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DB_JS = path.join(REPO_ROOT, 'scripts', 'db.js');
-const BROWSER_JS = path.join(REPO_ROOT, 'scripts', 'browser.js');
+const BROWSER_JS = fs.existsSync(path.join(REPO_ROOT, 'scripts', 'browser.js'))
+  ? path.join(REPO_ROOT, 'scripts', 'browser.js')
+  : path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 const PROFILE_DIR = path.join(REPO_ROOT, '.browser-profile');
 
 // ---------------------------------------------------------------------------
@@ -100,7 +102,7 @@ Options:
  */
 function getMarkdownFromDB() {
   try {
-    const sql = "SELECT data->'cv_markdown' AS md FROM users WHERE id = 1";
+    const sql = "SELECT data->'cv_markdown' AS md FROM users WHERE id = ${process.env.USER_ID || 1}";
     const raw = execSync(`node "${DB_JS}" "${sql}"`, {
       encoding: 'utf8',
       timeout: 15000,
@@ -507,7 +509,7 @@ function generatePdfFromHtml(htmlPath, outputPath, session) {
 function updateCvPathInDB(pdfPath) {
   try {
     const escapedPath = pdfPath.replace(/'/g, "''");
-    const sql = `UPDATE users SET data = jsonb_set(data, '{cv_path}', '"${escapedPath}"') WHERE id = 1`;
+    const sql = `UPDATE users SET data = jsonb_set(data, '{cv_path}', '"${escapedPath}"') WHERE id = ${process.env.USER_ID || 1}`;
     execSync(`node "${DB_JS}" "${sql}" --write`, {
       encoding: 'utf8',
       timeout: 15000,

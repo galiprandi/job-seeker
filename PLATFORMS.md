@@ -27,7 +27,10 @@ Platforms with configured alerts. The agent checks the `Job Alerts` folder in Gm
 | OpenAI | openai.com/careers | — | ✅ (Google Alert) | no | 2026-08-22 | Google Alert: site:openai.com/careers |
 | Anthropic | anthropic.com/careers | — | ✅ (Google Alert) | no | 2026-08-22 | Google Alert: site:anthropic.com/careers |
 
-> **Gmail filter template:** `from:(<domain1> OR <domain2> OR ...)` → Skip Inbox → Apply label "Job Alerts"
+> **Gmail filter (two filters, improved 2026-08-14):**
+> 1. **Dominios:** `from:(<domain1> OR <domain2> OR ... OR <ats-domain>)` → Skip Inbox → Apply label "Job Alerts". Cubre job boards + ATS (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Teamtailor, etc.) + career sites.
+> 2. **Keywords (asunto):** `subject:(job OR jobs OR vacancy OR vacancies OR vacante OR vacantes OR empleo OR empleos OR hiring OR recruiter OR recruiters OR interview OR application OR "application received" OR "job alert" OR "job match" OR "job posting" OR "position available" OR "new role" OR "oportunidad laboral" OR "nueva vacante" OR "nuevo empleo" OR "oferta de empleo" OR position)` → Skip Inbox → Apply label "Job Alerts". Captura recruiters con dominios corporativos.
+> **Ojo (lección):** no usar palabras genéricas solas como `trabajo`, `oportunidad`, `oferta`, `contratacion` en subject — generan falsos positivos de marketing (Samsung, KuCoin, avita). Usar frases compuestas específicas.
 
 ## General (high volume, all levels)
 

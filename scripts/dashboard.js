@@ -66,7 +66,7 @@ async function fetchPipelineData() {
              data->>'match' as match, data->>'source' as source,
              data->>'location' as location
       FROM applications
-      WHERE user_id = 1 AND status = ANY($1)
+      WHERE user_id = ${process.env.USER_ID || 1} AND status = ANY($1)
       ORDER BY CASE
         WHEN status = 'offer' THEN 0
         WHEN status = 'interview' THEN 1
@@ -82,7 +82,7 @@ async function fetchPipelineData() {
     const { rows: closed } = await client.query(`
       SELECT id, platform, company, role, status, applied_at
       FROM applications
-      WHERE user_id = 1 AND status = ANY($1)
+      WHERE user_id = ${process.env.USER_ID || 1} AND status = ANY($1)
       ORDER BY applied_at DESC
       LIMIT 20
     `, [CLOSED_STAGES]);
@@ -91,7 +91,7 @@ async function fetchPipelineData() {
     const { rows: funnel } = await client.query(`
       SELECT status, count(*) as count
       FROM applications
-      WHERE user_id = 1
+      WHERE user_id = ${process.env.USER_ID || 1}
       GROUP BY status
     `);
 
@@ -99,7 +99,7 @@ async function fetchPipelineData() {
     const { rows: messages } = await client.query(`
       SELECT id, channel, direction, sender, subject, status, received_at
       FROM messages
-      WHERE user_id = 1
+      WHERE user_id = ${process.env.USER_ID || 1}
       ORDER BY COALESCE(received_at, sent_at) DESC
       LIMIT 10
     `).catch(() => ({ rows: [] }));
@@ -108,23 +108,23 @@ async function fetchPipelineData() {
     const { rows: targets } = await client.query(`
       SELECT registration_status, count(*) as count
       FROM company_registrations
-      WHERE user_id = 1
+      WHERE user_id = ${process.env.USER_ID || 1}
       GROUP BY registration_status
     `).catch(() => ({ rows: [] }));
 
     // Strategy
     const { rows: strategyRows } = await client.query(`
-      SELECT data->'strategy' as strategy FROM users WHERE id = 1
+      SELECT data->'strategy' as strategy FROM users WHERE id = ${process.env.USER_ID || 1}
     `).catch(() => ({ rows: [] }));
 
     // User name
     const { rows: userRows } = await client.query(`
-      SELECT name FROM users WHERE id = 1
+      SELECT name FROM users WHERE id = ${process.env.USER_ID || 1}
     `).catch(() => ({ rows: [{ name: '' }] }));
 
     // Last activity
     const { rows: lastActivity } = await client.query(`
-      SELECT max(applied_at) as last_application FROM applications WHERE user_id = 1
+      SELECT max(applied_at) as last_application FROM applications WHERE user_id = ${process.env.USER_ID || 1}
     `);
 
     return {

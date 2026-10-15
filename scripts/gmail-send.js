@@ -6,7 +6,7 @@
  * Opens Gmail compose dialog, fills fields, attaches CV, sends.
  *
  * Usage:
- *   node scripts/browser.js open "https://mail.google.com"   # ensure Gmail session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"   # ensure Gmail session
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body "Body text"
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body-file body.txt
  *   node scripts/gmail-send.js --to email@example.com --subject "Subject" --body "Body" --no-cv
@@ -68,7 +68,10 @@ function fill(ref, value) {
 
 function goto(url) {
   const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
-  execSync(`node ${__dirname}/browser.js goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
+  const repoLocal = path.resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
+  const global = path.resolve(require('os').homedir(), '.agents/skills/browser-automation/scripts/browser.js');
+  const wrapper = fs.existsSync(repoLocal) ? repoLocal : global;
+  execSync(`node "${wrapper}" goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: path.resolve(__dirname, '..') });
 }
 
 function dbWrite(sql) {
@@ -88,12 +91,10 @@ function extractRef(text, pattern) {
   return match ? match[1] : null;
 }
 
-const DEFAULT_CV_FALLBACK = path.join(os.homedir(), 'Documents', 'cv.pdf');
-
 function loadCvPathFromDB() {
   try {
     const output = execSync(
-      `node ${__dirname}/db.js "SELECT data->'profile'->>'cv_path' AS cv_path, data->'personal_info'->>'cv_pdf_path' AS cv_pdf FROM users WHERE id = 1"`,
+      `node ${__dirname}/db.js "SELECT data->'profile'->>'cv_path' AS cv_path, data->'personal_info'->>'cv_pdf_path' AS cv_pdf FROM users WHERE id = ${process.env.USER_ID || 1}"`,
       { encoding: 'utf-8', timeout: 15000, cwd: __dirname }
     );
     const rows = JSON.parse(output);
@@ -107,7 +108,7 @@ function main() {
   const args = process.argv.slice(2);
 
   let to = null, subject = null, body = null, bodyFile = null;
-  let cvPath = loadCvPathFromDB() || DEFAULT_CV_FALLBACK, noCv = false;
+  let cvPath = loadCvPathFromDB(), noCv = false;
   let cc = null, bcc = null;
 
   for (let i = 0; i < args.length; i++) {
@@ -167,14 +168,14 @@ function main() {
   // Get compose dialog refs
   snap = snapshot();
 
-  const toRef = extractRef(snap, /combobox "Destinatarios" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /combobox "To" \[ref=(f[0-9a-f]+)\]/);
-  const subjectRef = extractRef(snap, /textbox "Asunto" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Subject" \[ref=(f[0-9a-f]+)\]/);
-  const bodyRef = extractRef(snap, /textbox "Cuerpo del mensaje" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Message body" \[ref=(f[0-9a-f]+)\]/);
-  const attachRef = extractRef(snap, /button "Adjuntar archivos" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /button "Attach files" \[ref=(f[0-9a-f]+)\]/);
+  const toRef = extractRef(snap, /combobox "Destinatarios"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /combobox "To"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const subjectRef = extractRef(snap, /textbox "Asunto"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /textbox "Subject"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const bodyRef = extractRef(snap, /textbox "Cuerpo del mensaje"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /textbox "Message body"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+  const attachRef = extractRef(snap, /button "Adjuntar archivos"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+    || extractRef(snap, /button "Attach files"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
   const sendRef = extractRef(snap, /button "Enviar[^\]]*" \[ref=(f[0-9a-f]+)\]/)
     || extractRef(snap, /button "Send[^\]]*" \[ref=(f[0-9a-f]+)\]/);
 
@@ -196,7 +197,7 @@ function main() {
       click(ccLink);
       sleep(1000);
       snap = snapshot();
-      const ccRef = extractRef(snap, /combobox "Cc" \[ref=(f[0-9a-f]+)\]/);
+      const ccRef = extractRef(snap, /combobox "Cc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
       if (ccRef) fill(ccRef, cc);
       sleep(1000);
     }
@@ -210,8 +211,8 @@ function main() {
       click(bccLink);
       sleep(1000);
       snap = snapshot();
-      const bccRef = extractRef(snap, /combobox "Cco" \[ref=(f[0-9a-f]+)\]/)
-        || extractRef(snap, /combobox "Bcc" \[ref=(f[0-9a-f]+)\]/);
+      const bccRef = extractRef(snap, /combobox "Cco"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
+        || extractRef(snap, /combobox "Bcc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
       if (bccRef) fill(bccRef, bcc);
       sleep(1000);
     }

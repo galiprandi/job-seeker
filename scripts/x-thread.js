@@ -6,7 +6,7 @@
 const { execSync } = require('child_process');
 const { getSocial } = require('./social');
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 const social = getSocial();
 const TWITTER_HANDLE = social.twitter_handle || '<your-handle>';
 const GITHUB_URL = social.github_repo_url || 'https://github.com/<your-username>/<your-repo>';

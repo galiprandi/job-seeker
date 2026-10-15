@@ -6,7 +6,7 @@
  * Uses playwright-cli via browser.js wrapper and lib/browser-helpers for eval-based extraction.
  *
  * Usage:
- *   node scripts/browser.js open "https://www.linkedin.com"
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"
  *   node scripts/linkedin-warm-sourcing.js --company "Stripe" --role "Engineering Manager"
  *   node scripts/linkedin-warm-sourcing.js --company "Meta" --json
  *   node scripts/linkedin-warm-sourcing.js --company "Google" --session apply-1 --json
@@ -16,7 +16,7 @@
  * Output (JSON array of contacts):
  *   [
  *     {
- *       "name": "Jane Doe",
+ *       "name": "<Candidate Name>",
  *       "title": "Staff Engineer at Stripe",
  *       "vanity": "jane-doe",
  *       "profile_url": "https://www.linkedin.com/in/jane-doe/",
@@ -200,12 +200,12 @@ function main() {
   // "0 contacts found" — misleading the user into thinking there are no contacts.
   const sessionOpts = SESSION !== 'default' ? { session: SESSION } : {};
   if (!ensure(sessionOpts)) {
-    console.error(`Error: Browser session '${SESSION}' is not active. Run: node scripts/browser.js open "https://www.linkedin.com"${SESSION !== 'default' ? ` --session ${SESSION}` : ''}`);
+    console.error(`Error: Browser session '${SESSION}' is not active. Run: node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"${SESSION !== 'default' ? ` --session ${SESSION}` : ''}`);
     process.exit(2);
   }
 
   // Load candidate education and experience background from DB
-  const userRows = dbQuery(`SELECT data->'profile' AS profile FROM users WHERE id = 1`);
+  const userRows = dbQuery(`SELECT data->'profile' AS profile FROM users WHERE id = ${process.env.USER_ID || 1}`);
   const profile = userRows && userRows[0] && userRows[0].profile ? userRows[0].profile : {};
 
   const education = Array.isArray(profile.education) ? profile.education : [];

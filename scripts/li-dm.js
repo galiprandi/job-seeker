@@ -17,7 +17,7 @@ for (const line of envContent.split('\n')) {
   if (match) env[match[1]] = match[2].trim();
 }
 
-const BROWSER = 'node scripts/browser.js';
+const BROWSER = 'node .agents/skills/browser-automation/scripts/browser.js';
 
 function run(cmd, timeout = 20000) {
   try { return execSync(cmd, { encoding: 'utf8', timeout, cwd: __dirname + '/..' }); }

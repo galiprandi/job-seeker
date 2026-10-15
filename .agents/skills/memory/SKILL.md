@@ -76,7 +76,7 @@ preferences (
 ### Save a new preference
 
 ```bash
-node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (1, '<category>', '<key>', '<value>', <confidence>, '<source>') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, confidence = EXCLUDED.confidence, source = EXCLUDED.source, updated_at = NOW()" --write
+node scripts/db.js "INSERT INTO preferences (user_id, category, key, value, confidence, source) VALUES (<user_id>, '<category>', '<key>', '<value>', <confidence>, '<source>') ON CONFLICT (user_id, category, key) DO UPDATE SET value = EXCLUDED.value, confidence = EXCLUDED.confidence, source = EXCLUDED.source, updated_at = NOW()" --write
 ```
 
 The `ON CONFLICT` clause handles updates: if the preference already exists, it replaces the value and bumps `updated_at`. No need to check first.
@@ -111,7 +111,7 @@ The agent must detect signals that the user's job search situation has changed a
 At the **pre-flight of every flow**, load active preferences:
 
 ```bash
-node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = 1 AND status = 'active' ORDER BY category, key"
+node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
 ```
 
 Inject the result into the flow's context. Treat preferences as constraints:
