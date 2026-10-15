@@ -7,7 +7,7 @@
  * submits applications, and registers them in DB.
  *
  * Usage:
- *   node scripts/browser.js open "https://www.linkedin.com"   # ensure session
+ *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"   # ensure session
  *   node scripts/linkedin-easy-apply.js                          # keywords from DB profile
  *   node scripts/linkedin-easy-apply.js --keywords '"AI Engineer" OR "GenAI"'
  *   node scripts/linkedin-easy-apply.js --max 5                  # limit to 5 jobs
@@ -131,7 +131,8 @@ function extractRef(text, pattern) {
 // --- DB data loader ---
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = 1")[0];
+  const userId = parseInt(process.env.USER_ID || '1', 10);
+  const row = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`)[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
@@ -189,13 +190,13 @@ function findEasyApplyJobs(snap) {
  */
 function findEasyApplyJobsFromDOM() {
   return evalJSON(`(function(){
-    const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item');
+    const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id]');
     if (cards.length === 0) return JSON.stringify([]);
     return JSON.stringify(Array.from(cards).map(c => {
       // LinkedIn UI changes frequently: try multiple selectors for title
       const titleEl = c.querySelector('h3, .job-title, .job-card-list__title, strong, [class*="title"]');
       // Company: try h4, then div with company-name class, then any div that looks like a company
-      let companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name, [class*="company"]');
+      let companyEl = c.querySelector('h4, .company-name, .job-card-container__company-name, .artdeco-entity-lockup__subtitle, [class*="company"]');
       if (!companyEl) {
         // Fallback: find a div whose text is short and not the title or location
         const divs = c.querySelectorAll('div');
@@ -220,6 +221,7 @@ function findEasyApplyJobsFromDOM() {
         // If titleEl is a strong, it might be the same as the role
         if (titleEl.tagName === 'STRONG' && role.length > 100) role = '';
       }
+      if (!role && linkEl) role = (linkEl.getAttribute('aria-label') || linkEl.innerText.split(String.fromCharCode(10))[0] || '').trim();
       return {
         role: role,
         company: companyEl ? companyEl.textContent.trim() : '',
@@ -290,7 +292,11 @@ function applyToJob(jobRef, userData) {
 
       const labelLower = label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       let value = null;
-      if (labelLower.includes('first name') || labelLower.includes('nombre')) value = ANSWERS.first_name;
+      if (/^(date|fecha|today'?s date|date of application|signature date)$/i.test(labelLower.trim().replace(/\*+$/, ''))) value = new Date().toLocaleDateString('en-US');
+      // Start/availability date fields expect a date, not the notice_period number.
+      // 'immediate' availability maps to today's date.
+      else if ((labelLower.includes('start') || labelLower.includes('available') || labelLower.includes('earliest') || labelLower.includes('join')) && labelLower.includes('date')) value = new Date().toLocaleDateString('en-US');
+      else if (labelLower.includes('first name') || labelLower.includes('nombre')) value = ANSWERS.first_name;
       else if (labelLower.includes('last name') || labelLower.includes('apellido')) value = ANSWERS.last_name;
       else if (labelLower.includes('python')) value = ANSWERS.python_experience;
       else if (labelLower.includes('javascript') || labelLower.includes('java script')) value = ANSWERS.javascript_experience;
@@ -418,20 +424,32 @@ function applyToJob(jobRef, userData) {
       // without being a committed selection, so always process them
       const labelLower = label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
       const isAutocomplete = labelLower.includes('location') || labelLower.includes('city');
-      const placeholderRe = /option "(|Select an option|Selecc[^"]*|Selec[^"]*|Elige[^"]*|Choose[^"]*|Bitte[^"]*|Sélectionner[^"]*)"\s*\[selected\]/i;
+      const placeholderRe = /option "(|Select an option|Selecc[^"]*|Selec[^"]*|Elige[^"]*|Choose[^"]*|Bitte[^"]*|Sélectionner[^"]*)"[^\n]*\[selected\]/i;
       const hasRealSelection = optionsBlock.includes('[selected]') && !placeholderRe.test(optionsBlock);
       const isCountryCode = !labelLower.includes('postal') && !labelLower.includes('zip') && (labelLower.includes('phone country') || labelLower.includes('country code') || labelLower.includes('prefisso') || labelLower.includes('código') || labelLower.includes('codigo') || labelLower.includes('paese') || labelLower.includes('país') || labelLower.includes('pais'));
       // Country code: never trust the preselection (LinkedIn defaults to Andorra etc.) — never skip, always enforce Argentina below
       const hasRealSelectionEff = isCountryCode ? false : hasRealSelection;
+      let forcedValue = null;
       if (hasRealSelectionEff && !isAutocomplete) {
+        // A previously committed demographic affirmative (e.g. "Yes, I have a
+        // disability", "protected veteran") must be corrected to the decline option.
         const selOpt = optionsBlock.match(/option "([^"]+)"[^\n]*\[selected\]/)?.[1];
-        process.stdout.write(`[combo-skip "${label.substring(0,30)}" sel="${(selOpt||'').substring(0,40)}"] `);
-        continue;
+        const declineOpt = optionsBlock.match(/option "([^"]*(do not wish|don't wish|i do not have|don't have|no disability|not a veteran|not disabled|decline|prefer not|prefiero no|no deseo|ninguna)[^"]*)"/i)?.[1];
+        if (selOpt && declineOpt && /yes, i have|i have a disability|protected veteran|american indian|alaska native/i.test(selOpt)) {
+          process.stdout.write(`[combo-fix "${selOpt.substring(0,40)}" -> "${declineOpt.substring(0,40)}"] `);
+          forcedValue = declineOpt;
+        } else {
+          process.stdout.write(`[combo-skip "${label.substring(0,30)}" sel="${(selOpt||'').substring(0,40)}"] `);
+          continue;
+        }
       }
 
       let optionValue = null;
 
-      if (labelLower.includes('english') || labelLower.includes('inglés') || labelLower.includes('ingles')) {
+      if (forcedValue) {
+        optionValue = forcedValue;
+      }
+      else if (labelLower.includes('english') || labelLower.includes('inglés') || labelLower.includes('ingles')) {
         const level = ANSWERS.english_level || 'Professional';
         const optMatch = optionsBlock.match(new RegExp(`option "(${level}|Professional|Advanced|Proficient|Native or bilingual|Competencia profesional|Intermedio|Intermedio-alto|Bilingüe|Bilingue)[^"]*"`));
         optionValue = optMatch ? optMatch[1] : level;
@@ -483,6 +501,39 @@ function applyToJob(jobRef, userData) {
       }
       else if ((labelLower.match(/año de (to|hasta|fin)/) || (labelLower.match(/\bto\b|\bend\b|\bhasta\b/) && labelLower.match(/\byear\b|\baño\b/))) && optionsBlock.match(/\b(19|20)\d{2}\b/)) {
         optionValue = ANSWERS.edu_to_year || null;
+      }
+      // Education degree combo: map to the user's real degree (never invent a higher one)
+      else if (labelLower.includes('degree') || labelLower.includes('titulo') || labelLower.includes('título') || labelLower.includes('education level') || labelLower.includes('nivel de estudios') || labelLower.includes('nivel educativo')) {
+        const deg = (ANSWERS.degree || '').toLowerCase();
+        let m = null;
+        if (deg.match(/bachiller|secund|high school|secondary/)) {
+          m = optionsBlock.match(/option "([^"]*(bachiller|secundar|high school|secondary|diploma)[^"]*)"/i);
+        } else if (deg.match(/terciar|technical|técnic|tecnic|associate/)) {
+          m = optionsBlock.match(/option "([^"]*(terciar|technical|técnic|tecnic|associate|diploma)[^"]*)"/i);
+        } else if (deg.match(/universit|bachelor|licenciat|grado|college/)) {
+          m = optionsBlock.match(/option "([^"]*(universit|bachelor|licenciat|grado|college|degree)[^"]*)"/i);
+        }
+        optionValue = m ? m[1] : null;
+      }
+      // Field of study combo: pick the user's real field if listed
+      else if (labelLower.includes('field of study') || labelLower.includes('area de estudio') || labelLower.includes('área de estudio') || labelLower.includes('disciplina')) {
+        const fos = (ANSWERS.field_of_study || '').toLowerCase();
+        const m = fos ? optionsBlock.match(new RegExp(`option "([^"]*${fos.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^"]*)"`, 'i')) : null;
+        optionValue = m ? m[1] : null;
+      }
+      // Country / country of residence combos
+      else if (labelLower === 'country' || labelLower === 'pais' || labelLower === 'país' || labelLower.includes('country of residence') || labelLower.includes('pais de residencia') || labelLower.includes('país de residencia')) {
+        const country = userData?.personal?.country || 'Argentina';
+        const m = optionsBlock.match(new RegExp(`option "([^"]*${country.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^"]*)"`, 'i'));
+        optionValue = m ? m[1] : null;
+      }
+      // Demographic/diversity combos (US EEO-style, voluntary): prefer decline /
+      // neutral options. User answers live in form_answers.diversity_* if set.
+      else if (labelLower.includes('gender') || labelLower.includes('genero') || labelLower.includes('género') || labelLower.includes('race') || labelLower.includes('ethnic') || labelLower.includes('veteran') || labelLower.includes('disability') || labelLower.includes('lgbtq') || labelLower.includes('sexual orientation')) {
+        let m = null;
+        if (labelLower.includes('gender') || labelLower.includes('genero') || labelLower.includes('género')) m = ANSWERS.diversity_gender && optionsBlock.match(new RegExp(`option "([^"]*${ANSWERS.diversity_gender}[^"]*)"`, 'i'));
+        if (labelLower.includes('veteran')) m = m || optionsBlock.match(/option "([^"]*(not a veteran|no soy veterano)[^"]*)"/i);
+        optionValue = m ? m[1] : (optionsBlock.match(/option "([^"]*(do not wish|don't wish|decline|prefiero no|no deseo|i do not wish)[^"]*)"/i)?.[1] || null);
       }
       // Generic Yes/No combobox questions (EN/ES/PT)
       else if (optionsBlock.match(/option "(Yes|No|Sí|Si|Sim|Não)"/)) {
@@ -602,9 +653,27 @@ function applyToJob(jobRef, userData) {
         if (labelLower.includes('use ai') || labelLower.includes('ai tools')) {
           answer = opts.find(o => /regularly|daily|frequent|everyday|productiv/i.test(o)) || (nonPlaceholder[0] || 'Yes');
         }
+        // Demographic/medical option lists under generic labels ("Please check one of the
+        // boxes below"): never pick an affirmative disability/veteran/declared answer.
+        // Prefer explicit decline / negative options over inventing data (Gold Rule 5c).
+        const decline = opts.find(o => /do not wish|don't wish|i do not have|don't have|no disability|not a veteran|not disabled|decline|prefer not|prefiero no|no deseo|ninguna/i.test(o));
+        if (decline) answer = decline;
+        // Long option lists (degree/field-of-study catalogs, industry lists) mean the
+        // combo needs a real answer — never pick an arbitrary option from a big list.
+        if (opts.length > 6 && !opts.includes(answer)) {
+          const other = opts.find(o => /^(other|otro|otra)$/i.test(o.trim()));
+          if (other) { answer = other; }
+          else { process.stdout.write(`[combo-skip-long "${label.substring(0,30)}"] `); continue; }
+        }
         // If no options visible in snapshot, try the computed answer; else prefer it if it exists in options
         if (opts.length && !opts.includes(answer)) {
           answer = nonPlaceholder[0] || answer;
+        }
+        // Final guard: if the picked option asserts a demographic/medical fact and no
+        // decline option exists, leave the combo empty rather than fabricate.
+        if (/disability|disabled|veteran|hispanic|latino|female|male|gender|genero|ethnic|etnia|raza/i.test(answer) && !decline) {
+          process.stdout.write(`[combo-skip-risky "${answer.substring(0,40)}"] `);
+          continue;
         }
 
         const selectResult = evalJSON(`(function(){
@@ -620,9 +689,12 @@ function applyToJob(jobRef, userData) {
                 return JSON.stringify({selected: true, value: opt.value});
               }
             }
-            // Fallback: first non-placeholder option in this select
-            for (const opt of select.options) {
-              if (!/select|selecc|selec|elige|choose/i.test(opt.text)) {
+            // Fallback: first non-placeholder option — only for short (yes/no-ish) lists;
+            // never invent a pick from long catalogs (degree/field-of-study/industry).
+            const nonPh = [...select.options].filter(o => !/select|selecc|selec|elige|choose/i.test(o.text));
+            if (nonPh.length <= 6) {
+              const opt = nonPh[0];
+              if (opt) {
                 opt.selected = true;
                 select.dispatchEvent(new Event('change', {bubbles: true}));
                 return JSON.stringify({selected: true, value: opt.value, fallback: opt.text});
@@ -637,6 +709,46 @@ function applyToJob(jobRef, userData) {
         sleep(1000);
       }
     }
+
+    // Unlabeled From/To month+year comboboxes (education/experience editors render
+    // them without aria-labels). Context comes from the nearest "From"/"To" text.
+    const dateRes = evalJSON(`(function(){
+      const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre','january','february','march','april','may','june','july','august','september','october','november','december'];
+      const vals = {
+        from_month: ${JSON.stringify(ANSWERS.edu_from_month || '')}, from_year: ${JSON.stringify(ANSWERS.edu_from_year || '')},
+        to_month: ${JSON.stringify(ANSWERS.edu_to_month || '')}, to_year: ${JSON.stringify(ANSWERS.edu_to_year || '')},
+      };
+      const filled = [];
+      document.querySelectorAll('select').forEach(sel => {
+        if (sel.getAttribute('aria-label')) return;               // labeled combos handled above
+        if (sel.selectedIndex > 0 && sel.value) return;           // already selected
+        const optTexts = [...sel.options].map(o => o.text.trim().toLowerCase());
+        const isMonth = optTexts.some(o => MONTHS.includes(o));
+        const isYear = optTexts.filter(o => /^(19|20)\\d{2}$/.test(o)).length > 3;
+        if (!isMonth && !isYear) return;
+        // Walk up to find the From/To context of this select's group
+        let ctx = null, el = sel;
+        for (let i = 0; i < 8 && el; i++) {
+          el = el.parentElement;
+          if (!el) break;
+          const t = (el.innerText || '').toLowerCase();
+          if (/\\bfrom\\b|desde/.test(t) && t.length < 400) { ctx = 'from'; break; }
+          if (/\\bto\\b|\\bhasta\\b|\\bend\\b/.test(t) && t.length < 400) { ctx = 'to'; break; }
+        }
+        if (!ctx) return;
+        const want = vals[ctx + '_' + (isMonth ? 'month' : 'year')];
+        if (!want) return;
+        const opt = [...sel.options].find(o => o.text.trim().toLowerCase() === want.toLowerCase() || o.value === want);
+        if (!opt) return;
+        const ns = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+        ns.call(sel, opt.value);
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+        sel.dispatchEvent(new Event('input', {bubbles: true}));
+        filled.push(ctx + ':' + opt.text.trim());
+      });
+      return JSON.stringify(filled);
+    })()`, { session: SESSION });
+    if (dateRes && dateRes.length) process.stdout.write(`[dates ${JSON.stringify(dateRes)}] `);
 
     // Click required radio buttons (Yes/No groups)
     // Regex handles both English ("Required") and Spanish ("Obligatorio") required indicators
@@ -757,15 +869,37 @@ function applyToJob(jobRef, userData) {
       click(ref);
       sleep(1000);
     }
+    // Direct checkboxes (no generic wrapper): `- checkbox "label" [ref=x]`.
+    // Only consent/terms-type labels — never opt into marketing/disability/etc.
+    const directCbs = [...snap.matchAll(/- checkbox "([^"]+)"(?:\s+\[[^\]]*\])*\s+\[ref=([a-z][0-9a-z]+)\](?:\s+\[[^\]]*\])*/g)];
+    for (const cb of directCbs) {
+      const [line, label, ref] = cb;
+      if (line.includes('[checked]')) continue;
+      if (!/consent|terms|conditions|privacy|agree|accept|acepto|términos|terminos|condiciones|privacidad|consentimiento|consiento/i.test(label)) continue;
+      click(ref);
+      sleep(1000);
+    }
 
     // Find and click Continue/Review/Submit button (English or Spanish)
+    // Attr-tolerant: snapshot may render `button "Siguiente" [active] [ref=...]`.
+    // Scope to the dialog region first: pages can contain non-dialog buttons with
+    // the same label (carousels, pagination) that hijack the first regex match.
+    const dialogIdx = snap.indexOf('- dialog [');
+    const dialogSnap = dialogIdx >= 0 ? snap.slice(dialogIdx) : snap;
+    const refTail = '(?:\\s+\\[[^\\]]*\\])*\\s+\\[ref=([a-z][0-9a-z]+)\\]';
     let actionRef = null;
-    if (snap.includes('Submit application') || snap.includes('Enviar solicitud') || snap.includes('Presentar solicitud')) {
-      actionRef = extractRef(snap, /button "(?:Submit application|Enviar solicitud|Presentar solicitud)" \[ref=([a-z][0-9a-z]+)\]/);
-    } else if (snap.includes('Review your application') || snap.includes('Revisar tu solicitud') || snap.includes('Revisa tu solicitud')) {
-      actionRef = extractRef(snap, /button "(?:Review your application|Revisar tu solicitud|Revisa tu solicitud)" \[ref=([a-z][0-9a-z]+)\]/);
-    } else if (snap.includes('Continue to next step') || snap.includes('Ir al siguiente paso') || snap.includes('Continuar al siguiente paso') || snap.includes('Siguiente')) {
-      actionRef = extractRef(snap, /button "(?:Continue to next step|Ir al siguiente paso|Continuar al siguiente paso|Siguiente)" \[ref=([a-z][0-9a-z]+)\]/);
+    const findBtn = (labelRe) => {
+      const re = new RegExp('button "' + labelRe + '"' + refTail);
+      return extractRef(dialogSnap, re) || extractRef(snap, re);
+    };
+    // Detect on the DIALOG only — page-level text (e.g. carousel "Siguiente") must
+    // not select the branch, and LinkedIn also renders a bare "Revisar" button.
+    if (dialogSnap.match(/button "(?:Submit application|Enviar solicitud|Presentar solicitud)"/)) {
+      actionRef = findBtn('(?:Submit application|Enviar solicitud|Presentar solicitud)');
+    } else if (dialogSnap.match(/button "(?:Review(?: your application)?|Revisar(?: tu solicitud)?|Revisa tu solicitud)"/)) {
+      actionRef = findBtn('(?:Review(?: your application)?|Revisar(?: tu solicitud)?|Revisa tu solicitud)');
+    } else if (dialogSnap.match(/button "(?:Continue to next step|Ir al siguiente paso|Continuar al siguiente paso|Siguiente)"/)) {
+      actionRef = findBtn('(?:Continue to next step|Ir al siguiente paso|Continuar al siguiente paso|Siguiente)');
     }
 
     if (actionRef) {
@@ -893,7 +1027,7 @@ function deriveKeywordsFromProfile(userData) {
     roleTypes.slice(0, 3).forEach((r) => parts.push(`"${r}"`));
   }
 
-  return parts.length > 0 ? parts.join(' OR ') : 'Software Engineer';
+  return parts.length > 0 ? parts.join(' OR ') : '';
 }
 
 function deriveLocationFromProfile(userData) {
@@ -923,6 +1057,7 @@ function main() {
 
   let keywords = null; // will be derived from DB if not provided
   let location = null; // will be derived from DB if not provided
+  let jobUrl = null; // direct single-job mode
   let maxJobs = 10;
   let dryRun = false;
   let jsonOutput = false;
@@ -934,6 +1069,7 @@ function main() {
     else if (args[i] === '--dry-run') dryRun = true;
     else if (args[i] === '--json') jsonOutput = true;
     else if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; i++; }
+    else if (args[i] === '--job-url' && args[i + 1]) { jobUrl = args[i + 1]; i++; }
   }
 
   // Load user data and form answers from DB
@@ -968,10 +1104,66 @@ function main() {
   // Session is already active via browser.js open, so auth state is not needed.
   // loadAuthState();
 
+  // Direct single-job mode: skip search entirely
+  if (jobUrl) {
+    const results = [];
+    const job = { role: '', company: '', url: jobUrl };
+    process.stdout.write(`Applying to ${jobUrl}... `);
+    goto(job.url);
+    sleep(3000);
+
+    // Resolve role/company from the page for DB
+    const meta = evalJSON(`(function(){
+      const t = document.querySelector('h1, .top-card-layout__title, [class*="job-title"]')?.textContent.trim() || '';
+      const c = document.querySelector('[class*="topcard__org"], [class*="company-name"], .top-card-layout__second-subline, [data-tracking-control-name*="company"]')?.textContent.trim() || '';
+      return JSON.stringify({role: t.substring(0,120), company: c.substring(0,80)});
+    })()`, { session: SESSION });
+    const metaObj = (() => { try { return JSON.parse(meta || '{}'); } catch { return meta && typeof meta === 'object' ? meta : {}; } })();
+    if (metaObj.role) job.role = metaObj.role;
+    if (metaObj.company) job.company = metaObj.company;
+    if (!job.role) job.role = 'LinkedIn job';
+    if (!job.company) job.company = 'LinkedIn';
+
+    const jobSnap = snapshot();
+    if (jobSnap.includes('Solicitud enviada') || jobSnap.includes('Application sent') || jobSnap.includes('application was sent')) {
+      console.log('ALREADY APPLIED - SKIPPING');
+      results.push({ ...job, status: 'already_applied' });
+    } else {
+      const patterns = [
+        /(?:button|link) "Solicitud sencilla[^"]*" \[ref=([a-z][0-9a-z]+)\]/,
+        /(?:button|link) "Easy Apply[^"]*" \[ref=([a-z][0-9a-z]+)\]/,
+      ];
+      let easyApplyRef = null;
+      for (const p of patterns) {
+        easyApplyRef = extractRef(jobSnap, p);
+        if (easyApplyRef) break;
+      }
+      if (!easyApplyRef) {
+        console.log('NO EASY APPLY BUTTON');
+        results.push({ ...job, status: 'no_button' });
+      } else {
+        const result = applyToJob(easyApplyRef, userData);
+        results.push({ ...job, ...result });
+        if (result.status === 'applied') {
+          console.log('APPLIED');
+          const safeCompany = job.company.replace(/'/g, "''");
+          const safeRole = job.role.replace(/'/g, "''");
+          const safeUrl = job.url.replace(/'/g, "''");
+          dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (${process.env.USER_ID || 1}, 'linkedin', '${safeCompany}', '${safeRole}', '${safeUrl}', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "direct_url"}')`);
+        } else {
+          console.log(`FAILED: ${result.error || result.status}`);
+        }
+      }
+    }
+    if (jsonOutput) console.log(JSON.stringify(results, null, 2));
+    else console.log(`\nDone: ${results[0]?.status}`);
+    return;
+  }
+
   goto(searchUrl);
 
   // Wait for job cards to load (in-page polling, not shell sleep)
-  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item").length > 0', { timeout: 10000, session: SESSION });
+  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id]").length > 0', { timeout: 10000, session: SESSION });
 
   // Try DOM extraction first (more reliable, gets all cards)
   let jobs = findEasyApplyJobsFromDOM();
@@ -1028,7 +1220,7 @@ function main() {
     } else {
       // Fallback: try clicking the job title
       const currentSnap = snapshot();
-      const cleanRole = job.role.split('\n')[0].trim();
+      const cleanRole = job.role.split('\n')[0].trim().replace(/ with verification$/i, '');
       const titleRef = extractRef(currentSnap, new RegExp(`strong \\[ref=([a-z][0-9a-z]+)\\]: ${cleanRole.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
       if (titleRef) {
         click(titleRef);
@@ -1047,7 +1239,7 @@ function main() {
     // Re-find the Easy Apply button (refs change after navigation)
     // Try multiple patterns: English/ Spanish, button/ link
     const jobSnap = snapshot();
-    const escapedRole = job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split('\\n')[0].trim();
+    const escapedRole = job.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split('\\n')[0].trim().replace(/ with verification$/i, '').slice(0, 60);
     const patterns = [
       new RegExp(`button "Easy Apply to ${escapedRole}.*?" \\[ref=([a-z][0-9a-z]+)\\]`),
       new RegExp(`link "Easy Apply to ${escapedRole}.*?" \\[ref=([a-z][0-9a-z]+)\\]`),
@@ -1075,7 +1267,7 @@ function main() {
         const safeCompany = job.company.replace(/'/g, "''");
         const safeRole = job.role.replace(/'/g, "''");
         const safeUrl = (job.url || '').replace(/'/g, "''");
-        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (1, 'linkedin', '${safeCompany}', '${safeRole}', '${safeUrl}', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "title_pass"}')`);
+        dbWrite(`INSERT INTO applications (user_id, platform, company, role, url, status, applied_at, data) VALUES (${process.env.USER_ID || 1}, 'linkedin', '${safeCompany}', '${safeRole}', '${safeUrl}', 'applied', NOW(), '{"source": "linkedin_easy_apply", "match": "title_pass"}')`);
         break;
       case 'captcha':
         console.log('CAPTCHA - STOPPING');

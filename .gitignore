@@ -9,8 +9,20 @@
 node_modules/
 orca/
 assets/*.html
-assets/*.pdf
-.claude/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 .browser-config.json
+.DS_Store
+.tmp-*
+.tmp_*
+.claude/
+data/
+# acp-connector config (Telegram/Discord bot tokens)
+acp-connector.jsonc
+# Remote-channel uploads
+uploads/
+# Local state
+.assistant/
+logs/
+.browser-profile-*/
+assets/*.pdf

@@ -1,6 +1,7 @@
 ---
 name: afip-gov-ar
 description: Automate AFIP/ARCA (Argentina tax authority) portal and SiRADIG F572 Web form for annual income tax deductions. Use when navigating AFIP/ARCA, loading SiRADIG, managing tax deductions, family charges, rent deductions, or any ARCA clave fiscal workflow.
+verified: 2026-09-02
 ---
 
 # AFIP / ARCA — Automation guide
@@ -154,10 +155,6 @@ If Datos Personales or Empleadores are missing, "Carga de Formulario" redirects 
 ### Comprobantes
 - Each loaded month shows "Agregar Comprobante" — asks to associate receipts (rent receipt).
 - System warns if 40% of entered receipt amounts is less than the informed amount.
-
-## Keyboard shortcuts
-
-AFIP/ARCA has no keyboard shortcuts. All navigation is via clicks.
 
 ## Anti-patterns
 

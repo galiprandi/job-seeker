@@ -86,7 +86,7 @@ Replace `<INDEX>` with the cache index from step 1:
 The base64 output can be piped to Python to decode and save:
 
 ```bash
-node scripts/browser.js exec eval "..." 2>&1 | python3 -c "
+node .agents/skills/browser-automation/scripts/browser.js exec eval "..." 2>&1 | python3 -c "
 import sys, base64
 data = sys.stdin.read()
 start = data.find('\"') + 1

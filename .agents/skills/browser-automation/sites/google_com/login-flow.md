@@ -14,7 +14,7 @@ Read the main Browser Automation `SKILL.md` for profile setup and the safe wrapp
 ## Setup
 
 ```bash
-node scripts/browser.js open "https://accounts.google.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://accounts.google.com" --headed
 ```
 
 ## Flow
@@ -38,7 +38,7 @@ node scripts/browser.js open "https://accounts.google.com" --headed
 After step 5, the page title should become `Cuenta de Google` and the URL should contain `myaccount.google.com`.
 
 ```bash
-playwright-cli eval "() => document.title.includes('Cuenta de Google')"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.title.includes('Cuenta de Google')"
 ```
 
 ## Anti-patterns
