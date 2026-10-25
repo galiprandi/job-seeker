@@ -2,7 +2,7 @@
 /**
  * linkedin-easy-apply.js — Search and apply to LinkedIn Easy Apply jobs automatically.
  *
- * Uses playwright-cli (must be running via browser.js wrapper first).
+ * Uses agent-browser via the browser.js wrapper (session must be open first).
  * Searches for jobs, clicks Easy Apply, fills forms with data from DB,
  * submits applications, and registers them in DB.
  *
@@ -29,20 +29,31 @@
  */
 'use strict';
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const path = require('path');
 
 // --- Helpers ---
 
 let SESSION = 'default'; // set by --session flag in main()
 
+// agent-browser `snapshot -i` emits "@eN role "name"" lines; this script's
+// parsers expect the playwright-style "- role "name" [ref=eN]" shape.
+function normalizeSnap(snap) {
+  return snap.split('\n').map(line => {
+    const m = line.match(/^(\s*)@([a-z][0-9a-z]+)\s+(\w[\w-]*)\s+"([^"]*)"(.*)$/);
+    return m ? `${m[1]}- ${m[3]} "${m[4]}" [ref=${m[2]}]${m[5]}` : line;
+  }).join('\n');
+}
+
 function cli(args, timeout = 30000) {
   const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${sessionFlag}${args}`, {
+    const wrapper = require('path').resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
+    const sessionArgs = SESSION !== 'default' ? ['--session', SESSION] : [];
+    return execFileSync('node', [wrapper, 'exec', ...sessionArgs, ...args.split(' ')], {
       encoding: 'utf-8',
       timeout,
-      cwd: __dirname,
+      cwd: process.cwd(),
     });
   } catch (e) {
     return e.stdout || e.message;
@@ -57,7 +68,8 @@ const {
 } = require('../lib/browser-helpers');
 
 function snapshot() {
-  return cli('snapshot');
+  const raw = cli('snapshot -i');
+  return normalizeSnap(raw);
 }
 
 function sleep(ms) {
@@ -65,15 +77,15 @@ function sleep(ms) {
 }
 
 function click(ref) {
-  return cli(`click ${ref}`);
+  return cli(`click @${ref}`);
 }
 
 function fill(ref, value) {
-  return cli(`fill ${ref} "${value.replace(/"/g, '\\"')}"`);
+  return cli(`fill @${ref} "${value.replace(/"/g, '\\"')}"`);
 }
 
 function selectOption(ref, value) {
-  return cli(`select ${ref} "${value.replace(/"/g, '\\"')}"`);
+  return cli(`select @${ref} "${value.replace(/"/g, '\\"')}"`);
 }
 
 function press(key) {
@@ -1100,7 +1112,7 @@ function main() {
   const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&f_AL=true&f_WT=2${expFilter}&sortBy=DD`;
 
   // Load auth state to maintain LinkedIn session
-  // Skipped: state-load hangs in current playwright-cli version.
+  // Skipped: state-load hangs in current agent-browser version.
   // Session is already active via browser.js open, so auth state is not needed.
   // loadAuthState();
 
