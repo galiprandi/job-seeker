@@ -451,3 +451,7 @@ Use your university alumni network to connect with professionals at target compa
 - [TopResume Jobseeker Trends 2025](https://topresume.com/career-advice/jobseeker-trends-report) — 68.4% mental health impact, 26% take 16+ weeks
 - [StartupKit Recruiter Outreach](https://startupkit.app/en/blog/personalized-recruiter-outreach-reply-rates) — personalization 2-3x reply rate
 - [Federal Reserve Bank of St. Louis](https://www.stlouisfed.org) — 70% of job openings never posted publicly
+
+## Post-mining (feed posts by recruiters)
+
+Highest-yield addition to active sourcing: recruiters post vacancies as feed posts with direct contact channels, often before they reach job boards. See `docs/post-mining.md` for the validated query set (employer voice × role × geo, sorted by recency), skip patterns, and apply-channel priority (mailto > form > DM > board). Copy-link every relevant post to train the feed to surface more of them.
