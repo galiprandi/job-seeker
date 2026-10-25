@@ -1,16 +1,16 @@
 ---
 name: browser-automation
 version: "2.0.0"
-description: Control a dedicated browser via playwright-cli. Use when automating web apps, scraping authenticated sites, filling forms, or navigating SPAs. Do NOT use for desktop apps or API-only integrations.
-allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*) Bash(node:*)
+description: Control a dedicated browser via agent-browser (Vercel). Use when automating web apps, scraping authenticated sites, filling forms, or navigating SPAs. Do NOT use for desktop apps or API-only integrations.
+allowed-tools: Bash(agent-browser:*) Bash(npx:*) Bash(npm:*) Bash(node:*)
 metadata:
   author: galiprandi
-  tags: [browser-automation, playwright, web-scraping, rpa, automation]
+  tags: [browser-automation, agent-browser, web-scraping, rpa, automation]
 ---
 
 # Browser Automation
 
-Control a dedicated Chromium browser via `playwright-cli` from the terminal. Token-efficient: commands return concise output, not verbose accessibility trees.
+Control a dedicated Chrome browser via `agent-browser` from the terminal. Token-efficient: semantic snapshots expose interactive elements as stable refs (@eN) instead of verbose accessibility trees or fragile CSS selectors.
 
 ## Purpose
 
@@ -19,6 +19,15 @@ Operate a real browser session: navigate, click, fill forms, extract data, and c
 **Use for:** automating web apps that require login, scraping authenticated sites, filling forms, extracting data, navigating SPAs, job search automation, inbox management.
 
 **Do NOT use for:** desktop apps, mobile emulators, API-only integrations without a browser, or captcha solving (defer to the user).
+
+## Command hierarchy (semantic-first)
+
+Choose commands in this order. Each level down is a fallback, not a preference:
+
+1. **App/site keyboard shortcuts** — `press`, `keyboard type` (see KEYBOARD FIRST below)
+2. **Semantic locators** — `find role|text|label|placeholder <value> <action>` (e.g. `find role button click --name "Enviar"`)
+3. **Snapshot refs** — `snapshot -i` (interactive elements only) → `click @eN` / `fill @eN`
+4. **eval / raw JS** — LAST RESORT only. Fragile: pages expose decoy elements (e.g. Gmail shows TWO `contenteditable` boxes — the real body and a Gemini "Describe tu mensaje" field; a `.pop()` on visible editors pasted into the wrong one and sent blank emails). If you must eval, target by exact `aria-label`/`data-testid`, never by position or "last visible".
 
 ## KEYBOARD FIRST (non-negotiable)
 
@@ -100,7 +109,7 @@ In all other cases, use the keyboard.
 ## Prerequisites
 
 - Node.js 18+ and npm
-- playwright-cli: `npm install -g @playwright/cli@latest && playwright-cli install-browser`
+- agent-browser: `npm install -g agent-browser` (system Chrome required)
 - A persistent profile directory (gitignored) for auth state
 - Manual login for each new site (agent opens headed mode, user logs in once)
 
@@ -111,12 +120,14 @@ In all other cases, use the keyboard.
 - **Refs are ephemeral**: `[ref=eXXX]` identifiers change after every page mutation — always get fresh refs before interacting
 - **Full snapshots of complex SPAs are huge and truncated**: use `find` or `eval` instead of full snapshots on Gmail, LinkedIn, Facebook, etc.
 - **Site guides break over time**: selectors and API endpoints change as sites update — run `npx skills update` before starting, and if a selector fails, update the skill first
-- **No parallel browser instances**: use tabs within one browser instance, not multiple `playwright-cli open` calls
+- **No parallel browser instances**: use tabs within one browser instance, not multiple `agent-browser open` calls
 - **Token expiry**: localStorage tokens (JWT, OAuth, Cognito) typically expire in 1 hour — re-extract if you get 401
+- **Verify session identity before acting**: the first action on any logged-in site must confirm WHICH account is active (account avatar/aria-label, profile corner). If it is not the repo owner's account → STOP and report. A shared daemon or stale profile can attach you to someone else's session.
+- **Empirical learnings only**: never write a hypothesis about site behavior ("paste doesn't register", "that selector fails") into a guide without a controlled test confirming it (e.g. send to yourself first). A false learning is worse than none.
 
 ## Troubleshooting
 
-- **Browser not found:** `npm install -g @playwright/cli@latest && playwright-cli install-browser`
+- **Browser not found:** `npm install -g agent-browser` + system Chrome installed (google-chrome)
 - **Stale refs:** Take a fresh `find` or `snapshot` before interacting
 - **`fill` doesn't work on custom input:** Use `eval` with native value setter (see [references/key-patterns.md](references/key-patterns.md))
 - **Button click does nothing:** Use `eval` with mousedown→click→mouseup sequence
@@ -124,7 +135,7 @@ In all other cases, use the keyboard.
 - **401 from API:** Token expired — re-extract from localStorage
 - **Session killed:** Never use shell `sleep` — use in-page polling via `eval` (Rule 2)
 - **Two browser instances:** Use `--tab`, never open twice
-- **Site returns 403 on curl/HTTP but works in browser:** Sites like Reddit block non-browser User-Agents on HTTP APIs (JSON, RSS) but do NOT block the Playwright browser session in headed mode. If curl returns 403, do NOT assume the browser is also blocked. Use `goto` + `eval` in the browser. If the browser also returns 403, you are likely in headless mode — `close --force` and reopen with `--headed`. Some sites (Reddit) detect headless browsers and block them, but allow headed browsers with a real profile.
+- **Site returns 403 on curl/HTTP but works in browser:** Sites like Reddit block non-browser User-Agents on HTTP APIs (JSON, RSS) but do NOT block the agent-browser session in headed mode. If curl returns 403, do NOT assume the browser is also blocked. Use `goto` + `eval` in the browser. If the browser also returns 403, you are likely in headless mode — `close` and reopen with `--headed`. Some sites (Reddit) detect headless browsers and block them, but allow headed browsers with a real profile.
 
 ## App guides (auto-injected when you open a site)
 
@@ -166,8 +177,8 @@ If a site has a guide, you will see it. If you don't see a guide, the site is no
 ### Install
 
 ```bash
-npm install -g @playwright/cli@latest
-playwright-cli install-browser        # downloads chromium
+npm install -g agent-browser
+# Requires system Chrome (google-chrome or chromium) installed
 ```
 
 ### Keep this skill updated
@@ -190,7 +201,7 @@ Use a persistent profile to preserve cookies/logins across sessions. Always giti
 
 The wrapper script lives in this skill and is **executed in-place** — it is NOT copied to the consuming repo. This ensures it always has access to the latest site guides and stays in sync with skill updates.
 
-**Always use the wrapper for open/goto/close.** Never call `playwright-cli open` directly.
+**Always use the wrapper for open/goto/close.** Never call `agent-browser open` directly.
 
 **Migration from old copies:** If your consuming repo has an old copy at `scripts/browser.js` from a previous version of this skill, delete it. That copy is obsolete — it does not auto-inject site guides, does not check for updates, and is no longer maintained. Use the in-place path below instead.
 
@@ -207,10 +218,11 @@ node .agents/skills/browser-automation/scripts/browser.js close [--force]
 node .agents/skills/browser-automation/scripts/browser.js close-all [--force]
 ```
 
-**Passthrough to playwright-cli** (for click, fill, snapshot, eval, press, etc.):
+**Passthrough to agent-browser** (for click, fill/type, snapshot, eval, press, etc.):
 ```bash
-# "exec" forwards the REST of the args to playwright-cli.
-# DO NOT write "playwright-cli" again. DO NOT wrap the command in quotes.
+# "exec" forwards the REST of the args to agent-browser.
+# DO NOT write "agent-browser" again. DO NOT wrap the command in quotes.
+# agent-browser has native `fill`/`type`/`press`/`keyboard type` — prefer them over eval (see command hierarchy).
 node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
 node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "text"
@@ -219,40 +231,39 @@ node .agents/skills/browser-automation/scripts/browser.js exec find "text to sea
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
-**Wait for DOM to settle** (after clicks/navigation, instead of `sleep`):
+**Wait for page load** (after clicks/navigation, instead of `sleep`):
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js wait-dom [--quiet <ms>] [--timeout <ms>]
-# waits until no DOM mutations for <quiet> ms (default 250), bounded by <timeout> (default 3000)
+node .agents/skills/browser-automation/scripts/browser.js wait-dom [--timeout <ms>]
+# waits for the load event, bounded by <timeout> (default 30000)
 ```
 
 **Wait for a target to appear** (in-page polling, no shell sleep):
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js wait-for "css=.result"      # visible selector
-node .agents/skills/browser-automation/scripts/browser.js wait-for "text=Message sent" # body text, case-insensitive
-node .agents/skills/browser-automation/scripts/browser.js wait-for "js=() => !!window.appReady" --timeout 15000
+node .agents/skills/browser-automation/scripts/browser.js exec wait ".result"            # visible selector
+node .agents/skills/browser-automation/scripts/browser.js exec wait --text "Message sent" # body text
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "!!window.appReady" --timeout 15000
+node .agents/skills/browser-automation/scripts/browser.js exec wait --url "**/dashboard"
 ```
 
 **Observe page state** (compact, decision-oriented — preferred input for agents):
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js observe
-# → JSON: url, title, h1, scroll, up to 50 interactive elements ordered by
-#   viewport proximity (el0..el49), visible alerts. ~4KB vs 50KB+ snapshots.
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i   # interactive elements only, @eN refs
+node .agents/skills/browser-automation/scripts/browser.js exec read          # rendered page as agent-readable text
 ```
 
-**Batch commands** (one process, N commands over the session socket):
+**Batch commands** (one daemon call, N commands — required for two-key sequences):
 ```bash
-echo '[["eval","(() => location.href)()"],["find","Send"],["press","Enter"]]' \
-  | node .agents/skills/browser-automation/scripts/browser.js batch
-# → JSON array [{i, ok, ms, text}]. Stops on first error;
-#   {"commands":[...],"continueOnError":true} to continue.
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press i" "wait 500"
+# sequential, minimal latency between commands; or pipe JSON via stdin to
+# `exec batch --json`: [["press","g"],["press","i"]]
 ```
 
 **Key wrapper behaviors:**
 - `--profile=.browser-profile` is hardcoded. Cannot be omitted.
 - Profile resolves to `process.cwd()/.browser-profile` (the consuming repo's root), not the skill directory.
-- If a session is already running, `open` auto-navigates instead of failing — **unless** the session uses a different profile or headless mode when headed is configured (rogue sessions from bare `playwright-cli open` are closed and reopened correctly).
+- If a session is already running, `open` auto-navigates instead of failing — **unless** the session uses a different profile or headless mode when headed is configured (rogue sessions from bare `agent-browser open` are closed and reopened correctly).
 - Site guides are auto-injected into stdout on `open`, `goto`, and `tab-new` when a matching guide exists.
-- `exec` uses the session daemon's unix socket directly when a session is open (fast path, ~0.5s vs ~2.6s spawn). Falls back to spawning `playwright-cli` automatically. `BROWSER_NO_FAST=1` disables it. Lifecycle/interactive commands (`open`, `close`, `pause`, …) always use the spawn path.
+- `exec` forwards the command to `agent-browser` in the repo-scoped namespace (the daemon keeps the session alive between calls). Lifecycle commands (`open`, `close`, `tab-new`, …) are wrapper commands, not `exec` passthrough.
 
 For the full command list (tabs, auth state, debugging), see [references/profile-management.md](references/profile-management.md).
 
@@ -261,13 +272,13 @@ For the full command list (tabs, auth state, debugging), see [references/profile
 These rules were validated through extensive testing. Breaking them causes failure. See [references/golden-rules.md](references/golden-rules.md) for full examples.
 
 1. **KEYBOARD FIRST** — Before any interaction, ask: "Can I do this with the keyboard?" If yes, use `exec press`. Only fall back to clicks/snapshots if no shortcut exists. This is Rule 0 — it overrides all other rules.
-2. **eval > ref-based clicks** — Refs don't persist between CLI calls. Use `eval` to find and click by text in one atomic call.
-3. **In-page polling > shell sleep** — Shell `sleep` kills the session. Use `wait-dom` (waits until DOM mutations go quiet) or `eval` with `await` polling to wait for elements.
-4. **Read snapshot file as fallback** — When `exec snapshot` fails, read the auto-generated `.playwright-cli/page-*.yml` file.
+2. **find > snapshot refs > eval** — Semantic `find` locators first, `snapshot -i` `@eN` refs second, `eval` only as last resort with exact aria-label/data-testid selectors (never positional).
+3. **In-page polling > shell sleep** — Use `exec wait --fn/--text/--url` or `wait-dom` to wait for real page state instead of fixed sleeps.
+4. **Scope snapshots on retry** — When `exec snapshot` fails or is truncated, retry with `exec snapshot -i` or scope with `-s <selector>`; or use `exec read` for text content.
 5. **Use URLs directly, not clicks for navigation** — `goto "https://..."` is more reliable than clicking nav links.
 6. **Verify with DOM content, not URL** — SPAs update content without changing the URL. Check DOM state with `eval`.
-7. **Batch operations into a single eval call** — Wait + click + verify in one `eval` is more robust than multiple CLI calls.
-8. **UTF-8 through base64/atob is broken** — `atob()` decodes base64 to a Latin-1 string, so UTF-8 multibyte chars (á, é, í, ó, ú, ñ) become mojibake (`MartÃ­n`). NEVER inject accented text via `eval(atob('...'))`. Use either: (a) JSON payload decoded properly — `eval(decodeURIComponent(escape(atob('$B64'))))`, (b) Unicode escapes in the JS source (`Mart\u00edn`), or (c) write the script to a file and load it — never pipe accented text through atob. **Always verify injected text by reading `el.innerText`/`el.value` back before submitting** (validated 2026-10-09: LinkedIn DM sent with mangled accents to a CEO — user had to hand-fix it).
+7. **Batch operations into one call** — `exec batch "cmd1" "cmd2"` chains wait + click + verify with minimal latency between commands (required for two-key sequences).
+8. **Accessibility-first navigation: keyboard over snapshot/click loops** — Even without app shortcuts, standard keyboard navigation beats the snapshot→click→snapshot→click cycle. Fill forms end-to-end via keyboard: focus the first field, type, `Tab` to the next, repeat, `Enter` to submit — one sequential flow, no refs needed. Use `Tab`/`Shift+Tab` between controls, `Enter`/`Space` to activate, arrow keys in radios/selects/menus, `Esc` to close overlays. Keyboard focus follows the accessibility tree, not generated CSS classes, so it survives site redeploys. It also produces input events closer to a human's, which **mitigates bot detection** triggered by programmatic ref/coordinate clicks. Interaction preference order: (1) app keyboard shortcuts, (2) standard keyboard navigation, (3) internal API via `eval` + fetch, (4) ref-based clicks as last resort. Always verify focus landed where expected by checking DOM state (Rule 6) — never assume.
 
 **Chaining:** Chain `open && eval` in a single shell command to prevent session death between calls.
 
@@ -309,7 +320,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec screenshot [--fil
 node .agents/skills/browser-automation/scripts/browser.js exec pdf --filename=page.pdf
 ```
 
-For the full command reference with all options, see [references/playwright-cli.md](references/playwright-cli.md).
+For the full command reference with all options, see [references/agent-browser.md](references/agent-browser.md).
 
 ## Tab management
 
@@ -317,31 +328,31 @@ For the full command reference with all options, see [references/playwright-cli.
 # NAMED tabs (RECOMMENDED) — target directly with --tab, no switching needed
 node .agents/skills/browser-automation/scripts/browser.js tab-new "https://gmail.com" --name gmail
 node .agents/skills/browser-automation/scripts/browser.js exec snapshot --tab gmail
-node .agents/skills/browser-automation/scripts/browser.js tab-close gmail
+node .agents/skills/browser-automation/scripts/browser.js exec "tab close gmail"
 
-# INDEX tabs (fallback) — must tab-select before each command
-node .agents/skills/browser-automation/scripts/browser.js exec tab-select 1
+# Or switch the active tab first, then run commands on it
+node .agents/skills/browser-automation/scripts/browser.js exec tab gmail
 node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 ```
 
 ## State persistence
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js save-state     # save cookies + localStorage after manual login
-node .agents/skills/browser-automation/scripts/browser.js load-state     # load saved state in a new session
+node .agents/skills/browser-automation/scripts/browser.js save-state ./auth.state.json   # save cookies + localStorage
+node .agents/skills/browser-automation/scripts/browser.js load-state ./auth.state.json   # load into current session
 ```
 
-**Login workflow:** `open --headed` → user logs in → `save-state` → `close` → next session: `open` + `load-state`.
+**Login workflow:** `open --headed` → user logs in → `save-state ./auth.state.json` → `close` → next session: `open` + `load-state ./auth.state.json`. (Cookies also persist natively in `.browser-profile/` — state files are a backup/transfer tool.)
 
 See [references/profile-management.md](references/profile-management.md) for full details.
 
 ## Network inspection & Console
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec requests          # list all network requests
-node .agents/skills/browser-automation/scripts/browser.js exec request <index>   # full details of request N
-node .agents/skills/browser-automation/scripts/browser.js exec console error     # only console errors
-node .agents/skills/browser-automation/scripts/browser.js exec console warning   # only warnings
+node .agents/skills/browser-automation/scripts/browser.js exec network requests              # list all network requests
+node .agents/skills/browser-automation/scripts/browser.js exec network requests --filter "api"  # filter by URL pattern
+node .agents/skills/browser-automation/scripts/browser.js exec errors                        # page errors only
+node .agents/skills/browser-automation/scripts/browser.js exec console                       # console messages
 ```
 
 Useful for capturing API calls, extracting CSRF tokens, and debugging. See [references/network-console.md](references/network-console.md).
@@ -389,7 +400,7 @@ See [references/api-capture.md](references/api-capture.md) for the capture scrip
 - **Don't** try to solve captchas programmatically (open headed and ask the user)
 - **Don't** use shell `sleep` between separate CLI calls (kills the session, see Rule 3)
 - **Don't** split wait + click + verify into separate CLI calls (batch into one eval, see Rule 7)
-- **Don't** call `playwright-cli open` directly when using the wrapper (use `node .agents/skills/browser-automation/scripts/browser.js open`)
+- **Don't** call `agent-browser open` directly when using the wrapper (use `node .agents/skills/browser-automation/scripts/browser.js open`)
 - **Don't** verify SPA navigation by URL change (check DOM content, see Rule 6)
 - **Don't** copy the wrapper script to the consuming repo — run it in-place from the skill directory
 - **Don't** ignore the auto-injected site guide — it contains validated selectors and shortcuts for the site you just opened
@@ -398,7 +409,7 @@ See [references/api-capture.md](references/api-capture.md) for the capture scrip
 
 - [references/golden-rules.md](references/golden-rules.md) — Full examples for all rules
 - [references/key-patterns.md](references/key-patterns.md) — Fresh refs, page load waits, custom components, button clicks
-- [references/playwright-cli.md](references/playwright-cli.md) — Full command reference
+- [references/agent-browser.md](references/agent-browser.md) — Full command reference
 - [references/parallel-agents.md](references/parallel-agents.md) — Parallel subagent pattern (why sequential > parallel)
 - [references/profile-management.md](references/profile-management.md) — Profile dir, auth state, headed/headless, config
 - [references/token-extraction.md](references/token-extraction.md) — localStorage JWT/OAuth/Cognito extraction
@@ -488,3 +499,23 @@ The PR must only touch files under `sites/`. It must never modify `SKILL.md`, `s
 ### No scripts in sites/
 
 **`sites/` is markdown-only. Do not contribute or create executable scripts (`.js`, `.py`, `.sh`, `.ts`) inside `sites/`.** Scripts are executable code that runs with the user's privileges — accepting them as contributions would expand the attack surface from prompt injection (text-only) to remote code execution. If a flow is universally reusable and deterministic enough to justify a script, it belongs in the skill's `scripts/` directory (core infrastructure, like `browser.js`), not in `sites/`. That promotion is a manual, human-reviewed decision — never automatic. See `sites/CONTRIBUTING.md` for full details.
+
+## wait --fn (active polling — preferred over sleeps)
+
+Instead of fixed `sleep`, wait for a real page condition:
+
+```bash
+node .../browser.js exec wait --fn "document.querySelectorAll('#pane-side [role=row]').length>5"   # WhatsApp hydrated
+node .../browser.js exec wait --fn "document.querySelectorAll('tr.zA').length>3"                  # Gmail list loaded
+node .../browser.js exec wait --fn "/Feed|LinkedIn/.test(document.title)"                        # SPA by title
+```
+
+Cuts ~50% of wait time vs sleeps and removes timing false-positives. Default timeout 25s.
+
+## batch (multiple commands in one call)
+
+`agent-browser batch "cmd1" "cmd2"` runs commands sequentially with no extra process spawn — lower overhead and, critically, minimal latency between commands (required for two-key sequences like Gmail's `g`+`i`). Note: JS inside wait/eval args needs correct nested quoting — prefer batch for simple sequences (open+wait+eval) and verify.
+
+```bash
+agent-browser batch "open <url>" "wait --fn '<js>'" "eval '<js>'"   # all in 1 call
+```

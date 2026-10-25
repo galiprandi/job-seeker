@@ -1,12 +1,18 @@
 ---
 name: gmail
-description: Automate Gmail with playwright-cli. Covers reading inbox via Atom feed, composing emails (with validated selectors), replying, searching, archiving, labeling, keyboard shortcuts, and bulk delete. Use when checking email, sending messages, managing inbox, or extracting email data. Part of the browser-automation skill.
+description: Automate Gmail with agent-browser. Covers reading inbox via Atom feed, composing emails (with validated selectors), replying, searching, archiving, labeling, keyboard shortcuts, and bulk delete. Use when checking email, sending messages, managing inbox, or extracting email data. Part of the browser-automation skill.
 verified: 2026-09-08
+domains:
+  - mail.google.com
+  - gmail.com
+  - inbox.google.com
 ---
 
 # Gmail Automation
 
-Automate Gmail via `playwright-cli` using a mix of UI interactions, keyboard shortcuts, and the Gmail Atom feed for bulk inbox reading.
+Automate Gmail via `agent-browser` using a mix of UI interactions, keyboard shortcuts, and the Gmail Atom feed for bulk inbox reading.
+
+**Interaction doctrine (semantic-first):** 1) Gmail keyboard shortcuts 2) `find` semantic locators (`find role|text|label <value> <action>`) 3) `snapshot -i` @eN refs 4) `eval` as LAST RESORT — only with exact aria-label/data-testid selectors, never positional ("last visible", `.pop()`).
 
 ## Keyboard shortcuts
 
@@ -89,36 +95,35 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 **Symptom:** You press `j` but no email row gets selected. Check `document.activeElement.tagName` — if it's `INPUT`, shortcuts won't fire.
 
-### CRITICAL: Two-key sequences must use `+` notation
+### CRITICAL: Two-key sequences must use `batch`
 
-Gmail two-key shortcuts (like `g` then `i`) must be sent as a **single `press` call with `+` notation**, NOT as two separate calls. Separate calls have too much latency between them — Gmail's sequence timeout expires.
+Gmail two-key shortcuts (`g` then `i`, etc.) are **key sequences, not chords**. In agent-browser `press "g+i"` presses g and i SIMULTANEOUSLY (a chord) — wrong. Two separate `exec press` calls also risk exceeding Gmail's ~1s sequence window due to process-spawn latency.
 
-**CORRECT (works):**
+**CORRECT — send both presses inside ONE `batch` call** (back-to-back daemon commands, minimal latency):
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+i"   # Go to Inbox
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+s"   # Go to Starred
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+t"   # Go to Sent
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+a"   # Go to All Mail
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press i"   # Go to Inbox
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press t"   # Go to Sent
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press s"   # Go to Starred
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press a"   # Go to All Mail
 ```
 
-**WRONG (does not work — too much latency between calls):**
+**WRONG:**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec press g
-node .agents/skills/browser-automation/scripts/browser.js exec press i   # Gmail already forgot the 'g'
+node .agents/skills/browser-automation/scripts/browser.js exec press "g+i"   # chord: presses both at once, nothing happens
+node .agents/skills/browser-automation/scripts/browser.js exec press g       # separate calls risk missing the sequence window
+node .agents/skills/browser-automation/scripts/browser.js exec press i
 ```
-
-**Why it works:** Playwright's `keyboard.press("g+i")` sends both keydown events in rapid succession through CDP, fast enough for Gmail's sequence window. The events are `isTrusted: true`, so Gmail accepts them as real user input.
 
 ### Navigation
 
 | Shortcut | Action | Notation |
 |---|---|---|
-| `g+i` | Go to Inbox | `press "g+i"` |
-| `g+s` | Go to Starred | `press "g+s"` |
-| `g+t` | Go to Sent | `press "g+t"` |
-| `g+d` | Go to Drafts | `press "g+d"` |
-| `g+a` | Go to All Mail | `press "g+a"` |
-| `g+l` | Go to Label (opens label picker) | `press "g+l"` |
+| `g` then `i` | Go to Inbox | `batch "press g" "press i"` |
+| `g` then `s` | Go to Starred | `batch "press g" "press s"` |
+| `g` then `t` | Go to Sent | `batch "press g" "press t"` |
+| `g` then `d` | Go to Drafts | `batch "press g" "press d"` |
+| `g` then `a` | Go to All Mail | `batch "press g" "press a"` |
+| `g` then `l` | Go to Label (opens label picker) | `batch "press g" "press l"` |
 
 ### Email actions
 
@@ -159,7 +164,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec press i   # Gmail
 | `Enter` | Open email |
 | `u` | Back to inbox from email view |
 
-### Usage with playwright-cli
+### Usage with agent-browser
 
 ```bash
 # IMPORTANT: Blur any focused input before pressing shortcuts
@@ -170,14 +175,12 @@ node .agents/skills/browser-automation/scripts/browser.js exec press j
 node .agents/skills/browser-automation/scripts/browser.js exec press x
 node .agents/skills/browser-automation/scripts/browser.js exec press e
 
-# Go to inbox (two-key shortcut — MUST use + notation in single call)
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+i"
+# Go to inbox (two-key sequence — MUST use batch, see above)
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press i"
 
 # Go to sent mail
-node .agents/skills/browser-automation/scripts/browser.js exec press "g+t"
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press t"
 ```
-
-**Note:** Two-key shortcuts (like `g`+`i`) MUST use `+` notation in a single `press` call. Two separate calls do NOT work — the latency between CLI calls exceeds Gmail's sequence timeout.
 
 ## Setup
 
@@ -213,20 +216,12 @@ Returns XML Atom feed containing:
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(async()=>{
   var r=await fetch('https://mail.google.com/mail/feed/atom');
   var t=await r.text();
-  var p=new DOMParser();
-  var d=p.parseFromString(t,'text/xml');
-  var entries=d.querySelectorAll('entry');
-  var out=[];
-  for(var i=0;i<entries.length;i++){
-    var e=entries[i];
-    out.push({
-      title:e.querySelector('title').textContent,
-      from:e.querySelector('author name').textContent,
-      email:e.querySelector('author email').textContent,
-      summary:e.querySelector('summary').textContent.substring(0,150),
-      modified:e.querySelector('modified').textContent
-    });
-  }
+  // TrustedHTML blocks DOMParser on Gmail — parse with regex instead
+  var pick=(x,tag)=>{var m=x.match(new RegExp('<'+tag+'[^>]*>([\\s\\S]*?)<\\/'+tag+'>')); return m?m[1].trim():''};
+  var out=[...t.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m=>{var e=m[1]; return {
+    title:pick(e,'title'), from:pick(e,'name'), email:pick(e,'email'),
+    summary:pick(e,'summary').substring(0,150), modified:pick(e,'modified')
+  }});
   return JSON.stringify(out);
 })()"
 ```
@@ -318,7 +313,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 node .agents/skills/browser-automation/scripts/browser.js goto "https://mail.google.com/mail/u/0/#inbox/<threadId>"
 ```
 
-Or click an email row from the inbox list (use eval, not ref-based click — see Browser Automation Rule 1):
+Or click an email row from the inbox list. Prefer a semantic ref first (`exec snapshot -i` then `exec click @eN` on the row, or `exec find text "<subject>" click`); use eval only as fallback:
 
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
@@ -432,7 +427,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 ## Composing emails (validated empirically 2026-08-10)
 
-Gmail compose is **NOT** an iframe. It is `div[role=dialog]` in the main document, so `playwright-cli` can access all elements directly.
+Gmail compose is **NOT** an iframe. It is `div[role=dialog]` in the main document, so `agent-browser` can access all elements directly.
 
 ### Compose selectors (Spanish UI, English equivalents noted)
 
@@ -451,7 +446,7 @@ document.querySelector('textarea[aria-label="Cuerpo del mensaje"], div[contented
 
 Same trap in **inline replies** (the reply draft at thread bottom has the same pair of editors).
 
-**✅ Keyboard-first compose (PREFERRED — no selectors, immune to the Gemini trap):** `press c` opens compose with focus already on **To** → `type` the address → `Enter` confirms the chip → `Tab` to Subject → `type` → `Tab` to body → `type` → `press "Control+Enter"` sends. Same for replies: `press r` inside a thread opens the reply editor with focus on the body. Zero DOM selectors needed.
+**✅ Keyboard-first compose (PREFERRED — no selectors, immune to the Gemini trap):** `press c` opens compose with focus already on **To** → `keyboard type` the address → `Enter` confirms the chip → `Tab` to Subject → `keyboard type` → `Tab` to body → `keyboard type` → `press "Control+Enter"` sends. Same for replies: `press r` inside a thread opens the reply editor with focus on the body. Zero DOM selectors needed. (`keyboard type` sends real keystrokes to the focused element — there is no `exec type`.)
 
 ### Open compose dialog
 
@@ -529,22 +524,20 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 })()"
 ```
 
-### Verify send
+### Verify BEFORE send (non-negotiable)
 
-**Critical (learned 2026-09-22):** the "Mensaje enviado" toast can confirm an EMPTY email. If the typed body didn't land in the editor (React swallows it), Gmail still sends a blank message. ALWAYS verify `div.Am.editable` innerText length > 0 BEFORE clicking Send, and afterwards open the message in `#sent` and confirm the body text is present:
+Before pressing `Control+Enter` or clicking "Enviar", ALWAYS read back the real body field and confirm it contains the intended text — catching an empty body costs one eval; sending a blank email to a human is irreversible (happened 2026-10-05: text was pasted into the Gemini decoy editor, two blank emails went out).
 
 ```bash
-# Before Send: body must have content
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
-  const dlg = [...document.querySelectorAll('div[role=dialog]')].pop();
-  const body = dlg.querySelector('div.Am.editable');
-  return 'len:' + (body.innerText || '').length;  // must be > 0
+  const b = document.querySelector('textarea[aria-label=\"Cuerpo del mensaje\"], div[contenteditable=true][aria-label=\"Cuerpo del mensaje\"], textarea[aria-label=\"Message body\"], div[contenteditable=true][aria-label=\"Message body\"]');
+  return b ? 'BODY[' + (b.value || b.innerText).length + ']: ' + (b.value || b.innerText).substring(0,120) : 'NO_BODY_FIELD';
 })()"
-
-# After Send: open the message in #sent and check the body text appears
 ```
 
-The compose body element is `div.Am.editable[contenteditable=true]` (aria-label "Cuerpo del mensaje"), NOT the `textarea` with the same aria-label — typing into the textarea leaves the real body empty. Click/focus the `.Am.editable` div before `type`.
+If the output shows `BODY[0]` or `NO_BODY_FIELD`, do NOT send — fix the compose first.
+
+### Verify send
 
 Wait for the toast "Mensaje enviado" (English: "Message sent"):
 
@@ -688,8 +681,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 ### Search bar
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot
-node .agents/skills/browser-automation/scripts/browser.js exec fill <search_ref> "from:linkedin.com subject:job"
+# Locate the search box semantically: find by role/label, or snapshot -i for an @eN ref
+node .agents/skills/browser-automation/scripts/browser.js exec find combobox "Buscar en el correo" fill "from:linkedin.com subject:job"   # EN: "Search mail"
+# Alternative: exec snapshot -i  →  exec fill @eN "from:linkedin.com subject:job"
+# fill APPENDS — clear first with press "Control+a" if the box already has text
+node .agents/skills/browser-automation/scripts/browser.js exec press "Control+a"
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
@@ -835,6 +831,6 @@ Gmail supports multiple accounts in the same browser. The URL pattern includes t
 - **Don't** try to fill the "To" field with `.value =` alone — use the native value setter
 - **Don't** use plain `.click()` for the Send button — use mousedown -> click -> mouseup
 - **Don't** confuse compose (textarea body) with reply (contenteditable body) — they use different selectors
-- **Don't** use `type` for multiline body text — use `fill <ref>` or eval with native setter
+- **Don't** use `keyboard type` for long multiline body text — use `fill @eN` or eval with native setter
 - **Don't** navigate to `#inbox` expecting all emails — Gmail splits into categories, use `#all`
 - **Don't** archive emails without explicit user confirmation — always ask first

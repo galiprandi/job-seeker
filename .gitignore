@@ -1,5 +1,6 @@
 .browser-profile/
 .browser-profile-temp/
+# Legacy playwright-cli artifacts (obsolete, kept ignored to avoid accidental commits)
 .playwright-cli/
 .playwright-mcp/
 .playwright/
@@ -11,7 +12,6 @@ orca/
 assets/*.html
 docs/.vitepress/dist/
 docs/.vitepress/cache/
-.browser-config.json
 .DS_Store
 .tmp-*
 .tmp_*

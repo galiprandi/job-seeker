@@ -99,7 +99,7 @@ Si estas buscando trabajo o conoces a alguien que si, dale una estrella. Ayuda a
 - Opens a local web dashboard with funnel charts, KPIs, and target company tracking
 
 **How it works:**
-It's not an agent itself. It's markdown skills + Node.js scripts that your coding agent reads and executes. Your agent (Devin, Claude, Cursor, etc.) loads the skills, uses a playwright-cli wrapper for browser automation, and stores everything in a Postgres DB (Neon recommended for portability).
+It's not an agent itself. It's markdown skills + Node.js scripts that your coding agent reads and executes. Your agent (Devin, Claude, Cursor, etc.) loads the skills, uses a agent-browser wrapper for browser automation, and stores everything in a Postgres DB (Neon recommended for portability).
 
 **Key design decisions:**
 - Candidate-agnostic: no personal data in the repo, everything in your DB
@@ -108,7 +108,7 @@ It's not an agent itself. It's markdown skills + Node.js scripts that your codin
 - 9 flows: onboarding, profile, strategy, radar, targets, news, apply, daily, memory
 - 35 platform catalog for sourcing
 
-**Stack:** Node.js 22+, playwright-cli, PostgreSQL (Neon), Vitest for tests
+**Stack:** Node.js 22+, agent-browser, PostgreSQL (Neon), Vitest for tests
 
 Repo: ${GITHUB_URL}
 Docs: ${DOCS_URL}
@@ -123,7 +123,7 @@ MIT licensed. Would love feedback, especially on the skill format and browser wr
     title: 'Open source: AI agent skills that automate your job search (LinkedIn Easy Apply, tracking, recruiter replies)',
     body: `I open sourced Job Seeker, a set of skills that any coding agent (Devin, Claude, Cursor, opencode) consumes to automate job searching.
 
-It's not a SaaS or a job board. It's markdown skills + Node.js scripts that your agent reads and executes. Your agent does the browser automation via playwright-cli, stores data in Postgres, and you approve what matters.
+It's not a SaaS or a job board. It's markdown skills + Node.js scripts that your agent reads and executes. Your agent does the browser automation via agent-browser, stores data in Postgres, and you approve what matters.
 
 **Flows:**
 - onboarding: browser setup, Gmail + LinkedIn login, DB creation
@@ -182,14 +182,14 @@ Key design decisions:
 
 1. Skills as markdown, not code. Any agent that reads markdown can use them. No vendor lock-in.
 2. Candidate-agnostic repo. No personal data in any tracked file. Everything lives in the user's own Neon Postgres DB. Clone, run onboarding, done.
-3. Browser isolation via playwright-cli wrapper. Dedicated Chrome profile, headless by default, headed only for manual login and 2FA. The agent never handles credentials.
+3. Browser isolation via agent-browser wrapper. Dedicated Chrome profile, headless by default, headed only for manual login and 2FA. The agent never handles credentials.
 4. Strategy levels (passive/selective/active/aggressive) that control batch sizes, frequency, match thresholds, and which Must-haves to relax. The user picks a level and all flows respect it.
 5. Anti-LLM message drafting. Recruiter replies pass a checklist: no em-dashes, no bullet points in DMs, conversational tone, max 2 short paragraphs, mimic the user's style profile from DB.
 6. Form data from DB only. The agent never invents values. If a field is missing, it stops and asks the user, then saves the answer for next time.
 
 9 flows: onboarding, profile, strategy, radar (passive alerts), targets (direct to company career sites), news (inbox review + drafts), apply (LinkedIn Easy Apply), daily (routine), memory (autonomous preference detection).
 
-Stack: Node.js 22+, playwright-cli, PostgreSQL (Neon), Vitest.
+Stack: Node.js 22+, agent-browser, PostgreSQL (Neon), Vitest.
 
 Repo: ${GITHUB_URL}
 Docs: ${DOCS_URL}
@@ -217,7 +217,7 @@ The average tech job seeker spends 5-8 hours per week on:
 
 ## The solution: skills, not code
 
-I built Job Seeker, an open source set of markdown skills that any coding agent (Devin, Claude, Cursor, opencode) can consume. Your agent reads the skills, uses a playwright-cli wrapper for browser automation, and stores everything in a Postgres database.
+I built Job Seeker, an open source set of markdown skills that any coding agent (Devin, Claude, Cursor, opencode) can consume. Your agent reads the skills, uses a agent-browser wrapper for browser automation, and stores everything in a Postgres database.
 
 It's not an agent. It's the instructions and scripts that make your agent a job search assistant.
 
@@ -252,7 +252,7 @@ You: "apply to 5 jobs"
 
 **2. Candidate-agnostic repo.** No personal data in any tracked file. Everything lives in your own Neon Postgres DB. Clone, run onboarding, done.
 
-**3. Browser isolation.** Dedicated Chrome profile via playwright-cli wrapper. Headless by default, headed only for manual login and 2FA. The agent never handles credentials.
+**3. Browser isolation.** Dedicated Chrome profile via agent-browser wrapper. Headless by default, headed only for manual login and 2FA. The agent never handles credentials.
 
 **4. Strategy levels.** passive, selective, active, aggressive. Each controls batch sizes, frequency, match thresholds, and which Must-haves to relax. Pick a level and all flows respect it.
 
@@ -309,11 +309,11 @@ onboarding, profile, strategy, radar, targets, news, apply, daily, memory
 
 Strategy levels: passive, selective, active, aggressive. Pick one and all flows respect it.
 
-6/ Browser isolation via playwright-cli. Dedicated Chrome profile. Headless by default, headed for logins/2FA. The agent never handles credentials.
+6/ Browser isolation via agent-browser. Dedicated Chrome profile. Headless by default, headed for logins/2FA. The agent never handles credentials.
 
 7/ Anti-LLM message drafting. Recruiter replies pass a checklist: no em-dashes, no bullets in DMs, conversational tone, max 2 paragraphs, mimic your style from DB.
 
-8/ Stack: Node.js 22+, playwright-cli, PostgreSQL (Neon), Vitest
+8/ Stack: Node.js 22+, agent-browser, PostgreSQL (Neon), Vitest
 
 MIT licensed. Works with any agent that reads markdown.
 
@@ -351,11 +351,11 @@ onboarding, profile, strategy, radar, targets, news, apply, daily, memory
 
 Niveles de estrategia: passive, selective, active, aggressive. Elegis uno y todos los flows lo respetan.
 
-6/ Browser isolation con playwright-cli. Chrome profile dedicado. Headless por defecto, headed para logins/2FA. El agente nunca maneja tus credenciales.
+6/ Browser isolation con agent-browser. Chrome profile dedicado. Headless por defecto, headed para logins/2FA. El agente nunca maneja tus credenciales.
 
 7/ Anti-LLM en mensajes. Las respuestas a reclutadores pasan un checklist: sin em-dashes, sin bullets en DMs, tono conversacional, max 2 parrafos, imita tu estilo desde la DB.
 
-8/ Stack: Node.js 22+, playwright-cli, PostgreSQL (Neon), Vitest
+8/ Stack: Node.js 22+, agent-browser, PostgreSQL (Neon), Vitest
 
 MIT. Funciona con cualquier agente que lea markdown.
 

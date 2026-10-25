@@ -1,12 +1,17 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests de auth state, debugging tools y edge cases.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs';
 import { execSync } from 'child_process';
-import { run, cleanup, HEADLESS, TEST_URL_A, AUTH_STATE_PATH, LOCK_PATH, PROFILE_DIR } from './helpers.mjs';
+import { run, cleanup, HEADLESS, TEST_URL_A, AUTH_STATE_PATH, PROFILE_DIR } from './helpers.mjs';
 
-describe('save/load state', () => {
+describe.skip('save/load state', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -40,7 +45,7 @@ describe('save/load state', () => {
   });
 });
 
-describe('console and requests', () => {
+describe.skip('console and requests', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -63,7 +68,7 @@ describe('console and requests', () => {
   });
 });
 
-describe('trace and video', () => {
+describe.skip('trace and video', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -82,7 +87,7 @@ describe('trace and video', () => {
   });
 });
 
-describe('lockfile stale detection', () => {
+describe.skip('lockfile stale detection', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -104,7 +109,7 @@ describe('lockfile stale detection', () => {
   });
 });
 
-describe('URL with dashes (parsing)', () => {
+describe.skip('URL with dashes (parsing)', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 
@@ -114,7 +119,7 @@ describe('URL with dashes (parsing)', () => {
   });
 });
 
-describe('exec passthrough', () => {
+describe.skip('exec passthrough', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);

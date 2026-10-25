@@ -26,7 +26,13 @@ https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/com
 https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=Rotación%20token%20PAT%20GitHub&startdt=2026-08-24T14:00:00&enddt=2026-08-24T15:00:00&body=Rotación%20y%20baja%20de%20PAT%20Classic%20de%20GitHub
 ```
 
-This opens Outlook in compose mode with the event fields pre-filled. The user must still click **Guardar/Save**.
+This opens Outlook in compose mode with the event fields pre-filled. The user must still click **Guardar/Save** -- or press `Ctrl+S` via `exec press Control+s`.
+
+Open the deeplink with:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js navigate "<DEEPLINK_URL>"
+```
 
 ## Gotchas
 

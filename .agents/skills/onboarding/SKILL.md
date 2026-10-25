@@ -10,7 +10,7 @@ trigger: onboarding
 ### Phase 1: Technical setup
 
 1. Verify `node` and `npx`
-2. `.gitignore`: `.browser-profile/`, `.playwright-cli/`, `.env`, `node_modules/`
+2. `.gitignore`: `.browser-profile/`, `.env`, `node_modules/`
 3. `npm init -y && npm install pg && npm install --save-dev @types/pg`
 4. **Ask user about browser visibility preference**. Present these options and save the answer to `preferences` before opening any browser:
    - `headless` — Headless always. The agent works without showing the browser. Manual login/2FA remains headed (Gold Rule 5)
@@ -30,7 +30,7 @@ trigger: onboarding
 
 ### Phase 2: Browser and logins
 
-5. Open browser respecting the preference from step 4. For manual login it's always headed (Gold Rule 5). Use the wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed`
+5. Open browser respecting the preference from step 4. For manual login it's always headed (Gold Rule 5). Use the wrapper (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed`
 6. Ask for email. Navigate to provider login (Gmail → accounts.google.com, Outlook → outlook.live.com). Fill email with `fill`, click Next, wait for manual auth + 2FA
 7. Validate session: navigate to inbox, confirm URL doesn't redirect to login
 

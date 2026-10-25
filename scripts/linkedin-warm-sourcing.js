@@ -3,7 +3,7 @@
  * linkedin-warm-sourcing.js — Discover internal contacts, alumni, ex-colleagues, and recruiters at a target company.
  *
  * Candidate-agnostic: reads university, past companies, and profile data from Postgres DB.
- * Uses playwright-cli via browser.js wrapper and lib/browser-helpers for eval-based extraction.
+ * Uses agent-browser via the browser.js wrapper and lib/browser-helpers for eval-based extraction.
  *
  * Usage:
  *   node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"
@@ -42,7 +42,7 @@ let SESSION = 'default';
 
 // JS code injected into the page to extract people from LinkedIn People search results.
 // Uses [role="listitem"] selector (empirically validated against real LinkedIn DOM
-// snapshots and a fixture test via playwright-cli — see tests/browser/09-warm-sourcing.test.mjs).
+// snapshots and a fixture test via agent-browser — see tests/browser/09-warm-sourcing.test.mjs).
 // Polls for up to 10s for results to render (LinkedIn loads search results dynamically).
 // Extracts: name, vanity, title, connection_degree, profile_url.
 const EXTRACT_JS = `(async function() {

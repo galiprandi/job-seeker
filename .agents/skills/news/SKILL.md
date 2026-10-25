@@ -17,8 +17,8 @@ Also runs in parallel when the user launches an application.
 
 ### 0. Pre-flight
 
-- [ ] Verify active LinkedIn and Gmail sessions. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
+- [ ] Verify active LinkedIn and Gmail sessions. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
+- [ ] **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `agent-browser open` directly, never open Chrome directly
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
@@ -55,13 +55,13 @@ Also runs in parallel when the user launches an application.
 └─────────────────────────────────────────────────────┘
 ```
 
-**Important:** subagents share the same browser. To avoid conflicts, use **attached sessions** with `--session` (see AGENTS.md "Parallel execution"):
-- Gmail subagent: `node scripts/browser.js attach --session news-gmail` then `node scripts/browser.js goto <url> --session news-gmail`
-- LinkedIn subagent: `node scripts/browser.js attach --session news-linkedin` then `node scripts/browser.js goto <url> --session news-linkedin`
+**Important:** to avoid conflicts between subagents, give each one its own agent-browser `--session` (sessions are created implicitly by the flag — see AGENTS.md "Parallel execution"):
+- Gmail subagent: `node .agents/skills/browser-automation/scripts/browser.js open <url>` then run all its commands via `exec <cmd> --session news-gmail`
+- LinkedIn subagent: same pattern with `--session news-linkedin`
 - Alternatively, use **separate tabs** within the same session (`tab-new`) if subagents can't use separate sessions
 - DB subagent doesn't need browser, only `scripts/db.js`
-- Scheduling link subagent: `node scripts/browser.js attach --session news-sched` then opens each link with `--session news-sched`
-- When done: `node scripts/browser.js detach --session news-gmail` (never `close` — it's ref-counted and would refuse or kill the browser for other agents)
+- Scheduling link subagent: same pattern with `--session news-sched`
+- When done: just stop using the session (or `exec close --session news-gmail` for that session only — never `close-all`, which kills the browser for other agents)
 
 **If subagents are NOT available** (e.g: tool not supported, single foreground agent constraint), fall back to sequential collection as before. The flow must work in both modes.
 
@@ -76,7 +76,7 @@ Context:
 - Strategy: <strategy level and params>
 
 Instructions:
-1. Open <url> using: node scripts/browser.js open <url> (from the repo root directory)
+1. Open <url> using: node .agents/skills/browser-automation/scripts/browser.js open <url> (from the repo root directory)
 2. <source-specific steps: read unread messages, extract sender/subject/snippet/date>
 3. For each item, identify: sender, subject, date, snippet (first 200 chars), category guess (interview/offer/recruiter_new/recruiter_reply/rejected/newsletter/new_job), action items (calendar link? CV requested? form to fill?), and any scheduling URLs
 4. Return a markdown table with all items found. Do NOT reply to anything, do NOT archive, do NOT click scheduling links (just extract the URL)
@@ -103,7 +103,7 @@ Sources to collect (dispatch as parallel subagents when possible, sequential oth
 - [ ] **Scheduling links (parallel subagent):** if any email or message contains a scheduling link (Calendly, SmartRecruiters self-schedule, Workable, HubSpot meetings, etc.), dispatch a background subagent (`subagent_general`) to open each link, read available slots, and filter them against `users.data.availability` (preferred_hours, timezone, blocked days). The subagent returns a filtered list of slots that match the user's preferences. This runs in parallel with the rest of the news flow so the user doesn't wait. The subagent prompt must include:
   - The scheduling URL(s) found
   - The user's availability preferences from DB (load before dispatching)
-  - Instructions: open each link with `node scripts/browser.js open <url>`, take snapshot, extract all available time slots, filter by preferred_hours and blocked days, return a markdown table of matching slots sorted by day then time
+  - Instructions: open each link with `node .agents/skills/browser-automation/scripts/browser.js open <url>`, take snapshot, extract all available time slots, filter by preferred_hours and blocked days, return a markdown table of matching slots sorted by day then time
   - The browser wrapper must be used (Gold Rule). The subagent should NOT book a slot, only list filtered options
 
 ### 2. Classify and prioritize
@@ -295,9 +295,9 @@ node scripts/db.js "UPDATE users SET data = jsonb_set(data, '{last_review_at}', 
 
 **Script:** `scripts/linkedin-inbox.js` — run via:
 ```bash
-node scripts/browser.js tab-new "https://www.linkedin.com/messaging/" --name linkedin
+node .agents/skills/browser-automation/scripts/browser.js tab-new "https://www.linkedin.com/messaging/" --name linkedin
 sleep 3
-node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.js)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.js)"
 ```
 
 **Returns JSON array:** `[{participants, unreadCount, lastActivityAt, lastMessage: {text, deliveredAt, isFromSelf}, threadId}, ...]`
@@ -324,7 +324,7 @@ node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-inbox.j
 
 **Script:** `scripts/linkedin-send.js` — unified script. Edit `MODE`, `RECIPIENT_ID`/`THREAD_ID`, `MESSAGE_TEXT`, and `FILE_B64` (base64-encoded file, empty = no attachment), then:
 ```bash
-node scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send.js)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval --tab linkedin "$(cat scripts/linkedin-send.js)"
 ```
 
 **Text-only — new conversation (legacy endpoint):**
@@ -403,7 +403,7 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 1. Navigate to the conversation thread
 2. Take snapshot, find `button "Attach a file to your conversation with <name>"` ref
 3. Click it → file chooser opens
-4. `node scripts/browser.js exec upload "<file_path>" --tab linkedin`
+4. `node .agents/skills/browser-automation/scripts/browser.js exec upload "<file_path>" --tab linkedin`
 5. Wait 3s for upload to process
 6. Fill the textbox with the message text
 7. Take snapshot, verify Send button is enabled (`[cursor=pointer]`)
@@ -414,16 +414,16 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 
 ### Tiptap editor (compose message)
 
-- **`fill` with the textbox ref works** for writing text into tiptap. Example: `node scripts/browser.js exec fill e770 "message text" --tab linkedin`. This is the reliable method
+- **`fill` with the textbox ref works** for writing text into tiptap. Example: `node .agents/skills/browser-automation/scripts/browser.js exec fill @e770 "message text" --tab linkedin`. This is the reliable method
 - **`type` without a ref does NOT work** — it types into whatever is focused but tiptap's contenteditable doesn't always receive it. Always use `fill <ref>` instead
-- **`type <text>` (positional, no ref) fails** with multiline text — playwright-cli parses it as multiple arguments. Never use `type` for LinkedIn messages
-- **The snapshot does NOT show typed text inline** — tiptap paragraphs appear empty (`paragraph [ref=eXXX]` with no text). To verify text was entered, use `eval`: `node scripts/browser.js exec eval --tab linkedin "document.querySelector('[contenteditable=true]')?.innerText?.substring(0,300)"`
-- **Send button**: starts `disabled`, becomes enabled (`[cursor=pointer]`) when there is text OR an attachment. Check with grep: `grep "button.*Send" page-snapshot.yml`
+- **`type <text>` (positional, no ref) fails** with multiline text — the CLI parses it as multiple arguments. Never use `type` for LinkedIn messages
+- **The snapshot does NOT show typed text inline** — tiptap paragraphs appear empty (`@eN [paragraph]` with no text). To verify text was entered, use `eval`: `node .agents/skills/browser-automation/scripts/browser.js exec eval --tab linkedin "document.querySelector('[contenteditable=true]')?.innerText?.substring(0,300)"`
+- **Send button**: starts `disabled`, becomes enabled (`[cursor=pointer]`) when there is text OR an attachment. Check with grep: `exec snapshot -i | grep -i send`
 - **Internal paragraph refs** inside the textbox (e.g. `e860`, `e861`) are NOT stable — they change after every action and clicking them often fails with "Ref not found". Always interact with the textbox ref itself, not its children
 
 ### Attachments (CV / files)
 
-- **Attach a file**: click the "Attach a file" button → a file chooser opens (`[File chooser]: can be handled by upload`) → use `node scripts/browser.js exec upload "/path/to/file.pdf" --tab linkedin`
+- **Attach a file**: click the "Attach a file" button → a file chooser opens (`[File chooser]: can be handled by upload`) → use `node .agents/skills/browser-automation/scripts/browser.js exec upload 'input[type="file"]' "/path/to/file.pdf" --tab linkedin`
 - **Verify attachment**: after upload, the snapshot shows `figure "filename.pdf • XXX KB Attached"` with a heading and a remove button
 - **Attachment persists** across snapshots and text editing — no need to re-attach after writing the message
 - **Send with attachment**: the Send button enables with attachment alone (even before text). Always verify both text (via `eval`) and attachment (via snapshot grep) before clicking Send
@@ -440,9 +440,9 @@ If the endpoint flow fails (e.g. LinkedIn changes the dash schema), use the UI:
 1. Navigate to conversation (click heading in list or goto thread URL)
 2. Take snapshot, find "Attach a file" button ref
 3. Click it → file chooser opens
-4. `exec upload "/path/to/file.pdf"` → attachment appears in snapshot
-5. Take new snapshot, find textbox ref (e.g. `e770`)
-6. `exec fill e770 "message text"` (use `\n` for line breaks, works in tiptap)
+4. `exec upload 'input[type="file"]' "/path/to/file.pdf"` → attachment appears in snapshot
+5. Take new snapshot, find textbox ref (e.g. `@e77`)
+6. `exec fill @e77 "message text"` (use `\n` for line breaks, works in tiptap)
 7. Verify text via `eval` (innerText)
 8. Verify Send button is NOT `disabled`
 9. Click Send button
@@ -471,7 +471,7 @@ SMTP via `nodemailer` is the **preferred** method for sending outbound email. It
 
 ### Browser is a fallback (when SMTP is not configured)
 
-The browser **CAN** send emails. Compose is `div[role=dialog]` in the main document and all elements are accessible via `playwright-cli`.
+The browser **CAN** send emails. Compose is `div[role=dialog]` in the main document and all elements are accessible via agent-browser (`exec` commands).
 
 **When to use browser email:**
 - SMTP is not configured (no `.env` app password)

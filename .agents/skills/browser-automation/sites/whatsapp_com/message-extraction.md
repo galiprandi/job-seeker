@@ -16,19 +16,19 @@ You need to read or summarize the messages of an open conversation (individual o
 
 ## Fast extraction (single DOM query)
 
-Run one `eval` that pulls every visible `div[role="row"]` inside `#main` and returns its `innerText`:
+Run one `exec eval` that pulls every visible `div[role="row"]` inside `#main` and returns its `innerText`:
 
-```js
-() => {
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const main = document.querySelector('#main');
   if (!main) return 'no main';
-  const rows = main.querySelectorAll('div[role="row"]');
+  const rows = main.querySelectorAll('div[role=\"row\"]');
   const results = Array.from(rows).map(r => {
     const text = r.innerText?.replace(/\n/g, ' | ') || '';
     return text.substring(0, 500);
   });
   return JSON.stringify({count: results.length, msgs: results});
-}
+})()"
 ```
 
 This returns a JSON array with sender, text, and timestamp for each visible message in a single call — no snapshot parsing needed.
@@ -47,36 +47,38 @@ For very long histories, repeat click + extract 2–3 times rather than scrollin
 
 WhatsApp Web's search box (`textbox "Buscar un chat o iniciar uno nuevo"`) returns matching messages across all chats in a single list. Each result row shows chat name, timestamp, sender, and message preview.
 
-**Important:** Setting `input.value` directly does NOT trigger WhatsApp's search filter. You must use keyboard typing via `playwright-cli`:
+**Important:** Setting `input.value` directly does NOT trigger WhatsApp's search filter. You must type real keystrokes via `agent-browser`:
 
 ```bash
-# Click the search textbox and type the term
-node .agents/skills/browser-automation/scripts/browser.js exec click "[role='textbox']"
-node .agents/skills/browser-automation/scripts/browser.js exec type "<SEARCH_TERM>"
+# Focus the search textbox and type the term (keyboard type goes to current focus)
+node .agents/skills/browser-automation/scripts/browser.js exec batch \
+  "find placeholder \"Buscar un chat o iniciar uno nuevo\" click" \
+  "keyboard type <SEARCH_TERM>" \
+  "wait 2500"
 ```
 
 After typing, wait 2–3 seconds and extract results:
 
-```js
-() => {
-  const grid = document.querySelector('div[role="grid"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
+  const grid = document.querySelector('div[role=\"grid\"]');
   if (!grid) return 'no grid';
-  const rows = grid.querySelectorAll('div[role="row"]');
+  const rows = grid.querySelectorAll('div[role=\"row\"]');
   const results = Array.from(rows).map(r => r.innerText?.replace(/\n/g, ' | ').substring(0, 300));
   return JSON.stringify(results.filter(t => t && t.length > 0));
-}
+})()"
 ```
 
 This is useful for finding messages about a specific topic across all conversations without opening each one.
 
 ## Opening a chat from search results
 
-**Do not** use `element.click()` via JS on the grid row — it does not reliably open the conversation. Instead, capture a snapshot and use the `ref` from the search result row:
+**Do not** use `element.click()` via JS on the grid row — it does not reliably open the conversation. Instead, capture an interactive snapshot and use the `@eN` ref from the search result row (or `find text "<CHAT_NAME>" click`):
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot
-# Find the ref for the chat row, e.g. f86e2369
-node .agents/skills/browser-automation/scripts/browser.js exec click <REF>
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i
+# Find the @eN ref for the chat row, e.g. @e12
+node .agents/skills/browser-automation/scripts/browser.js exec click <@eN>
 ```
 
 After the chat opens, wait 2–3 seconds for messages to render, then run the bulk extraction `eval` on `#main`.
@@ -105,8 +107,8 @@ After the chat opens, wait 2–3 seconds for messages to render, then run the bu
 Tested against the live site with a 30+ message group conversation:
 
 - **Bulk extraction:** 17 messages in 1 eval call. After loading older messages: 33 messages in 2 eval calls total.
-- **Search:** `keyboard.type()` triggers the filter correctly; `input.value=` does not.
-- **Chat opening:** `element.click()` on grid row via JS does not open the chat. Using `playwright-cli exec click <REF>` from a snapshot works reliably.
+- **Search:** real keystrokes (`keyboard type`) trigger the filter correctly; `input.value=` does not.
+- **Chat opening:** `element.click()` on grid row via JS does not open the chat. Clicking an `@eN` ref from `snapshot -i` works reliably.
 - **Older messages button:** Found by text content (`mensajes anteriores`) and clicked via JS — works correctly.
 
 **Validated:** 2026-08-21 against live `web.whatsapp.com`.

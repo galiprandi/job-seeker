@@ -1,6 +1,6 @@
 ---
 name: linkedin-posting
-description: LinkedIn feed post automation with playwright-cli. Covers composer variants (modal dialog + shadow DOM Quill), typing, scheduling, publishing, deleting, and reading your own posts. Use when creating, scheduling, or deleting LinkedIn feed posts. Part of the browser-automation skill.
+description: LinkedIn feed post automation with agent-browser. Covers composer variants (modal dialog + shadow DOM Quill), typing, scheduling, publishing, deleting, and reading your own posts. Use when creating, scheduling, or deleting LinkedIn feed posts. Part of the browser-automation skill.
 verified: 2026-09-02
 ---
 
@@ -8,17 +8,17 @@ verified: 2026-09-02
 
 ## Critical rules for posting
 
-1. **SIEMPRE verificar el estado del modal antes de escribir.** Antes de tipear, hacer un snapshot y confirmar que el editor está vacío. Si ya tiene texto, NO escribir de nuevo.
-2. **Nunca asumir que el modal se cerró.** El `type` con saltos de línea puede causar que el modal se cierre o que el texto se duplique. Después de escribir, verificar con snapshot que el texto está cargado correctamente.
-3. **El botón "Post" puede estar en un dialog regular o en un shadow DOM.** Verificar cuál de los dos está activo antes de interactuar.
-4. **No re-abrir el modal si ya está abierto con texto.** Si el usuario dice que el modal está abierto, hacer snapshot primero y verificar.
+1. **ALWAYS verify the modal state before typing.** Before typing, take a snapshot and confirm the editor is empty. If it already has text, DO NOT type again.
+2. **Never assume the modal closed.** `keyboard type` with line breaks can cause the modal to close or the text to duplicate. After typing, verify with a snapshot that the text loaded correctly.
+3. **The "Post" button can be in a regular dialog or in a shadow DOM.** Check which variant is active before interacting.
+4. **Do not re-open the modal if it's already open with text.** If the user says the modal is open, snapshot first and verify.
 
 ## Open the composer
 
-LinkedIn tiene dos variantes del composer de posts:
+LinkedIn has two post composer variants:
 
-**Variante A: Modal dialog (validado 2026-08-24)**
-El modal aparece como un `dialog` con role="dialog" y contiene un textbox "Text editor for creating content".
+**Variant A: Modal dialog (validated 2026-08-24)**
+The modal appears as a `dialog` with role="dialog" and contains a textbox "Text editor for creating content".
 
 ```bash
 # Navigate to feed
@@ -36,8 +36,8 @@ node .agents/skills/browser-automation/scripts/browser.js exec snapshot --tab li
 # If the textbox already has paragraph children with text, DO NOT type again
 ```
 
-**Variante B: Shadow DOM composer (validado 2026-08-23)**
-El composer vive dentro de un shadow DOM (`#interop-outlet` → `shadowRoot`).
+**Variant B: Shadow DOM composer (validated 2026-08-23)**
+The composer lives inside a shadow DOM (`#interop-outlet` → `shadowRoot`).
 
 ```bash
 # Click "Start a post" (same as above)
@@ -47,16 +47,16 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { co
 
 ## Type the post content
 
-**Para la variante A (modal dialog):**
+**For variant A (modal dialog):**
 
-El editor es un `contenteditable` div dentro del dialog. `playwright-cli type` funciona pero los saltos de línea pueden causar problemas.
+The editor is a `contenteditable` div inside the dialog. `browser.js exec keyboard type` works but line breaks can cause problems.
 
 ```bash
 # Click the textbox to focus it (use the ref from snapshot)
 node .agents/skills/browser-automation/scripts/browser.js exec click --tab linkedin "<textbox_ref>"
 
-# Type the content — usar \n para saltos de línea
-node .agents/skills/browser-automation/scripts/browser.js exec type --tab linkedin "Your post text here.
+# Type the content — use \n for line breaks
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type --tab linkedin "Your post text here.
 
 Second paragraph."
 
@@ -66,11 +66,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec snapshot --tab li
 # If text is missing or duplicated, STOP and ask the user
 ```
 
-**Para la variante B (Quill editor en shadow DOM):**
+**For variant B (Quill editor in shadow DOM):**
 
-El composer usa **Quill.js** (`.ql-editor`), NOT tiptap. The tiptap `innerHTML` + `beforeinput` pattern from messaging does NOT work here — the "Post" button stays disabled because Quill's internal state is never updated.
+The composer uses **Quill.js** (`.ql-editor`), NOT tiptap. The tiptap `innerHTML` + `beforeinput` pattern from messaging does NOT work here — the "Post" button stays disabled because Quill's internal state is never updated.
 
-**What works:** `playwright-cli type` simulates real keyboard input and Quill registers it correctly.
+**What works:** `browser.js exec keyboard type` simulates real keyboard input and Quill registers it correctly. `keyboard inserttext` is worth trying as an alternative for long text (unverified after agent-browser migration).
 
 ```bash
 # Wait for the editor to appear in the shadow DOM, then focus it
@@ -86,16 +86,16 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async () =
 })()"
 
 # Type the content (simulates real keyboard — Quill registers it)
-node .agents/skills/browser-automation/scripts/browser.js exec type "Your post text here. Use \\n for line breaks."
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "Your post text here. Use \\n for line breaks."
 ```
 
-**Limitation:** `playwright-cli type` does not handle multi-line text well (newlines are parsed as args). For long multi-paragraph posts, type the text in one line or use multiple `type` calls with `press Enter` between them:
+**Limitation:** `browser.js exec keyboard type` does not handle multi-line text well (newlines are not interpreted — they stay literal). For long multi-paragraph posts, type the text in one line or use multiple `keyboard type` calls with `press Enter` between them:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec type "First paragraph"
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "First paragraph"
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
-node .agents/skills/browser-automation/scripts/browser.js exec type "Second paragraph"
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "Second paragraph"
 ```
 
 **Bad patterns (Quill — validated 2026-08-23):**
@@ -103,7 +103,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec type "Second para
 - `editor.dispatchEvent(new ClipboardEvent('paste', ...))` → same issue, text visible but button disabled
 - `document.execCommand('insertText', false, text)` → text appears but button stays disabled
 - `editor.innerText = text` + `InputEvent('input')` → same issue
-- Solution: `playwright-cli type` (real keyboard input) → Quill registers it, Post enables
+- Solution: `browser.js exec keyboard type` (real keyboard input) → Quill registers it, Post enables
 
 ## Schedule a post for later
 
@@ -151,7 +151,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
 
 After typing content (and the "Post" button is enabled):
 
-**Variante A (modal dialog):**
+**Variant A (modal dialog):**
 
 ```bash
 # VERIFY the modal is still open and text is correct before clicking Post
@@ -167,7 +167,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec snapshot --tab li
 # The modal should be gone and the post should appear in the feed
 ```
 
-**Variante B (shadow DOM):**
+**Variant B (shadow DOM):**
 
 ```bash
 # Click "Post" (inside shadow DOM)
@@ -186,11 +186,11 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => { const btn = document.querySelector('button[aria-label=\"Open control menu for post by <Your Name>\"]'); if (btn) { btn.click(); return 'clicked'; } return 'not_found'; })()"
 
 # Click "Delete post" (use find + click with refs)
-node .agents/skills/browser-automation/scripts/browser.js exec find "Delete post"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Delete post"
 # then click the ref
 
 # Confirm in the dialog
-node .agents/skills/browser-automation/scripts/browser.js exec find "Delete"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Delete"
 # then click the ref (the dialog's Delete button, not the menu item)
 ```
 

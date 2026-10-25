@@ -93,9 +93,9 @@ const threadTweets = [
   "What it does:\n- Reads your CV, learns your preferences\n- Searches LinkedIn with your Must-have filters\n- Fills Easy Apply forms with data from your Postgres DB\n- Tracks every application in a kanban pipeline\n- Drafts recruiter replies in your writing style",
   "Your personal data never touches the repo. Everything lives in your own Neon Postgres DB. Clone, run onboarding, done.\n\nCandidate-agnostic by design.",
   "9 flows:\nonboarding, profile, strategy, radar, targets, news, apply, daily, memory\n\nStrategy levels: passive, selective, active, aggressive. Pick one and all flows respect it.",
-  "Browser isolation via playwright-cli. Dedicated Chrome profile. Headless by default, headed for logins/2FA. The agent never handles credentials.",
+  "Browser isolation via agent-browser. Dedicated Chrome profile. Headless by default, headed for logins/2FA. The agent never handles credentials.",
   "Anti-LLM message drafting. Recruiter replies pass a checklist: no em-dashes, no bullets in DMs, conversational tone, max 2 paragraphs, mimic your style from DB.",
-  `Stack: Node.js 22+, playwright-cli, PostgreSQL (Neon), Vitest\n\nMIT licensed. Works with any agent that reads markdown.\n\nRepo: ${GITHUB_URL}\nDocs: ${DOCS_URL}\n\nIf it's useful, give it a star.`,
+  `Stack: Node.js 22+, agent-browser, PostgreSQL (Neon), Vitest\n\nMIT licensed. Works with any agent that reads markdown.\n\nRepo: ${GITHUB_URL}\nDocs: ${DOCS_URL}\n\nIf it's useful, give it a star.`,
 ];
 
 async function main() {

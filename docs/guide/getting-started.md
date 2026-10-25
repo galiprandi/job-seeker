@@ -37,4 +37,4 @@ Works best for tech professionals who use LinkedIn as their primary job platform
 - A Gmail account
 - A Postgres database (Neon recommended, free tier works)
 
-`npm install` handles all dependencies, including `playwright-cli` and `pg`.
+`npm install` handles all dependencies. `agent-browser` is resolved by the browser wrapper (node_modules/.bin → global → `npx -y`) — no install required; `npm i -g agent-browser` is optional.

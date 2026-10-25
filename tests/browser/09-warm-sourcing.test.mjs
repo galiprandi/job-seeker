@@ -1,19 +1,18 @@
 /**
  * Empirical validation test for linkedin-warm-sourcing.js EXTRACT_JS.
  *
- * Validates that the extraction JavaScript (injected via playwright-cli eval)
+ * Validates that the extraction JavaScript (injected via agent-browser eval)
  * correctly parses LinkedIn People search result DOM structure against a
  * fixture built from real LinkedIn DOM snapshots
- * (see .playwright-cli/page-2026-08-04T03-15-59-786Z.yml and
- *  .playwright-cli/page-2026-08-04T03-15-08-676Z.yml).
+ * (captured from real LinkedIn DOM snapshots).
  *
- * This test uses playwright-cli via the browser.js wrapper (Gold Rule 10)
+ * This test uses agent-browser via the browser.js wrapper (Gold Rule 10)
  * to open the fixture, run the EXTRACT_JS eval, and verify the output.
  *
  * Architecture: Uses openAndEvalJSON which chains `open` + `eval` in a single
  * shell command to prevent session death between navigation and evaluation
  * (same pattern used by all production scripts). A python3 HTTP server serves
- * the fixture (file:// protocol is blocked by playwright).
+ * the fixture (file:// protocol is not useful with the browser session).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createRequire } from 'module';
@@ -46,7 +45,7 @@ let httpServer;
 function startFixtureServer() {
   return new Promise((resolve, reject) => {
     // Use python3 -m http.server (Node's http.createServer causes navigation
-    // timeouts with playwright due to missing keep-alive headers).
+    // timeouts with the browser due to missing keep-alive headers).
     httpServer = spawn('python3', ['-m', 'http.server', String(FIXTURE_PORT), '--directory', FIXTURE_DIR], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: REPO_ROOT,
@@ -99,13 +98,13 @@ describe('linkedin-warm-sourcing.js: deriveRecruiterCategory (unit)', () => {
   });
 });
 
-describe('linkedin-warm-sourcing.js: EXTRACT_JS empirical validation via playwright-cli', () => {
+describe.skipIf(!process.env.BROWSER_TESTS)('linkedin-warm-sourcing.js: EXTRACT_JS empirical validation via agent-browser (needs a working Chrome)', () => {
   beforeAll(async () => {
     // Verify fixture exists
     expect(fs.existsSync(FIXTURE_PATH)).toBe(true);
     // Clean up any stale browser sessions
     cleanup();
-    // Start local HTTP server for the fixture (file:// protocol is blocked by playwright)
+    // Start local HTTP server for the fixture (file:// protocol is not useful with the browser session)
     await startFixtureServer();
   }, 30000);
 

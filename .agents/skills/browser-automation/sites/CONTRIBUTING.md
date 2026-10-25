@@ -1,6 +1,6 @@
 # Contributing to sites/
 
-This directory contains automation guides for specific web applications. Each guide documents validated selectors, API endpoints, flows, and gotchas for automating a particular site with `playwright-cli`.
+This directory contains automation guides for specific web applications. Each guide documents validated selectors, API endpoints, flows, and gotchas for automating a particular site with `agent-browser`.
 
 ## Who this is for
 

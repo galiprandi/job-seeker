@@ -1,6 +1,6 @@
 ---
 name: whatsapp-web-login
-description: WhatsApp Web sign-in using QR scan or phone-pairing code. Use when opening WhatsApp Web via playwright-cli in headed mode.
+description: WhatsApp Web sign-in using QR scan or phone-pairing code. Use when opening WhatsApp Web via agent-browser in headed mode.
 ---
 
 # WhatsApp Web Login Flow
@@ -29,38 +29,28 @@ node .agents/skills/browser-automation/scripts/browser.js open "https://web.what
 
 WhatsApp Web renders its UI with React and dynamic class names. Prefer semantic attributes and text:
 
-| Element | Selector |
+| Element | How to locate |
 |---|---|
 | QR region | `div[data-testid="qr-code"]` (if available) or `canvas` near the text `Usa WhatsApp en tu computadora` |
-| Link with code button | `button:has-text("Vincular con código")` or text `Conectar con número` |
+| Link with code button | `find text "Vincular con código" click` or `find text "Conectar con número" click` |
 
 ## Verification
 
 After linking, wait for the main chat list. A safe check is to look for the search box or the chat list header.
 
 ```bash
-playwright-cli eval "() => document.querySelector('[data-testid=\"chat-list\"]') !== null"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => document.querySelector('[data-testid=\"chat-list\"]') !== null)()"
 ```
 
 ## Auth state persistence
 
-After a successful link, save the storage state for later headless reuse:
-
-```bash
-node .agents/skills/browser-automation/scripts/browser.js exec state-save whatsapp-state.json
-```
-
-Load it next time:
-
-```bash
-node .agents/skills/browser-automation/scripts/browser.js exec state-load whatsapp-state.json
-```
+The session persists automatically in the repo's `.browser-profile/` — after a successful headed link, subsequent `goto`/`open` calls can run headless and reuse the logged-in state. No explicit state export is needed. (If agent-browser exposes a storage-state command, prefer that for explicit backup; unverified.)
 
 ## Anti-patterns
 
 - **Do not** ask the user to share their WhatsApp account token or seed.
 - **Do not** try to decode the QR code image and send it elsewhere; the QR is for the current browser session only.
-- **Do not** store `whatsapp-state.json` in version control; add it to `.gitignore`.
+- **Do not** export or copy session state outside `.browser-profile/` — it contains the live WhatsApp credentials.
 
 ## Notes
 

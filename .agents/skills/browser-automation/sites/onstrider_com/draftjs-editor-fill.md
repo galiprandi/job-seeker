@@ -10,11 +10,11 @@ DraftJS editors (`div[role=textbox]` with class `public-DraftEditor-content` or 
 
 ## What was found
 
-Playwright's `fill` command works directly on the DraftJS editor used in Strider's work experience description field. No fallback needed.
+`fill` works directly on the DraftJS editor used in Strider's work experience description field. No fallback needed.
 
 ```bash
 # Find the editor via find
-node .agents/skills/browser-automation/scripts/browser.js exec find "Description"
+node .agents/skills/browser-automation/scripts/browser.js exec find label "Description"
 # Result: textbox "Description" [ref=eXXX]
 
 # Fill directly
@@ -23,6 +23,8 @@ node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "<long
 
 The text appears in the editor and persists after save. The character counter (`NNN/800`) updates correctly.
 
+If `fill` misbehaves, the next semantic-level option is `exec keyboard inserttext "<text>"` after clicking the editor to focus it — `inserttext` inserts text without synthesizing key events, which suits Draft.js-style editors (unverified after agent-browser migration).
+
 This may not generalize to all DraftJS implementations — DraftJS version, wrapper configuration, and focus management vary between sites. But it's worth trying `fill` first before falling back to `eval` patterns.
 
 ## Reproduction
@@ -30,7 +32,7 @@ This may not generalize to all DraftJS implementations — DraftJS version, wrap
 1. Navigate to `https://app.onstrider.com/profile`
 2. Click "Add new" in the Work experience section
 3. Fill company name, title, and other fields to reach the description editor
-4. Run `node .agents/skills/browser-automation/scripts/browser.js exec find "Description"` to get the textbox ref
+4. Run `node .agents/skills/browser-automation/scripts/browser.js exec find label "Description"` to get the textbox ref
 5. Run `node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "<text>"` — text appears in the editor
 6. Save the work experience — text persists
 

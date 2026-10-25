@@ -17,8 +17,8 @@ The third sourcing pillar alongside `radar` (passive alerts) and `apply` (Linked
 
 ## Pre-flight
 
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `playwright-cli open` directly
-- [ ] **Parallel execution:** if running alongside other flows (e.g: `apply` or `news`), attach a session with `node scripts/browser.js attach --session targets-1` and pass `--session targets-1` to all browser commands and scripts. Use `detach` when done (never `close` — it's ref-counted)
+- [ ] **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `agent-browser open` directly
+- [ ] **Parallel execution:** if running alongside other flows (e.g: `apply` or `news`), attach a session with `node .agents/skills/browser-automation/scripts/browser.js attach --session targets-1` and pass `--session targets-1` to all browser commands and scripts. Use `detach` when done (never `close` — it's ref-counted)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
@@ -60,7 +60,7 @@ Before applying to any job, verify against Must-haves from `users.data.job_prefe
 
 For each company with `registration_status = 'pending'` (or `profile_completed = false`):
 
-1. **Navigate to careers URL** using `node scripts/browser.js goto <url>` (or `open` if no session)
+1. **Navigate to careers URL** using `node .agents/skills/browser-automation/scripts/browser.js goto <url>` (or `open` if no session)
 2. **Detect ATS** if not already identified. Common signals:
    - URL contains `greenhouse.io` → **Greenhouse**
    - URL contains `lever.co` → **Lever**
@@ -306,7 +306,7 @@ node scripts/db.js "UPDATE company_registrations SET applied_jobs_count = applie
 
 ## Rules
 
-- **Browser:** always use `node scripts/browser.js` for open/close/goto. Never `playwright-cli open` directly
+- **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. Never `agent-browser open` directly
 - **Resumable.** Every action updates `company_registrations`. If interrupted, next run continues from where it left off
 - **Must-haves are non-negotiable.** Don't register or apply to companies that don't match the user's `job_preferences` (remote, location, AI focus, salary, industries_avoid)
 - **Gold Rule 4.** Manager is preferred but sacrificable for interesting IC roles with AI focus and good compensation

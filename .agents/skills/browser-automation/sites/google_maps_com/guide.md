@@ -2,6 +2,8 @@
 name: google_maps
 description: Automate Google Maps for distance verification, business search, and phone number extraction.
 verified: 2026-09-02
+domains:
+  - maps.google.com
 ---
 
 # Google Maps Automation Guide
@@ -9,10 +11,14 @@ verified: 2026-09-02
 ## Setup
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js goto "https://www.google.com/maps"
+# First command must be `open` — `goto` requires an active session
+node .agents/skills/browser-automation/scripts/browser.js open "https://www.google.com/maps"
+# subsequent navigations: goto "https://www.google.com/maps/..."
 ```
 
 No login required for basic search and directions.
+
+**Interaction doctrine:** these flows are URL-driven — navigate directly to `/dir/` or `/search/` URLs, then extract from page text. `eval` is used here for text extraction only and must be an IIFE `(()=>{...})()` (bare `async () => {...}` does not run).
 
 ## Core flows
 
@@ -28,17 +34,17 @@ URL-encode addresses with `+` for spaces and `%C3%B3` for accented characters.
 
 Example: `https://www.google.com/maps/dir/Cobo+285+Nueva+Atlantis/Hip%C3%B3lito+Yrigoyen+2941+Nueva+Atlantis`
 
-Extract distance from page text:
+Extract distance from page text (eval must be an IIFE):
 
-```javascript
-async () => {
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const text = document.body.innerText;
   const distMatch = text.match(/(\d+[.,]?\d*\s*(km|m))/g);
   return JSON.stringify({
-    dists: distMatch?.slice(0, 5),
+    dists: distMatch ? distMatch.slice(0, 5) : null,
     snippet: text.substring(0, 400)
   });
-}
+})()"
 ```
 
 The first meaningful distance in the array is typically the walking/driving route distance.
@@ -51,13 +57,13 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.goog
 
 Extract phone from the business card:
 
-```javascript
-async () => {
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const text = document.body.innerText;
   // Phone patterns: Argentine landline (0XXX XXX-XXXX), mobile (15-XXXX-XXXX), international
   const phoneMatch = text.match(/(\+?\d[\d\s\-]{8,}\d)/g);
-  return JSON.stringify({phones: phoneMatch?.slice(0, 5)});
-}
+  return JSON.stringify({phones: phoneMatch ? phoneMatch.slice(0, 5) : null});
+})()"
 ```
 
 ### Use exact coordinates for precise distance
@@ -125,3 +131,10 @@ This avoids the problem of Google Maps resolving a generic street name to the wr
 - **Do NOT assume the first distance in the regex** is the route distance. Filter out UI noise (1m, 2m, 4m values).
 - **Do NOT extract phone numbers without verifying** the business is in the correct location.
 - **Do NOT use intersection format** (`StreetA y StreetB`) in directions URLs. Use `StreetA + number` or coordinates instead.
+
+## agent-browser notes (verified 2026-10-24)
+- First command must be `open` (`goto` requires an active session).
+- Eval must be an IIFE `(()=>{...})()` — `async () => {` snippets do not run as-is.
+- Panel labels depend on the profile locale ("Abierto"/"Open", "Mejor"/"Best").
+- Transport mode via URL: `/dir/.../data=!4m2!4m1!3e2` (walking), `3e0` driving, `3e3` transit.
+- innerText+regex extraction works 100% — no refs needed.

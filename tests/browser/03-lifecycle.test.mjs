@@ -1,10 +1,15 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests del lifecycle: open, ensure, status, close.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { run, cleanup, HEADLESS, TEST_URL_A } from './helpers.mjs';
 
-describe('lifecycle: open + ensure + close', () => {
+describe.skip('lifecycle: open + ensure + close', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 
@@ -38,7 +43,7 @@ describe('lifecycle: open + ensure + close', () => {
   });
 });
 
-describe('open reuses existing session', () => {
+describe.skip('open reuses existing session', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 

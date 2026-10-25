@@ -50,7 +50,7 @@ function sendEmail(to, subject, body) {
 
   // Find and click send button
   const snapshot = shell(`${BROWSER} exec snapshot`, 15000);
-  const sendMatch = snapshot.match(/\[ref=([a-z0-9]+)\][^\n]*Enviar/);
+  const sendMatch = snapshot.match(/(@e\d+) \[button\][^\n]*(?:Enviar|Send)/);
   if (sendMatch) {
     shell(`${BROWSER} exec click ${sendMatch[1]}`, 10000);
     // Wait for send

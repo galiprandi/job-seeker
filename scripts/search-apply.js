@@ -30,7 +30,7 @@ function evalJS(js, timeout = 20000) {
 
 function findAndClick(text) {
   const raw = shell(`node .agents/skills/browser-automation/scripts/browser.js exec find "${text}"`, 15000);
-  const refMatch = raw.match(/\[ref=([a-z0-9]+)\]/);
+  const refMatch = raw.match(/(@e\d+)/) || raw.match(/\[ref=([a-z0-9]+)\]/);
   if (refMatch) {
     shell(`node .agents/skills/browser-automation/scripts/browser.js exec click ${refMatch[1]}`, 10000);
     return 'clicked:' + refMatch[1];

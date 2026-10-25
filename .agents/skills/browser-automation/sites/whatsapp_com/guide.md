@@ -2,6 +2,10 @@
 name: whatsapp
 description: Automate WhatsApp Web for messaging, conversation monitoring, and bulk scanning.
 verified: 2026-09-02
+domains:
+  - web.whatsapp.com
+  - whatsapp.com
+  - www.whatsapp.com
 ---
 
 # WhatsApp Web Automation Guide
@@ -114,32 +118,38 @@ This creates or opens the conversation and focuses the compose box. Useful for s
 
 ### Open a conversation by name
 
-**Do not use `eval` + `click()` to open chats** — it often fails silently. Use playwright's `click` command with a text selector instead:
+**Do not use `eval` + `click()` to open chats** — it often fails silently. Use semantic locators instead:
 
 ```bash
-# Most reliable method
-node .agents/skills/browser-automation/scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
+# Most reliable method: find by text and click
+node .agents/skills/browser-automation/scripts/browser.js exec find text "<CHAT_NAME>" click
 ```
 
 **Alternative:** Use `Alt+K` to search, type the name, and press Enter:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec press Alt+k
-node .agents/skills/browser-automation/scripts/browser.js exec type "<chat name>"
-node .agents/skills/browser-automation/scripts/browser.js exec press Enter
+# Alt+K focuses the search field — then type with real keystrokes (no selector needed)
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press Alt+k" "keyboard type <CHAT_NAME>" "wait 800" "press Enter"
 ```
 
 ### Send a message
 
-1. Find the compose box: `[data-testid="conversation-compose-box-input"]`
-2. Fill it with `fill <ref>`
-3. Find the send button: `button "Enviar"` or `[data-testid="compose-box"] button`
-4. Click it
+Preferred: focus the compose box (it usually has focus after opening a chat — otherwise `click` on it once), then `keyboard type` + `Enter`. Multi-line: `Shift+Enter` for line breaks.
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec fill <compose_ref> "<message>"
-node .agents/skills/browser-automation/scripts/browser.js exec click <send_button_ref>
+node .agents/skills/browser-automation/scripts/browser.js exec batch "click [data-testid=\"conversation-compose-box-input\"]" "keyboard type <MESSAGE>" "press Enter"
 ```
+
+**Verify BEFORE send (non-negotiable):** always read back the compose box before pressing Enter — a wrong or empty message to a human is irreversible.
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
+  const b = document.querySelector('[data-testid=\"conversation-compose-box-input\"] div[contenteditable=true], footer div[contenteditable=true]');
+  return b ? 'BOX: ' + b.innerText.substring(0,150) : 'EMPTY_OR_NOT_FOUND';
+})()"
+```
+
+If output is `EMPTY_OR_NOT_FOUND` or the text differs from intended, do NOT send.
 
 ### Read messages in a conversation
 
@@ -147,18 +157,18 @@ Open the conversation, then extract messages from the panel. WhatsApp uses virtu
 
 **Basic (visible messages only):**
 
-```javascript
-async () => {
-  const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async () => {
+  const panel = document.querySelector('[data-testid=\"conversation-panel-messages\"]');
   if (!panel) return 'no panel';
   const msgs = [];
-  panel.querySelectorAll('[data-testid="msg-container"]').forEach(m => {
+  panel.querySelectorAll('[data-testid=\"msg-container\"]').forEach(m => {
     const text = m.querySelector('.copyable-text, span.selectable-text')?.textContent || '';
     const isOut = m.querySelector('.message-out') !== null;
     msgs.push({dir: isOut ? 'out' : 'in', text: text.substring(0, 300)});
   });
   return JSON.stringify(msgs.slice(-10));
-}
+})()"
 ```
 
 Direction detection: `.message-out` = sent by user, absence = received.
@@ -167,9 +177,9 @@ Direction detection: `.message-out` = sent by user, absence = received.
 
 Each message has a unique `data-testid="conv-msg-<ID>"`. Use a `Set` to deduplicate while scrolling up.
 
-```javascript
-async () => {
-  const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async () => {
+  const panel = document.querySelector('[data-testid=\"conversation-panel-messages\"]');
   if (!panel) return 'no panel';
 
   const allMsgs = new Set();
@@ -200,19 +210,19 @@ async () => {
   });
 
   return JSON.stringify({ total: result.length, messages: result });
-}
+})()"
 ```
 
 **Tuning:** Increase the loop count for longer conversations. Each iteration loads ~15-20 more messages. 10 iterations ≈ 189 messages. For very long chats, use 30-50 iterations.
 
 ### Detect image/audio/video messages
 
-```javascript
-async () => {
-  const panel = document.querySelector('[data-testid="conversation-panel-messages"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async () => {
+  const panel = document.querySelector('[data-testid=\"conversation-panel-messages\"]');
   if (!panel) return 'no panel';
   const msgs = [];
-  panel.querySelectorAll('[data-testid="msg-container"]').forEach(m => {
+  panel.querySelectorAll('[data-testid=\"msg-container\"]').forEach(m => {
     const hasImg = m.querySelector('img') !== null;
     const hasAudio = m.querySelector('audio') !== null;
     const hasVideo = m.querySelector('video') !== null;
@@ -220,14 +230,14 @@ async () => {
     msgs.push({hasImg, hasAudio, hasVideo, text});
   });
   return JSON.stringify(msgs.slice(-5));
-}
+})()"
 ```
 
 ### Scan for unread messages
 
-```javascript
-async () => {
-  const rows = document.querySelectorAll('[role="row"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
+  const rows = document.querySelectorAll('[role=\"row\"]');
   const results = [];
   rows.forEach(r => {
     const text = r.textContent || '';
@@ -237,14 +247,14 @@ async () => {
     }
   });
   return JSON.stringify(results);
-}
+})()"
 ```
 
 ### Find conversations by name or number
 
-```javascript
-async () => {
-  const rows = document.querySelectorAll('[role="row"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
+  const rows = document.querySelectorAll('[role=\"row\"]');
   const results = [];
   rows.forEach(r => {
     const name = r.querySelector('span[title]')?.getAttribute('title') || '';
@@ -253,48 +263,59 @@ async () => {
     }
   });
   return JSON.stringify(results);
-}
+})()"
 ```
 
 ## Sending images and files
 
-### The problem with upload and drop
+(unverified after agent-browser migration)
 
-**Problem:** `exec upload` requires a native file chooser modal to be open. WhatsApp Web's "Adjuntar > Fotos y videos" button triggers a native OS file dialog. When this dialog opens, the wrapper loses control of the session and the browser becomes a zombie (unresponsive, gets cleaned up).
+### The problem with native file dialogs
 
-`exec drop` does not work with WhatsApp's hidden `input[type="file"]` element either.
+**Problem:** WhatsApp Web's "Adjuntar > Fotos y videos" button triggers a native OS file dialog. When this dialog opens, the automation session loses control of the browser (it becomes a zombie and gets cleaned up).
 
-**Solution:** Use `run-code` with `page.locator('input[type="file"]').setInputFiles()` to set the file directly on the hidden input, bypassing the native dialog entirely.
+**Solution:** Inject the file into WhatsApp's hidden `input[type="file"]` via `exec eval` + a `DataTransfer` object, bypassing the native dialog entirely. (unverified after agent-browser migration — previously done via playwright `setInputFiles`)
 
 ```bash
 # 1. Open the conversation first
-node .agents/skills/browser-automation/scripts/browser.js exec click "div[role=\"row\"] >> text=<CHAT_NAME>"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "<CHAT_NAME>" click
 
 # 2. Set the file on the hidden input (no native dialog needed)
-node .agents/skills/browser-automation/scripts/browser.js exec run-code "(async (page) => { const input = await page.locator('input[type=\"file\"]').first(); await input.setInputFiles('/absolute/path/to/file.png'); return 'file set'; })"
+#    Fetch the local file as bytes, build a File, assign via DataTransfer
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(async () => {
+  const res = await fetch('file:///absolute/path/to/file.png');
+  const blob = await res.blob();
+  const file = new File([blob], 'file.png', {type: blob.type});
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  const input = document.querySelector('input[type=\"file\"]');
+  if (!input) return 'no input';
+  input.files = dt.files;
+  input.dispatchEvent(new Event('change', {bubbles: true}));
+  return 'file set';
+})()"
 
 # 3. Wait for the preview + caption box to appear
-sleep 3
+node .agents/skills/browser-automation/scripts/browser.js exec wait 3000
 
 # 4. Write the caption (use Shift+Enter for line breaks, NOT Enter)
-node .agents/skills/browser-automation/scripts/browser.js exec run-code "(async (page) => { const caption = await page.locator('div[contenteditable][data-tab=\"10\"]'); await caption.focus(); await page.keyboard.type('First line.'); await page.keyboard.press('Shift+Enter'); await page.keyboard.type('Second line.'); return 'done'; })"
+node .agents/skills/browser-automation/scripts/browser.js exec batch "click 'div[contenteditable][data-tab=\"10\"]'" "keyboard type First line." "press Shift+Enter" "keyboard type Second line."
 
 # 5. Send (snapshot first to get fresh ref)
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i
 # Look for: button "Enviar 1 seleccionado" or button "Enviar"
-node .agents/skills/browser-automation/scripts/browser.js exec click <send_ref>
+node .agents/skills/browser-automation/scripts/browser.js exec click <@eN>
 ```
 
 **Key details:**
 - WhatsApp has one hidden `input[type="file"]` with `accept="image/*"`. For documents, the accept attribute changes.
-- After `setInputFiles`, WhatsApp shows a preview with a caption box (`div[contenteditable][data-tab="10"]`) and an "Enviar" button.
+- After the file is set, WhatsApp shows a preview with a caption box (`div[contenteditable][data-tab="10"]`) and an "Enviar" button.
 - Use `Shift+Enter` for line breaks in the caption. Plain `Enter` may send the message prematurely or lose the first line.
 - The send button text changes: "Enviar 1 seleccionado" when a file is attached, "Enviar" when only text.
+- Note: `fetch('file://...')` may be blocked by page security policy. If it fails, base64-encode the file into the eval payload or check whether agent-browser exposes a dedicated upload command. (unverified)
 
 **Anti-pattern:**
 - Do NOT click "Adjuntar" > "Fotos y videos" via `eval` + `click()`. The native file dialog crashes the session.
-- Do NOT use `exec upload` — it requires the native dialog and will zombie the session.
-- Do NOT use `exec drop` on `input[type="file"]` — it silently fails.
 
 ## Gotchas and anti-patterns
 
@@ -306,12 +327,12 @@ node .agents/skills/browser-automation/scripts/browser.js exec click <send_ref>
 
 ### Refs become stale after navigation or time
 
-**Problem:** Playwright refs (e.g. `f123e456`) become invalid after:
+**Problem:** Interactive refs (e.g. `@e5` from `snapshot -i`) become invalid after:
 - Navigating to a new URL
 - The page re-rendering (WhatsApp is a live SPA)
 - Other tabs stealing focus
 
-**Solution:** Always capture a fresh snapshot before clicking a ref. If `Ref not found` error occurs, re-snapshot and find the ref again.
+**Solution:** Always capture a fresh `snapshot -i` before clicking a ref. If a ref error occurs, re-snapshot and find the ref again.
 
 ### Other tabs steal focus
 
@@ -326,9 +347,9 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://web.what
 
 **Problem:** Navigating away from WhatsApp can trigger a `beforeunload` dialog that blocks `goto`.
 
-**Solution:** Accept the dialog first:
+**Solution:** Press `Enter` to accept the native dialog, or check agent-browser's dialog handling if it exposes one. (unverified after agent-browser migration)
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec dialog-accept
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
 ### Scroll the chat list to find older conversations
@@ -336,20 +357,20 @@ node .agents/skills/browser-automation/scripts/browser.js exec dialog-accept
 **Problem:** The chat list only renders visible rows. Older conversations are not in the DOM until scrolled into view.
 
 **Solution:**
-```javascript
-async () => {
-  const list = document.querySelector('[role="grid"]') || document.querySelector('[data-testid="chat-list"]');
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
+  const list = document.querySelector('[role=\"grid\"]') || document.querySelector('[data-testid=\"chat-list\"]');
   if (list) { list.scrollTop = 0; } // scroll to top (most recent)
   // or: list.scrollTop = list.scrollHeight; // scroll to bottom (older)
   return 'scrolled';
-}
+})()"
 ```
 
 ### Drafts vs sent messages
 
-**Problem:** Filling the compose box with `fill` may leave the message as a draft without sending it. The conversation list shows `Borrador:` prefix for drafts.
+**Problem:** Typing into the compose box may leave the message as a draft without sending it. The conversation list shows `Borrador:` prefix for drafts.
 
-**Solution:** After filling, always click the send button explicitly. Do not assume the message was sent just because the text appears in the compose box.
+**Solution:** After typing, always press `Enter` (or click the send button) explicitly. Do not assume the message was sent just because the text appears in the compose box.
 
 ### Typing indicator
 
@@ -370,37 +391,42 @@ Messages include timestamps in the text content (e.g. `21:43`). When extracting 
 WhatsApp Web supports custom lists (e.g. for organizing contacts by topic). To add an open conversation to a list:
 
 1. Open the conversation (via `send?phone=` URL or clicking the chat row)
-2. Click the **Menú** button in the conversation header: `[data-testid="conversation-header"] button "Menú"`
-3. Click the **Añadir a la lista** menu item: `menuitem "Añadir a la lista"`
+2. Click the **Menú** button in the conversation header (`[data-testid="conversation-header"]`) — via `find text "Menú" click` or its `@eN` ref
+3. Click the **Añadir a la lista** menu item — `find text "Añadir a la lista" click`
 4. If multiple lists exist, select the target list from the dialog
 
 ```bash
 # Open conversation
 node .agents/skills/browser-automation/scripts/browser.js goto "https://web.whatsapp.com/send?phone=<PHONE>"
 # Wait for panel to load
-sleep 5
-# Click Menú in conversation header
-MENU_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep 'button "Menú"' | tail -1 | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node .agents/skills/browser-automation/scripts/browser.js exec click $MENU_REF
+node .agents/skills/browser-automation/scripts/browser.js exec wait 5000
+# Click Menú in conversation header — prefer find; fallback to snapshot -i ref
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Menú" click
+# If find hits the wrong Menú (there are two), take a snapshot and pick the header one:
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i
+# Look for: button "Menú" inside the conversation header region → click @eN
+node .agents/skills/browser-automation/scripts/browser.js exec click <@eN>
 # Click "Añadir a la lista"
-ADD_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep "Añadir a la lista" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node .agents/skills/browser-automation/scripts/browser.js exec click $ADD_REF
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Añadir a la lista" click
 ```
 
-**Gotcha:** There are two "Menú" buttons in the snapshot. The one in the conversation header (`[data-testid="conversation-header"]`) is the correct one. Use `tail -1` or filter by the header testid.
+**Gotcha:** There are two "Menú" buttons in the snapshot. The one in the conversation header (`[data-testid="conversation-header"]`) is the correct one — pick its `@eN` ref from `snapshot -i`, not the first match.
 
 **Bulk add pattern:** To add multiple contacts to a list, loop through phone numbers with the above flow. Add `sleep 2` between each to let the menu close and the page settle.
 
 ## Long message formatting
 
-When sending long messages (more than 2-3 sentences), separate into paragraphs with `\n\n` for readability on mobile devices. WhatsApp renders `\n` as line breaks in the compose box.
+When sending long messages (more than 2-3 sentences), separate into paragraphs with blank lines for readability on mobile devices. In the compose box, `Shift+Enter` produces the line break (plain `Enter` sends).
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec fill <ref> "Hola! Primer párrafo corto.
-
-Segundo párrafo corto.
-
-Tercer párrafo corto."
+node .agents/skills/browser-automation/scripts/browser.js exec batch \
+  "click [data-testid=\"conversation-compose-box-input\"]" \
+  "keyboard type Hola! Primer párrafo corto." \
+  "press Shift+Enter" "press Shift+Enter" \
+  "keyboard type Segundo párrafo corto." \
+  "press Shift+Enter" "press Shift+Enter" \
+  "keyboard type Tercer párrafo corto."
+# Then verify the box contents (see "Verify BEFORE send") and press Enter to send.
 ```
 
 **Anti-pattern:** Sending a single wall of text. Recipients reading on mobile will struggle. Keep paragraphs to 1-2 sentences each.
@@ -430,3 +456,12 @@ Tercer párrafo corto."
 5. The most recently added/modified entry is likely the one you just played
 6. Extract as base64, save to file, send to Groq Whisper
 7. Verify the transcription content matches the expected conversation context
+
+## agent-browser notes (verified 2026-10-24)
+- `press "a+b"` = chord (simultaneous), NOT sequence. Sequences = separate `press` calls.
+- `Alt+K` opens extended search BUT types a literal `k` in the textbox — select-all + retype, or clear first.
+- Chat list rows have no interactive refs: click the **gridcell child** (`gridcell "<name> <time> <preview>"`) or use `find text "<name>" click`.
+- Unread filter: `tablist "chat-list-filters"` → `tab "No leídos N"` — click by `@eN` ref from `snapshot -i`.
+- `exec type "<text>"` needs a ref; free typing is `exec keyboard type "<text>"` (types into current focus). `exec fill <sel> "text"` sets a field value — prefer `keyboard type` for WhatsApp's contenteditable boxes.
+- `eval` snippets must be IIFE: `(() => {...})()` or `(async () => {...})()` — a bare `async () => {...}` returns `{}` silently.
+- Search textbox residue: leftover text breaks the unread filter — clear with the "End icon" button or `press Control+a` then `press Delete`.

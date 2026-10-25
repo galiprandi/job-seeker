@@ -32,11 +32,14 @@
  */
 'use strict';
 
-const { execSync, execFileSync } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const BROWSER_JS = path.join(__dirname, 'browser.js');
+const REPO_ROOT = path.resolve(__dirname, '..');
+const BROWSER_JS = fs.existsSync(path.join(REPO_ROOT, 'scripts', 'browser.js'))
+  ? path.join(REPO_ROOT, 'scripts', 'browser.js')
+  : path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 
 function fail(msg, code = 1) {
   console.error(`[linkedin-send] ${msg}`);
@@ -64,7 +67,7 @@ Requires: browser open with LinkedIn loaded on the specified tab.`);
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { tab: null };
+  const opts = { tab: null, session: 'default' };
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--thread': opts.thread = args[++i]; break;
@@ -72,6 +75,7 @@ function parseArgs() {
       case '--text': opts.text = args[++i]; break;
       case '--file': opts.file = args[++i]; break;
       case '--tab': opts.tab = args[++i]; break;
+      case '--session': opts.session = args[++i]; break;
       case '--help': case '-h': usage(); process.exit(0);
       default: fail(`Unknown argument: ${args[i]}`);
     }
@@ -92,58 +96,38 @@ function browserExec(cmd) {
   });
 }
 
-function browserEval(js, tab) {
-  // Use execFileSync directly with playwright-cli to avoid shell escaping issues.
-  // First select the tab (if specified), then run eval.
-  const repoRoot = path.resolve(__dirname, '..');
-
-  // Get session from browser.js lock file
-  let session = 'default';
-  try {
-    const lockContent = fs.readFileSync(path.join(repoRoot, '.browser-profile', '.lock'), 'utf8');
-    const lock = JSON.parse(lockContent);
-    session = lock.session || 'default';
-  } catch {}
-
-  // Get tab index if tab is specified
-  let tabIndex = null;
+function browserEval(js, tab, session = 'default') {
+  // Route through the browser wrapper (agent-browser backend): select the tab
+  // label if given, then eval with --json -b <base64> to avoid shell escaping.
   if (tab && tab !== 'default') {
-    try {
-      const tabsState = JSON.parse(fs.readFileSync(path.join(repoRoot, '.playwright-cli', 'tabs-state.json'), 'utf8'));
-      if (tabsState.tabs[tab]) tabIndex = tabsState.tabs[tab].index;
-    } catch {}
+    browserExec(`exec tab '${tab}' --session ${session}`);
   }
-
-  const args = [`-s=${session}`];
-  if (tabIndex !== null) {
-    args.push('tab-select', String(tabIndex));
-    execFileSync('playwright-cli', [`-s=${session}`, 'tab-select', String(tabIndex)], {
-      cwd: repoRoot, stdio: 'pipe', timeout: 10000,
-    });
+  const b64 = Buffer.from(js, 'utf8').toString('base64');
+  const out = browserExec(`exec eval --json -b '${b64}' --session ${session}`);
+  try {
+    const env = JSON.parse(out);
+    const r = env && env.data ? env.data.result : undefined;
+    return r === undefined || r === null ? '' : (typeof r === 'string' ? r : JSON.stringify(r));
+  } catch {
+    const m = out.match(/### Result\s*\n([\s\S]*?)(?:\n###|$)/);
+    if (m) return m[1].trim();
+    return out.trim();
   }
-
-  args.push('eval', js);
-
-  const out = execFileSync('playwright-cli', args, {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    timeout: 60000,
-    stdio: 'pipe',
-  });
-
-  const m = out.match(/### Result\s*\n([\s\S]*?)(?:\n###|$)/);
-  if (m) return m[1].trim();
-  return out.trim();
 }
 
 function getDefaultTab() {
   try {
+    const out = browserExec('exec tab list --json');
+    const tabs = JSON.parse(out);
+    const list = tabs && (tabs.data || tabs);
+    if (Array.isArray(list) && list.length) return list[0].label || list[0].id || 'default';
+  } catch {}
+  try {
     const out = browserExec('tab-list');
-    const m = out.match(/^\s*\d+:\s*(\S+)/m);
-    return m ? m[1] : 'default';
-  } catch {
-    return 'default';
-  }
+    const m = out.match(/^\s*\d+:\s*(\S+)/m) || out.match(/\[(t\d+)\]|label[=:"']?\s*(\w+)/m);
+    if (m) return m[1] || m[2] || 'default';
+  } catch {}
+  return 'default';
 }
 
 function main() {
@@ -365,7 +349,7 @@ function main() {
   console.log(`[linkedin-send] Mode: ${mode}, Tab: ${opts.tab}`);
 
   try {
-    const result = browserEval(evalScript, opts.tab);
+    const result = browserEval(evalScript, opts.tab, opts.session);
     console.log(`[linkedin-send] Result: ${result}`);
     if (result.includes('201') || result.includes('200') || result.includes('entityUrn')) {
       console.log('[linkedin-send] ✓ Message sent successfully');

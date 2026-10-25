@@ -2,7 +2,7 @@
 /**
  * gmail-send.js — Send emails via Gmail web interface with CV attached.
  *
- * Uses playwright-cli (must be running via browser.js wrapper first).
+ * Uses agent-browser via the browser.js wrapper (browser must be running first).
  * Opens Gmail compose dialog, fills fields, attaches CV, sends.
  *
  * Usage:
@@ -35,15 +35,17 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+const REPO_ROOT = path.resolve(__dirname, '..');
+const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
+
 let SESSION = 'default';
 
 function cli(args, timeout = 30000) {
-  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${sessionFlag}${args}`, {
+    return execSync(`node "${BROWSER_JS}" exec ${args} --session ${SESSION}`, {
       encoding: 'utf-8',
       timeout,
-      cwd: __dirname,
+      cwd: REPO_ROOT,
     });
   } catch (e) {
     return e.stdout || e.message;
@@ -67,11 +69,8 @@ function fill(ref, value) {
 }
 
 function goto(url) {
-  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
-  const repoLocal = path.resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
-  const global = path.resolve(require('os').homedir(), '.agents/skills/browser-automation/scripts/browser.js');
-  const wrapper = fs.existsSync(repoLocal) ? repoLocal : global;
-  execSync(`node "${wrapper}" goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: path.resolve(__dirname, '..') });
+  // exec navigate forwards --session; wrapper `goto` does not.
+  cli(`navigate "${url}"`);
 }
 
 function dbWrite(sql) {
@@ -151,10 +150,10 @@ function main() {
 
   // Click "Redactar" (Compose) button
   let snap = snapshot();
-  const composeRef = extractRef(snap, /button "Redactar" \[ref=(f[0-9a-f]+)\]/);
+  const composeRef = extractRef(snap, /(@e\d+) \[button\] "Redactar"/);
   if (!composeRef) {
     // Try English UI
-    const composeRefEn = extractRef(snap, /button "Compose" \[ref=(f[0-9a-f]+)\]/);
+    const composeRefEn = extractRef(snap, /(@e\d+) \[button\] "Compose"/);
     if (!composeRefEn) {
       console.error('Error: Compose button not found. Is Gmail loaded?');
       process.exit(2);
@@ -168,16 +167,16 @@ function main() {
   // Get compose dialog refs
   snap = snapshot();
 
-  const toRef = extractRef(snap, /combobox "Destinatarios"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /combobox "To"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
-  const subjectRef = extractRef(snap, /textbox "Asunto"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Subject"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
-  const bodyRef = extractRef(snap, /textbox "Cuerpo del mensaje"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /textbox "Message body"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
-  const attachRef = extractRef(snap, /button "Adjuntar archivos"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /button "Attach files"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
-  const sendRef = extractRef(snap, /button "Enviar[^\]]*" \[ref=(f[0-9a-f]+)\]/)
-    || extractRef(snap, /button "Send[^\]]*" \[ref=(f[0-9a-f]+)\]/);
+  const toRef = extractRef(snap, /(@e\d+) \[combobox\] "Destinatarios"/)
+    || extractRef(snap, /(@e\d+) \[combobox\] "To"/);
+  const subjectRef = extractRef(snap, /(@e\d+) \[textbox\] "Asunto"/)
+    || extractRef(snap, /(@e\d+) \[textbox\] "Subject"/);
+  const bodyRef = extractRef(snap, /(@e\d+) \[textbox\] "Cuerpo del mensaje"/)
+    || extractRef(snap, /(@e\d+) \[textbox\] "Message body"/);
+  const attachRef = extractRef(snap, /(@e\d+) \[button\] "Adjuntar archivos"/)
+    || extractRef(snap, /(@e\d+) \[button\] "Attach files"/);
+  const sendRef = extractRef(snap, /(@e\d+) \[button\] "Enviar[^"]*"/)
+    || extractRef(snap, /(@e\d+) \[button\] "Send[^"]*"/);
 
   if (!toRef || !subjectRef || !bodyRef || !sendRef) {
     console.error('Error: Could not find compose dialog fields.');
@@ -191,13 +190,13 @@ function main() {
 
   // Add CC if specified
   if (cc) {
-    const ccLink = extractRef(snap, /link "Añadir destinatarios a "Cc"[^\]]* \[ref=(f[0-9a-f]+)\]/)
-      || extractRef(snap, /link "Add Cc recipients"[^\]]* \[ref=(f[0-9a-f]+)\]/);
+    const ccLink = extractRef(snap, /(@e\d+) \[link\] "Añadir destinatarios a .Cc.[^"]*"/)
+      || extractRef(snap, /(@e\d+) \[link\] "Add Cc recipients[^"]*"/);
     if (ccLink) {
       click(ccLink);
       sleep(1000);
       snap = snapshot();
-      const ccRef = extractRef(snap, /combobox "Cc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+      const ccRef = extractRef(snap, /(@e\d+) \[combobox\] "Cc"/);
       if (ccRef) fill(ccRef, cc);
       sleep(1000);
     }
@@ -205,14 +204,14 @@ function main() {
 
   // Add BCC if specified
   if (bcc) {
-    const bccLink = extractRef(snap, /link "Añadir destinatarios a "Cco"[^\]]* \[ref=(f[0-9a-f]+)\]/)
-      || extractRef(snap, /link "Add Bcc recipients"[^\]]* \[ref=(f[0-9a-f]+)\]/);
+    const bccLink = extractRef(snap, /(@e\d+) \[link\] "Añadir destinatarios a .Cco.[^"]*"/)
+      || extractRef(snap, /(@e\d+) \[link\] "Add Bcc recipients[^"]*"/);
     if (bccLink) {
       click(bccLink);
       sleep(1000);
       snap = snapshot();
-      const bccRef = extractRef(snap, /combobox "Cco"[^\n]*?\[ref=(f[0-9a-f]+)\]/)
-        || extractRef(snap, /combobox "Bcc"[^\n]*?\[ref=(f[0-9a-f]+)\]/);
+      const bccRef = extractRef(snap, /(@e\d+) \[combobox\] "Cco"/)
+        || extractRef(snap, /(@e\d+) \[combobox\] "Bcc"/);
       if (bccRef) fill(bccRef, bcc);
       sleep(1000);
     }
@@ -228,13 +227,10 @@ function main() {
 
   // Attach CV if not disabled
   if (!noCv && cvPath && fs.existsSync(cvPath)) {
-    if (!attachRef) {
-      console.error('Warning: Attach button not found, skipping CV attachment');
-    } else {
-      click(attachRef);
-      sleep(2000);
-      // File chooser modal appears
-      cli(`upload "${cvPath}"`, 15000);
+    {
+      // agent-browser upload targets the file input directly — no need to
+      // click the attach button first (that would open a native file chooser).
+      cli(`upload 'input[type="file"]' "${cvPath}"`, 15000);
       sleep(3000);
 
       // Verify attachment

@@ -1,7 +1,10 @@
 ---
 name: linkedin
-description: Automate LinkedIn with playwright-cli. Covers messaging (send text + attachments via Voyager endpoints), bulk inbox fetch, profile navigation, job search, Easy Apply, connection requests, notifications, saved jobs, and the tiptap editor fix. Use when sending LinkedIn messages, reading inbox, applying to jobs, connecting with people, or extracting profile data. Part of the browser-automation skill.
+description: Automate LinkedIn with agent-browser. Covers messaging (send text + attachments via Voyager endpoints), bulk inbox fetch, profile navigation, job search, Easy Apply, connection requests, notifications, saved jobs, and the tiptap editor fix. Use when sending LinkedIn messages, reading inbox, applying to jobs, connecting with people, or extracting profile data. Part of the browser-automation skill.
 verified: 2026-09-02
+domains:
+  - linkedin.com
+  - www.linkedin.com
 ---
 
 # LinkedIn Automation
@@ -14,13 +17,11 @@ Automate LinkedIn using a mix of UI interactions and internal Voyager API endpoi
 # Open LinkedIn (headless if already logged in, headed for login)
 node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com" --headed
 
-# If login needed: user logs in manually, then save state
-node .agents/skills/browser-automation/scripts/browser.js save-state
-node .agents/skills/browser-automation/scripts/browser.js close
+# If login needed: user logs in manually. No save-state/load-state exists —
+# the session persists automatically in .browser-profile/.
 
-# Next sessions: load state and go headless
+# Next sessions: just open, cookies are already there
 node .agents/skills/browser-automation/scripts/browser.js open "https://www.linkedin.com"
-node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Messaging
@@ -182,7 +183,11 @@ Click `.msg-conversation-listitem` matching h3 text. CRITICAL: verify thread ID 
 
 ### Send via UI — tiptap fix (validated 2026-08-10)
 
-The composer is `div[contenteditable]` (`div.msg-form__contenteditable`). LinkedIn uses ProseMirror/tiptap which ignores `innerText`, `textContent`, `execCommand`, `playwright-cli fill`, and `playwright-cli type`. The only reliable way to trigger the framework's internal state and enable the Send button is to dispatch a `beforeinput` event with `inputType: 'insertFromPaste'` after setting `innerHTML`:
+The composer is `div[contenteditable]` (`div.msg-form__contenteditable`). LinkedIn uses ProseMirror/tiptap.
+
+**Try first (semantic-first):** click the composer (snapshot ref or `find role textbox`), then `exec keyboard inserttext "<text>"` — `inserttext` inserts without key events and may satisfy rich editors. (unverified after agent-browser migration — validate on next use.)
+
+**Documented fallback (eval):** tiptap ignores `innerText`, `textContent`, `execCommand`, `fill`, and `keyboard type`. The proven way to trigger the framework's internal state and enable the Send button is to dispatch a `beforeinput` event with `inputType: 'insertFromPaste'` after setting `innerHTML`:
 
 ```bash
 # 1. Focus: document.querySelector('div.msg-form__contenteditable').focus()
@@ -199,34 +204,9 @@ The composer is `div[contenteditable]` (`div.msg-form__contenteditable`). Linked
 - `el.innerText = text` + `InputEvent('input')` → Send stays disabled
 - `el.textContent = text` + `InputEvent('input')` → Send stays disabled
 - `document.execCommand('insertText', false, text)` → Send stays disabled
-- `playwright-cli fill <ref> <text>` → Send stays disabled
-- `playwright-cli type <text>` (after click) → Send stays disabled
+- `browser.js exec fill <ref> <text>` → Send stays disabled
+- `browser.js exec keyboard type <text>` (after click) → Send stays disabled
 - Solution: `el.innerHTML = '<p>...</p>'` + `InputEvent('beforeinput', {inputType: 'insertFromPaste'})` → Send enables
-
-**Encoding bug (validated 2026-10-09):** accented Spanish text piped through `eval(atob(base64))` arrives as mojibake (`MartÃ­n`, `transacciÃ³n`) — atob decodes to Latin-1, mangling UTF-8. A DM went out to a CEO corrupted and the user had to edit it manually. For any non-ASCII text: use the Voyager API send (fetch sends UTF-8 JSON correctly), or decode properly with `decodeURIComponent(escape(atob(b64)))`, and ALWAYS read the editor content back before clicking Send.
-
-**Caveat (observed 2026-09-22):** on some sessions tiptap reverts `innerHTML` edits entirely (editor ends empty, Send stays disabled even after `beforeinput` + `input`). When that happens, fall back to the Voyager createMessage endpoint below — it is the most reliable send path.
-
-### Send plain text via Voyager endpoint (validated 2026-09-22)
-
-No attachment needed → simplest reliable send. Same endpoint as the attachment flow minus `renderContentUnions` (send empty array):
-
-```bash
-# POST https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage
-# Headers: accept: application/json, x-restli-protocol-version: 2.0.0, x-li-lang: en_US,
-#          csrf-token: <JSESSIONID cookie without quotes>, content-type: text/plain;charset=UTF-8
-# Body:
-#   { message: { body: { attributes: [], text: TEXT_WITH_\n_BREAKS },
-#       renderContentUnions: [],
-#       conversationUrn: 'urn:li:msg_conversation:(urn:li:fsd_profile:<self_id>,<thread_id>)',
-#       originToken: <UUID v4> },
-#     mailboxUrn: 'urn:li:fsd_profile:<self_id>',
-#     trackingId: <16 random binary bytes as string>,
-#     dedupeByClientGeneratedToken: false }
-# Response 200 + message entityUrn = sent. Verify by reloading the thread.
-```
-
-**Multi-line formatting rule:** recruiters' screening questions expect one point per line. Use `\n` between lines and `\n\n` for blank-line separation in the API `text` field (equivalent of Shift+Enter in the UI). If sending via the tiptap editor instead, use `<p>line</p>` per line and `<p><br></p>` for blank lines — a single `\n` inside one `<p>` collapses.
 
 ### Send with attachment (dash endpoint)
 
@@ -264,7 +244,7 @@ This is the only way to send attachments via endpoint. The attachment goes in `r
 
 ### Attach via UI (fallback if endpoint fails)
 
-Navigate to thread → snapshot → click "Attach a file" → exec upload /path/to/file → fill message → click send. Attach buttons only appear when a conversation is open (not in the messaging list view).
+Navigate to thread → `snapshot -i` → click "Attach a file" → `exec upload /path/to/file` (unverified after agent-browser migration — confirm `upload` exists in agent-browser) → fill message → click send. Attach buttons only appear when a conversation is open (not in the messaging list view).
 
 ## Connection requests (invites)
 
@@ -301,8 +281,6 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 ```
 
 **Custom note limit:** LinkedIn has a weekly limit for custom notes. When exhausted, send invites without a note. Don't retry with a note.
-
-**Note character limit is 200, not 300 (validated 2026-09-19):** the invite-note UI may display a "300" counter but the real cap is 200 characters — the counter reads `X/200` once typing starts. Keep invite notes ≤200 chars. To replace textarea content: `Ctrl+A` then type (real keyboard input); `type` writes into the *focused* element and does NOT take a ref — passing a ref as an argument types the ref string into the field.
 
 **3rd+ connections:** Can't send invite. Mark as "no invite possible" and move to the next. Don't waste time trying workarounds.
 
@@ -371,8 +349,6 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 - Multiple hashtags with OR: LinkedIn treats them as literal text
 - Very long combinations with many ANDs: returns 0 results or irrelevant results
 - Niche hashtags: low volume, almost no results
-- **Generic transformation keywords (validated 2026-09-19):** `"SDLC"` in content search is captured by QA/BA recruiter spam (US/India, not engineering roles). `"AI transformation"` surfaces thought-leadership posts and geo-blocked roles (UK clearance jobs, India, Egypt). These terms describe the *domain*, not the *role* — they attract marketers and QA agencies, not hiring posts for engineers.
-- **What filters for engineering-transformation roles:** niche/stack-specific terms the actual JDs use (e.g. `"agentic"`, specific framework/tool names, `"<stack> + AI"`) combined with `f_WT=2` and a regional `location=` filter. Jobs search with `location=Latin America&f_WT=2` returns good Argentina-remote density; the rail "More jobs" on a relevant listing is itself a discovery channel — related listings cluster by profile fit.
 
 **Post extraction pattern:**
 1. Go to `search/results/content/?keywords=...&sortBy="date_posted"`
@@ -412,13 +388,11 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 - Some forms have radios without a direct ref. Click the `generic` label that wraps the text ("Yes", "No").
 - Some forms have `combobox` that appear selected but aren't. Verify with `option.*selected`.
 - The "Continue" button may not advance if there are errors. Always grep `Please make a selection` | `Please enter a valid answer` | `Required` after each click.
-- Some forms open a file chooser when clicking "Attach". Use `playwright-cli upload <path>` immediately.
+- Some forms open a file chooser when clicking "Attach". Use `browser.js exec upload <path>` immediately. (unverified after agent-browser migration — confirm `upload` exists in agent-browser)
 - **"Continue applying" safety dialog**: LinkedIn may show a "Job search safety reminder" dialog with a "Continue applying" button when navigating to a job page. This dialog blocks the Easy Apply button. Dismiss it first by clicking "Continue applying" before attempting to click Easy Apply.
 - **Multi-page forms with required questions**: Many Easy Apply jobs have 3-5 page forms with required text inputs, radio groups, and comboboxes on page 3+ ("Preguntas adicionales"). The automated script (`linkedin-easy-apply.js`) may skip these because it can't answer job-specific questions. For batch applications, jobs without additional questions (1-2 page forms) succeed; jobs with custom questions require manual intervention.
 - **Easy Apply button click reliability**: `dispatchEvent` with mouse events may not open the compose dialog. Use direct `click` via ref from snapshot (`node .agents/skills/browser-automation/scripts/browser.js exec click <ref>`) for reliable results. The button ref can be found by grepping the snapshot for `Easy Apply to`.
 - **Form dialog detection**: The Easy Apply form dialog may not match `[role=dialog]` in some LinkedIn versions. Check for the heading "Apply to <Company>" or the text "X/Y pages" to confirm the form is open.
-- **Modal element is a native `<dialog>` (validated 2026-09-19)**: In the current UI the Easy Apply modal is `<dialog open data-testid="dialog">`. Detect it with `document.querySelector("dialog[open]")` — `[role=dialog]` and `.jobs-easy-apply-modal` both miss it. An `eval` `.click()` on the Easy Apply button DOES open the modal; if detection reports "no modal" the problem is your selector, not the click. Never re-click once `dialog[open]` exists — the open dialog intercepts pointer events and a Playwright `click` on the button times out.
-- **New-UI radios have empty labels (validated 2026-09-19)**: In the CSS-modules UI, `input[type=radio]` siblings `<label for>` are empty — the "Yes"/"No" text lives in a `<p>` inside `radio.parentElement.parentElement`. To select an option, match `/^yes$/i.test(radio.parentElement.parentElement.innerText.trim())` then `radio.click()`. `radio.labels[0].innerText` returns "".
 
 **Captcha:** if a captcha appears, stop and ask the user. Never attempt to solve programmatically.
 
@@ -465,12 +439,12 @@ See [posting.md](posting.md) for the full posting workflow (composer variants, t
 **Messaging tiptap editor (tested 2026-08-10):**
 - `innerText`/`textContent` + `InputEvent('input')` → Send stays disabled (tiptap ignores it)
 - `execCommand('insertText')` → Send stays disabled
-- `playwright-cli fill/type` → Send stays disabled
+- `browser.js exec fill` / `browser.js exec keyboard type` → Send stays disabled
 - Solution: `innerHTML` + `InputEvent('beforeinput', {inputType: 'insertFromPaste'})` → Send enables
 
 **Posting Quill editor (validated 2026-08-23):**
 - `innerHTML` + `beforeinput`/`ClipboardEvent('paste')`/`execCommand('insertText')`/`innerText` + `input` → text appears visually but "Post" button stays disabled (Quill internal state not updated)
-- Solution: `playwright-cli type` (real keyboard input) → Quill registers it, Post enables
+- Solution: `browser.js exec keyboard type` (real keyboard input) → Quill registers it, Post enables
 
 **Navigation:**
 - Sidebar clicks from `/messaging/` → URL doesn't change, wrong thread (most common failure mode)
@@ -489,11 +463,15 @@ See [posting.md](posting.md) for the full posting workflow (composer variants, t
 **Job search:**
 - Missing `&location=Worldwide` → results scoped to profile location (0-7 instead of 20+)
 
-## Feed harvesting
+## agent-browser notes (verified 2026-10-24)
+- Feed extraction: obfuscated CSS classes. Use `main div[role="listitem"]` with `h2` "Feed post".
+- Notifications: no longer `<article>` elements; they are `main a` with text — snapshot + grep on links works.
+- `*elements` in messengerConversationsBySyncToken may come back empty: iterate `included` by `$type`.
+- Self ID (ACoAA): does not appear on /feed/ — extract it from /messaging/ or a profile page.
+- People search: profile URLs via `main a[href*="/in/"]`, names/Connect refs via snapshot.
+- Profile h1 may be null — use the snapshot's level-1 heading or the first `main p`.
 
-The feed paginates via POST `/flagship-web/rsc-action/actions/pagination?sduiid=com.linkedin.sdui.pagers.feed.mainFeed&parentSpanId=<token>` (RSC/Flight format, ~3MB per page). Two-layer harvest:
-
-1. **DOM layer:** scroll `document.querySelector('main')` (NOT window — the feed scrolls main). Split `main.innerText` on `Feed post` markers; LinkedIn virtualizes so harvest into a dedup Map at each step.
-2. **API layer:** hook `window.fetch`, intercept `pagination` responses, extract long strings `/"([^"\\]|\\.){160,}"/g`, `JSON.parse`, filter noise (`urn:`, `http`, `commentBox`, `tracking`, `ariaLabel`, base64 blobs). Yields post text the DOM layer misses (job modules, non-standard post types).
-
-Limits: per-session personalization means the browser feed ≠ the user's app feed. For deterministic coverage use `/jobs/search/?keywords=...&f_WRA=true&sortBy=DD` (remote + sort by date). No public RSS exists for the home feed.
+## Multiline messages (verified 2026-10-24)
+- `exec keyboard type` does NOT interpret `\n` — they stay as literal characters in the sent text.
+- For multiline: `keyboard type` per chunk + `press Shift+Enter` between paragraphs (plain Enter SENDS the message in LinkedIn's composer).
+- Alternative: `exec keyboard inserttext` with the full text (unverified after agent-browser migration), or paste via eval with innerHTML and `<br>`/`data-start` for many paragraphs.

@@ -1,12 +1,18 @@
 ---
 name: reddit
-description: Automate Reddit with playwright-cli. Covers navigating posts, reading comments, posting top-level submissions, replying to comments, posting in megathreads, and extracting post/comment data. Use when checking post status, responding to comments, or submitting to subreddits.
+description: Automate Reddit with agent-browser. Covers navigating posts, reading comments, posting top-level submissions, replying to comments, posting in megathreads, and extracting post/comment data. Use when checking post status, responding to comments, or submitting to subreddits.
 verified: 2026-09-02
+domains:
+  - reddit.com
+  - www.reddit.com
+  - old.reddit.com
+  - sh.reddit.com
+  - new.reddit.com
 ---
 
 # Reddit Automation
 
-Automate Reddit via `playwright-cli` using a mix of UI interactions, eval-based content extraction, and direct DOM manipulation for posting.
+Automate Reddit via `agent-browser` using a mix of UI interactions, eval-based content extraction, and direct DOM manipulation for posting.
 
 **Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
 
@@ -16,13 +22,11 @@ Automate Reddit via `playwright-cli` using a mix of UI interactions, eval-based 
 # Open Reddit — ALWAYS headed (headless triggers 403 bot detection, see below)
 node .agents/skills/browser-automation/scripts/browser.js open "https://www.reddit.com" --headed
 
-# If login needed: user logs in manually, then save state
-node .agents/skills/browser-automation/scripts/browser.js save-state
-node .agents/skills/browser-automation/scripts/browser.js close
+# If login needed: user logs in manually. The session persists in .browser-profile —
+# no save/load step exists or is needed.
 
-# Next sessions: reopen headed and load state
+# Next sessions: reopen headed
 node .agents/skills/browser-automation/scripts/browser.js open "https://www.reddit.com" --headed
-node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Reading posts and comments
@@ -34,13 +38,13 @@ node .agents/skills/browser-automation/scripts/browser.js load-state
 node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<id>/"
 
 # Wait for load
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){ for (let i = 0; i < 50; i++) { if (document.body.innerText.length > 500) return 'ready'; await new Promise(r => setTimeout(r, 200)); } return 'timeout'; })()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "document.body && document.body.innerText.length > 500"
 
 # Extract full page text (includes post body + all visible comments)
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(0, 5000)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => document.body.innerText.substring(0, 5000))()"
 
 # Extract more if needed
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(5000, 10000)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => document.body.innerText.substring(5000, 10000))()"
 ```
 
 ### Extract structured comment data
@@ -67,12 +71,12 @@ Posts removed by mods show one of these phrases in `document.body.innerText`:
 - Also: `"Publicación bloqueada. No se pueden publicar nuevos comentarios."` (post locked, no new comments)
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => {
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const t = document.body.innerText;
   if (t.includes('retirada por los moderadores') || t.includes('removed by the moderators')) return 'removed';
   if (t.includes('Publicación bloqueada') || t.includes('post has been locked')) return 'locked';
   return 'active';
-}()"
+})()"
 ```
 
 ### Find all posts by a user
@@ -89,7 +93,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js goto "https://www.reddit.com/r/<sub>/comments/<post_id>/comment/<comment_id>/"
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.body.innerText.substring(0, 3000)"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => document.body.innerText.substring(0, 3000))()"
 ```
 
 ## Posting a top-level submission
@@ -106,14 +110,7 @@ Reddit's new UI uses a rich-text editor. The title is an input, the body is a co
 
 ```bash
 # Wait for editor to load
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 50; i++) {
-    const inputs = document.querySelectorAll('input, textarea, div[contenteditable=true]');
-    if (inputs.length > 0) return 'ready';
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "document.querySelectorAll('input, textarea, div[contenteditable=true]').length > 0"
 
 # Fill title (find the title input - it's usually the first visible text input)
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
@@ -149,7 +146,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 ### Submit the post
 
 ```bash
-# Find and click the submit button
+# Semantic-first (unverified after agent-browser migration):
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Publicar" click
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Post" click
+
+# Fallback via eval:
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('button, div[role=button]');
   for (const b of btns) {
@@ -173,7 +174,12 @@ This is the most reliable pattern, validated empirically. Reddit's comment edito
 ### Step 1: Click "Responder" to open the comment editor
 
 ```bash
-# Scroll to where the comment section starts
+# Semantic-first attempt (works for the top-level "Responder"/"Reply" button;
+# unverified after agent-browser migration — per-comment buttons live in shadow DOM)
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Responder" click
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Reply" click
+
+# Fallback: scroll to the comment section and click via eval
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   window.scrollTo(0, 800);
   await new Promise(r => setTimeout(r, 500));
@@ -193,17 +199,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 ### Step 2: Wait for the contenteditable editor to appear
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 25; i++) {
-    const all = document.querySelectorAll('div[contenteditable=true]');
-    for (const e of all) {
-      const r = e.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) return 'editor_ready';
-    }
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "Array.from(document.querySelectorAll('div[contenteditable=true]')).some(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })"
 ```
 
 ### Step 3: Fill the comment text
@@ -230,6 +226,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 ### Step 4: Click "Comentar" / "Comment" to submit
 
 ```bash
+# Semantic-first (unverified after agent-browser migration):
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Comentar" click
+node .agents/skills/browser-automation/scripts/browser.js exec find role button "Comment" click
+
+# Fallback via eval:
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const btns = document.querySelectorAll('button');
   for (const b of btns) {
@@ -339,13 +340,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 Reddit is a heavy SPA. After `goto`, use in-page polling:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 50; i++) {
-    if (document.body.innerText.length > 500) return 'ready';
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "document.body && document.body.innerText.length > 500"
 ```
 
 ### The comment editor is lazy-loaded
@@ -396,3 +391,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 - **Don't** use `innerText =` alone for the comment editor — React state won't update. Use `execCommand('insertText')` instead
 - **Don't** assume the UI is in English — Reddit may render in Spanish or other languages depending on account settings. Always check for both language labels
 - **Don't** assume a "Responder" click opens a top-level comment editor — it opens a reply to the specific comment it belongs to. To post a top-level comment in a megathread, click the "Responder" button on the megathread post itself (not on an existing comment)
+
+## agent-browser notes (verified 2026-10-24)
+- Eval `() => expr` returns `{}` — wrap in an IIFE `(() => expr)()`.
+- Polls: add a null-check `document.body && ...` after open (initial JS challenge).
+- `save-state`/`load-state` do not exist — the session persists in `.browser-profile/`.
+- Per-comment "Responder" lives inside the shadow DOM of `shreddit-comment` — normal qSA cannot reach it; pierce via `c.shadowRoot` or click via snapshot refs.
+- Headless can get stuck on `?js_challenge=1` — use `--headed` if it appears.
+- Missing session: posting/commenting flows require manual login.

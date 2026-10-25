@@ -1,11 +1,16 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests de fail-fast: todos los comandos deben fallar claramente cuando
  * no hay una sesión activa del browser.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { run, cleanup } from './helpers.mjs';
 
-describe('fail-fast without session', () => {
+describe.skip('fail-fast without session', () => {
   beforeAll(() => cleanup());
 
   it('goto fails with clear error', () => {

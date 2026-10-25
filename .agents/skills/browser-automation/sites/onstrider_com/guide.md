@@ -2,6 +2,10 @@
 name: strider
 description: Automate Strider (onstrider.com) LATAM job platform: profile updates, work experience, and multi-step job applications.
 verified: 2026-09-02
+domains:
+  - onstrider.com
+  - app.onstrider.com
+  - www.onstrider.com
 ---
 
 # Strider (onstrider.com) — Automation Guide
@@ -26,11 +30,10 @@ First login is manual (headed mode). The platform uses email + password or Googl
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js open "https://app.onstrider.com" --headed
 # user logs in manually
-node .agents/skills/browser-automation/scripts/browser.js save-state
-node .agents/skills/browser-automation/scripts/browser.js close
+# No save-state/load-state exists — the session persists automatically in .browser-profile/
 ```
 
-Subsequent sessions reuse the saved profile. No captcha observed during login.
+Subsequent sessions reuse the persisted `.browser-profile/` session. No captcha observed during login.
 
 ### Cookie banner
 
@@ -99,10 +102,10 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 
 **Update skills:** Skills are autocomplete inputs with a dropdown of predefined options. `fill` and native value setter do NOT persist — see [react-autocomplete-inputs.md](react-autocomplete-inputs.md) for the working pattern.
 
-**Update years of experience:** Each skill has a combobox (select) for years. Use `select` with the combobox ref from snapshot:
+**Update years of experience:** Each skill has a combobox (select) for years. Use `select` with the combobox ref or selector (unverified after agent-browser migration — confirm whether `select` accepts `@eN` refs or only CSS selectors):
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec select <combobox_ref> "10+ years"
+node .agents/skills/browser-automation/scripts/browser.js exec select <combobox_ref_or_selector> "10+ years"
 ```
 
 **Save:**
@@ -131,7 +134,7 @@ The bio is a simple textarea in a modal. `fill` works directly:
 # Find Edit button near "Bio" via snapshot
 node .agents/skills/browser-automation/scripts/browser.js exec click <bio_edit_ref>
 # Find the "Short bio" textbox via find
-node .agents/skills/browser-automation/scripts/browser.js exec find "Short bio"
+node .agents/skills/browser-automation/scripts/browser.js exec find label "Short bio"
 # Fill
 node .agents/skills/browser-automation/scripts/browser.js exec fill <textarea_ref> "<bio text>"
 # Save
@@ -259,3 +262,10 @@ The home page link uses a different URL format with query params. Navigate direc
 - **The "I'm interested" button is the only way to start an application.** There's no "Apply" button on the job detail page from the referral link.
 - **The application form is a single page with all questions visible.** Scrolling is needed to reach all questions and the Next button.
 - **The spinbutton for AI tools rating is disabled when "doesn't apply" is checked.** Uncheck it to set the value, then decide whether to re-check based on the question's relevance.
+
+## agent-browser notes (verified 2026-10-24)
+- `save-state`/`load-state` do not exist — the session persists in `.browser-profile/`.
+- `exec find` requires a locator type: `find text "..."` / `find role "..."` / `find label "..."`.
+- `exec select` exists: `select <selector> <value>` — verify whether it accepts `@eN` refs.
+- Without an active session: authenticated flows require manual headed login.
+- Cookie banner did not appear at login (may be post-login or already accepted).

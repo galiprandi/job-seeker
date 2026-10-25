@@ -23,14 +23,13 @@ Takes the user's captured profile (`users.data.profile`) and job preferences (`u
 `polish` can run alongside other flows (e.g: `apply`, `news`, `targets`) by using an attached session:
 
 ```bash
-node scripts/browser.js attach --session polish-1
-node scripts/browser.js goto <url> --session polish-1
-node scripts/browser.js exec eval '<code>' --session polish-1
+node .agents/skills/browser-automation/scripts/browser.js open <url>
+node .agents/skills/browser-automation/scripts/browser.js exec eval '<code>' --session polish-1
 node scripts/generate-cv.js --session polish-1
-node scripts/browser.js detach --session polish-1
+node .agents/skills/browser-automation/scripts/browser.js exec close --session polish-1
 ```
 
-All browser commands and `generate-cv.js` accept `--session`. Use `detach` when done (never `close` — it's ref-counted and would refuse or kill the browser for other agents). See AGENTS.md "Parallel execution".
+All browser commands and `generate-cv.js` accept `--session`. When done, close only your own session (`exec close --session polish-1`) or leave it — never `close-all`, which kills the browser for other agents. See AGENTS.md "Parallel execution".
 
 ## Gate de validacion (pre-flight obligatorio)
 
@@ -52,7 +51,7 @@ node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' A
 # If any required field missing → "Tu perfil esta incompleto. Falta: <fields>. Ejecuta `profile` para completarlo."
 
 # 4. Verify LinkedIn session is active
-node scripts/browser.js ensure
+node .agents/skills/browser-automation/scripts/browser.js status   # lists active sessions
 # If fails → "Necesitas iniciar sesion en LinkedIn. Ejecuta `onboarding` o abre el browser headed para login."
 
 # 5. Verify linkedin_profile URL exists in DB
@@ -67,11 +66,11 @@ node scripts/db.js "SELECT data->'linkedin_profile' AS url FROM users WHERE id =
 ### 1a. Audit (read-only)
 
 1. Load from DB: `profile`, `job_preferences`, `linkedin_profile`, `style_profile`, `strategy` (for strategy_level)
-2. Navigate to the user's LinkedIn profile: `node scripts/browser.js goto <linkedin_profile_url>`
-3. Take a snapshot to understand the current page structure: `node scripts/browser.js exec snapshot`
+2. Navigate to the user's LinkedIn profile: `node .agents/skills/browser-automation/scripts/browser.js goto <linkedin_profile_url>`
+3. Take a snapshot to understand the current page structure: `node .agents/skills/browser-automation/scripts/browser.js exec snapshot`
 4. Extract current state of each section using `eval` (adapt selectors to what you see in the snapshot):
    ```bash
-   node scripts/browser.js exec eval '(function(){
+   node .agents/skills/browser-automation/scripts/browser.js exec eval '(function(){
      // Adapt selectors based on current LinkedIn DOM.
      // LinkedIn changes their UI frequently, so read the snapshot first
      // and adjust these selectors as needed.
@@ -132,16 +131,16 @@ LinkedIn uses direct URLs to edit each section:
 
 ### How to edit LinkedIn sections via eval
 
-LinkedIn editors are contenteditable (tiptap/slate). The agent interacts with them via `node scripts/browser.js exec eval '<code>'`. Always take a snapshot first to find the correct refs/selectors, then:
+LinkedIn editors are contenteditable (tiptap/slate). The agent interacts with them via `node .agents/skills/browser-automation/scripts/browser.js exec eval '<code>'`. Always take a snapshot first to find the correct refs/selectors, then:
 
 1. **Click the edit button** (pencil icon) via eval:
    ```bash
-   node scripts/browser.js exec eval 'document.querySelector("button[aria-label*=\"Edit\"]").click()'
+   node .agents/skills/browser-automation/scripts/browser.js exec eval 'document.querySelector("button[aria-label*=\"Edit\"]").click()'
    ```
 2. **Fill the input/contenteditable** with the new text:
    ```bash
    # For text inputs (headline):
-   node scripts/browser.js exec eval '(function(){
+   node .agents/skills/browser-automation/scripts/browser.js exec eval '(function(){
      var input = document.querySelector("input[type=\"text\"]");
      input.value = "<new headline text>";
      input.dispatchEvent(new Event("input", {bubbles: true}));
@@ -149,7 +148,7 @@ LinkedIn editors are contenteditable (tiptap/slate). The agent interacts with th
    })()'
 
    # For contenteditable (about, experience descriptions):
-   node scripts/browser.js exec eval '(function(){
+   node .agents/skills/browser-automation/scripts/browser.js exec eval '(function(){
      var editor = document.querySelector("[contenteditable=\"true\"]");
      editor.focus();
      editor.textContent = "<new text>";
@@ -159,7 +158,7 @@ LinkedIn editors are contenteditable (tiptap/slate). The agent interacts with th
    ```
 3. **Click Save** via eval:
    ```bash
-   node scripts/browser.js exec eval 'document.querySelector("button[type=\"submit\"], button[aria-label*=\"Save\"]").click()'
+   node .agents/skills/browser-automation/scripts/browser.js exec eval 'document.querySelector("button[type=\"submit\"], button[aria-label*=\"Save\"]").click()'
    ```
 
 These are **starting points**. Always take a snapshot after navigating to the edit page and adapt selectors to what you see. LinkedIn's DOM changes frequently. The agent's advantage over a hardcoded script is that it can adapt to the current DOM in real time.
@@ -199,8 +198,8 @@ These are **starting points**. Always take a snapshot after navigating to the ed
 The PDF flow uses `scripts/generate-cv.js`:
 1. Convert Markdown to HTML with clean CV CSS (ATS-friendly, single page if possible)
 2. Write HTML to a temp file
-3. Open browser headless: `node scripts/browser.js open file://<path> --headless`
-4. Export to PDF via playwright-cli
+3. Open browser headless: `node .agents/skills/browser-automation/scripts/browser.js open file://<path> --headless`
+4. Export to PDF via agent-browser (`exec pdf <path>`)
 5. Save PDF path to `users.data.cv_path` (updates existing path)
 6. Close browser
 
@@ -270,7 +269,7 @@ node scripts/generate-cv.js [--output <path>] [--markdown <path>] [--session <na
 
 If `--markdown` is not provided, reads `users.data.cv_markdown` from DB. If `--output` is not provided, saves to `.browser-profile/cv-polished-<timestamp>.pdf`. Updates `users.data.cv_path` in DB after generating.
 
-This is the only script in the polish flow. LinkedIn profile audit and editing are done directly by the agent via `node scripts/browser.js exec eval` and `node scripts/browser.js exec snapshot`, which allows the agent to adapt to LinkedIn's DOM in real time rather than relying on hardcoded selectors.
+This is the only script in the polish flow. LinkedIn profile audit and editing are done directly by the agent via `node .agents/skills/browser-automation/scripts/browser.js exec eval` and `node .agents/skills/browser-automation/scripts/browser.js exec snapshot`, which allows the agent to adapt to LinkedIn's DOM in real time rather than relying on hardcoded selectors.
 
 ## Dependencies
 

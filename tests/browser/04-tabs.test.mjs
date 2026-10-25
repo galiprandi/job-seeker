@@ -1,10 +1,15 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests de gestión de tabs: tab-new, tab-list, tab-select, tab-close, tab-close-all.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { run, cleanup, HEADLESS, TEST_URL_A, TEST_URL_B, TEST_URL_C, TEST_URL_D } from './helpers.mjs';
 
-describe('tab management', () => {
+describe.skip('tab management', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);

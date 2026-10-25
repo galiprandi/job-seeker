@@ -25,7 +25,7 @@ document.querySelectorAll('audio')   // → []
 document.querySelectorAll('source')  // → []
 ```
 
-Network interception (`page.on('response')`) also fails because the audio is fetched once, cached, and subsequent plays read from cache without new network requests.
+Network interception also fails because the audio is fetched once, cached, and subsequent plays read from cache without new network requests.
 
 ## The working approach: Cache Storage extraction
 
@@ -33,8 +33,8 @@ WhatsApp Web stores media blobs in the Cache API under the key `lru-media-array-
 
 ### Step 1: List all cached media and identify Ogg files
 
-```js
-() => {
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   return caches.open('lru-media-array-buffer-cache').then(cache => {
     return cache.keys().then(keys => {
       return Promise.all(keys.map((k, i) => {
@@ -51,7 +51,7 @@ WhatsApp Web stores media blobs in the Cache API under the key `lru-media-array-
       })).then(results => JSON.stringify(results.filter(r => r.magic === 'OggS')));
     });
   });
-}
+})()"
 ```
 
 This returns an array of `{i, size, magic}` for all Ogg/Opus files in the cache.
@@ -64,8 +64,8 @@ Voice notes have known durations shown in the UI (e.g., `0:31`). Use `ffprobe` t
 
 Replace `<INDEX>` with the cache index from step 1:
 
-```js
-() => {
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   return caches.open('lru-media-array-buffer-cache').then(cache => {
     return cache.keys().then(keys => {
       return cache.match(keys[<INDEX>]).then(r => {
@@ -80,7 +80,7 @@ Replace `<INDEX>` with the cache index from step 1:
       });
     });
   });
-}
+})()"
 ```
 
 The base64 output can be piped to Python to decode and save:
@@ -146,7 +146,7 @@ If two files have similar durations, transcribe both and pick the one whose cont
 ## Anti-patterns
 
 - **Do not** look for `<audio>` elements in the DOM — WhatsApp Web does not use them for voice notes.
-- **Do not** rely on `page.on('response')` network interception alone — the audio may already be cached from a previous play.
+- **Do not** rely on network interception alone — the audio may already be cached from a previous play.
 - **Do not** assume the first Ogg file in the cache is the target — always match by duration.
 - **Do not** use local `openai-whisper` with `--model large` on CPU — it is very slow. Use Groq's API instead, which is faster and free.
 
