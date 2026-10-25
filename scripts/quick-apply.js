@@ -1,27 +1,39 @@
 #!/usr/bin/env node
 // Quick applier: uses snapshot + ref-based fill/click (works with React)
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
+const path = require('path');
 
 const sleep = (ms) => execSync(`sleep ${Math.ceil(ms / 1000)}`);
 
+const WRAPPER = path.resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
+
 function pw(cmd, timeout = 15000) {
   try {
-    return execSync(`playwright-cli -s=default ${cmd}`, {
+    return execFileSync('node', [WRAPPER, 'exec', ...cmd.split(' ')], {
       timeout, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], cwd: process.cwd(),
     });
   } catch (e) { return e.stdout || e.message; }
 }
 
-function snapshot() { return pw('snapshot', 30000); }
+// agent-browser `snapshot -i` emits `@eN role "name"` lines; parsers below
+// expect the playwright-style `- role "name" [ref=eN]` shape.
+function normalizeSnap(snap) {
+  return snap.split('\n').map(line => {
+    const m = line.match(/^(\s*)@([a-z0-9]+)\s+(\w[\w-]*)\s+"([^"]*)"(.*)$/);
+    return m ? `${m[1]}- ${m[3]} "${m[4]}" [ref=${m[2]}]${m[5]}` : line;
+  }).join('\n');
+}
 
-function clickRef(ref) { return pw(`click ${ref}`, 10000); }
+function snapshot() { return normalizeSnap(pw('snapshot -i', 30000)); }
+
+function clickRef(ref) { return pw(`click @${ref}`, 10000); }
 
 function fillRef(ref, value) {
-  return pw(`fill ${ref} "${value.replace(/"/g, '\\"')}"`, 10000);
+  return pw(`fill @${ref} "${value.replace(/"/g, '\\"')}"`, 10000);
 }
 
 function selectRef(ref, value) {
-  return pw(`select ${ref} "${value.replace(/"/g, '\\"')}"`, 10000);
+  return pw(`select @${ref} "${value.replace(/"/g, '\\"')}"`, 10000);
 }
 
 function evalJS(code, timeout = 15000) {
