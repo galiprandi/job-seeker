@@ -1,22 +1,45 @@
-# Scripts de browser-automation
+# browser-automation scripts
 
 ## `browser.js`
 
-Wrapper seguro de Playwright. Garantiza que el perfil (`.browser-profile`) siempre se use, previene instancias duplicadas, maneja tabs nombradas, e inyecta guías de sitio automáticamente.
+Safe wrapper around `agent-browser` (Vercel CLI). Guarantees repo-scoped isolation: the Chrome profile (`.browser-profile`) and the daemon namespace always resolve to the consuming repo's root, so multiple agents on the same machine never share a browser session. Auto-injects site guides when navigating to a documented site. Runs in-place from this skill directory; never copy it to the consuming repo.
 
-Ver `SKILL.md` para el reference completo de comandos.
+### Wrapper commands
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js open <url> [--headed|--headless]
+node .agents/skills/browser-automation/scripts/browser.js goto <url> [--tab <name>]
+node .agents/skills/browser-automation/scripts/browser.js tab-new <url> --name <name>
+node .agents/skills/browser-automation/scripts/browser.js tab-list
+node .agents/skills/browser-automation/scripts/browser.js exec <cmd> [args...] [--tab <name>]
+node .agents/skills/browser-automation/scripts/browser.js wait-dom [--timeout <ms>]
+node .agents/skills/browser-automation/scripts/browser.js close | close-all
+node .agents/skills/browser-automation/scripts/browser.js save-state <path> | load-state <path>
+node .agents/skills/browser-automation/scripts/browser.js status
+node .agents/skills/browser-automation/scripts/browser.js doctor
+node .agents/skills/browser-automation/scripts/browser.js guides
+node .agents/skills/browser-automation/scripts/browser.js contribute
+```
+
+`exec` forwards everything after it to `agent-browser` (`eval`, `press`, `click`, `fill`, `type`, `keyboard type`, `snapshot`, `find`, `wait`, `screenshot`, `read`, `batch`, ...). `exec goto` is rewritten to `navigate`; `run-code` is rejected (use `eval`/`batch`).
+
+On first run the wrapper creates `agent-browser.json` in the repo root from `agent-browser.template.json` (namespace, profile, headed mode). It never overwrites an existing file.
+
+Environment: `BROWSER_DEBUG=1` for verbose logging; `AGENT_BROWSER_*` vars pass through and override wrapper defaults.
+
+See `SKILL.md` for the full usage reference.
 
 ## `teams.js`
 
-Helper para enviar mensajes a Microsoft Teams web via keyboard automation. Útil para mensajes largos o multilinea donde tipear línea por línea manualmente es impráctico.
+Helper for sending messages to Microsoft Teams web via keyboard automation. Useful for long or multiline messages where typing line by line manually is impractical.
 
-### Uso
+### Usage
 
 ```bash
-# Mensaje corto (inline)
-node scripts/teams.js send <chatId> "mensaje corto"
+# Short message (inline)
+node scripts/teams.js send <chatId> "short message"
 
-# Mensaje largo via stdin (heredoc)
+# Long message via stdin (heredoc)
 node scripts/teams.js send <chatId> << 'EOF'
 📊 Triage report
 
@@ -25,38 +48,57 @@ node scripts/teams.js send <chatId> << 'EOF'
 [#1234](https://example.com/tickets/1234)
 EOF
 
-# Mensaje largo desde un archivo
+# Long message from a file
 cat /tmp/report.md | node scripts/teams.js send <chatId>
 ```
 
 ### chatId formats
 
-| Tipo | Formato | Ejemplo |
+| Type | Format | Example |
 |---|---|---|
 | Personal notes | `48:notes` | `48:notes` |
 | Meeting chat | `19:meeting_xxx@thread.v2` | `19:meeting_NDQ2Nz...@thread.v2` |
 | 1:1 chat | `19:*@unq.gbl.spaces` | `19:8:orgid:xxx@unq.gbl.spaces` |
 | Group chat | `19:*@thread.v2` | `19:xxx_yyy@thread.v2` |
 
-### Markdown soportado
+### Supported Markdown
 
-Teams web parsea Markdown en el compose box:
+Teams web parses Markdown in the compose box:
 
-- `[#text](url)` → link clickeable con display text
+- `[#text](url)` → clickable link with display text
 - `**bold**`, `*italic*`, `~~strike~~`
 - `- bullet`, `1. numbered`, `> quote`
 
-Los tags HTML (`<a href>`) se tipean como texto literal. Usar Markdown.
+HTML tags (`<a href>`) are typed as literal text. Use Markdown.
 
-### Requisitos
+### How it works
 
-- `browser.js` en el mismo directorio (`scripts/browser.js`)
-- Browser logueado en Teams (sesión persistente en `.browser-profile`)
-- `playwright-cli` instalado (`npm install -g @playwright/cli@latest`)
+All browser calls go through `node browser.js ...` (never `agent-browser` directly):
 
-### Cuándo usarlo
+1. `browser.js goto https://teams.microsoft.com/v2/chat/<chatId>` navigates to the chat
+2. `browser.js exec eval` polls for `div[role=textbox]` (up to ~24s; Teams v2 is slow)
+3. Focus + clear the textbox (`exec eval` focus, `exec press Meta+a`, `exec press Delete`)
+4. Each line is typed with real keystrokes via `exec keyboard type <line>`
+5. `exec press Shift+Enter` between lines (Enter alone is a newline, not send)
+6. `exec press Meta+Enter` after the last line sends the message
 
-- Mensajes largos o multilinea (reportes, triage, resúmenes)
-- Cuando se necesita enviar desde un archivo o heredoc
+### Requirements
 
-Para mensajes cortos de una línea, usar los comandos manuales de la guía (`sites/teams_com/guide.md`).
+- `browser.js` in the same directory (`scripts/browser.js`)
+- Browser logged into Teams (persistent session in `.browser-profile`)
+- `agent-browser` installed (`npm install -g agent-browser`) + system Chrome
+
+### When to use it
+
+- Long or multiline messages (reports, triage, summaries)
+- Sending from a file or heredoc
+
+For short one-line messages, use the manual commands in the site guide (`sites/teams_com/guide.md`).
+
+## `test-find-guide.js`
+
+Dependency-free test for the site-guide resolution logic in `browser.js` (`findGuide`). Run:
+
+```bash
+node .agents/skills/browser-automation/scripts/test-find-guide.js
+```

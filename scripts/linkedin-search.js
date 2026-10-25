@@ -2,7 +2,7 @@
 /**
  * linkedin-search.js — Search LinkedIn posts for job openings and extract contacts.
  *
- * Uses playwright-cli (must be running via browser.js wrapper first).
+ * Uses agent-browser via the browser.js wrapper (browser must be running first).
  * Extracts: author name, profile URL (vanity), post content, email (if visible).
  * Outputs JSON array to stdout.
  *
@@ -25,16 +25,19 @@
 'use strict';
 
 const { execSync } = require('child_process');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '..');
+const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 
 let SESSION = 'default';
 
-function cli(args) {
-  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
+function cli(args, timeout = 30000) {
   try {
-    return execSync(`playwright-cli ${sessionFlag}${args}`, {
+    return execSync(`node "${BROWSER_JS}" exec ${args} --session ${SESSION}`, {
       encoding: 'utf-8',
-      timeout: 30000,
-      cwd: __dirname,
+      timeout,
+      cwd: REPO_ROOT,
     });
   } catch (e) {
     return e.stdout || e.message;
@@ -42,7 +45,8 @@ function cli(args) {
 }
 
 function snapshot() {
-  return cli('snapshot');
+  // --urls exposes link hrefs (needed to extract profile vanities).
+  return cli('snapshot --urls');
 }
 
 function scroll(amount = 5000) {
@@ -65,8 +69,10 @@ function extractPosts(snap) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Author: "button "Open control menu for post by <name>""
-    const authorMatch = line.match(/button "Open control menu for post by (.+?)"/);
+    // Author: `[button] "Open control menu for post by <name>"` (agent-browser)
+    // or legacy `button "Open control menu for post by <name>"`.
+    const authorMatch = line.match(/\[button\] "Open control menu for post by (.+?)"/)
+      || line.match(/button "Open control menu for post by (.+?)"/);
     if (authorMatch) {
       if (currentAuthor) {
         posts.push({
@@ -83,8 +89,8 @@ function extractPosts(snap) {
       continue;
     }
 
-    // Profile URL: "/url: https://www.linkedin.com/in/<vanity>/"
-    const urlMatch = line.match(/\/url: https:\/\/www\.linkedin\.com\/in\/([^/]+)\//);
+    // Profile URL: --urls output embeds hrefs; match any form.
+    const urlMatch = line.match(/https:\/\/www\.linkedin\.com\/in\/([^/\s"')]+)\/?/);
     if (urlMatch && !currentVanity) {
       currentVanity = urlMatch[1];
       continue;
@@ -97,8 +103,9 @@ function extractPosts(snap) {
       continue;
     }
 
-    // Content: "- text: ..."
-    const textMatch = line.match(/^\s*- text: (.+)/);
+    // Content: legacy "- text: ..." or agent-browser generic/static text nodes
+    const textMatch = line.match(/^\s*- text: (.+)/)
+      || line.match(/\[(?:generic|StaticText|text)\] "(.+)"/);
     if (textMatch && currentAuthor) {
       currentContent.push(textMatch[1]);
     }
@@ -168,9 +175,8 @@ function main() {
   const encodedKeywords = encodeURIComponent(keywords);
   const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodedKeywords}&sortBy=%22date_posted%22`;
 
-  // Navigate to search
-  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
-  execSync(`node ${__dirname}/browser.js goto "${searchUrl}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
+  // Navigate to search (exec navigate forwards --session; wrapper goto does not)
+  cli(`navigate "${searchUrl}"`);
   sleep(5000);
 
   // Collect posts from initial load + scrolls

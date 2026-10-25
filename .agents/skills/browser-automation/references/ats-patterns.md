@@ -28,12 +28,12 @@ The form has two file inputs: an autofill one (index 0, for resume parsing) and 
 To upload the resume:
 1. Click the "Upload File" button (there are two, target the one inside the resume section, not the autofill section). The resume section button has class `._button_10xk4_106`.
 2. A file chooser modal opens.
-3. Upload via: `playwright-cli -s=<session> upload "<path-to-cv>"`
-4. The file chooser is handled automatically.
+3. Upload via: `node .agents/skills/browser-automation/scripts/browser.js exec upload "#_systemfield_resume" "<path-to-cv>"`
+4. The file attaches to the input directly (agent-browser `upload` takes the file input selector + file path).
 
 **Filling fields:**
 
-Use `playwright-cli -s=<session> fill "<selector>" "<value>"` for text/email/tel/number fields. For selectors without stable ids, use attribute selectors: `input[type=tel]`, `input[type=number]`.
+Use `node .agents/skills/browser-automation/scripts/browser.js exec fill "<selector>" "<value>"` for text/email/tel/number fields. For selectors without stable ids, use attribute selectors: `input[type=tel]`, `input[type=number]`.
 
 For radio buttons (Yes/No questions), use eval to click:
 ```js

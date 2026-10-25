@@ -2,6 +2,11 @@
 name: facebook
 description: Automate Facebook groups for post scraping, member directory extraction, and content monitoring.
 verified: 2026-09-02
+domains:
+  - facebook.com
+  - www.facebook.com
+  - m.facebook.com
+  - web.facebook.com
 ---
 
 # Facebook Groups Automation Guide
@@ -123,7 +128,7 @@ Single-character shortcuts are disabled by default. To enable:
 ```bash
 # Open shortcuts dialog
 node .agents/skills/browser-automation/scripts/browser.js exec press Shift+?
-# The switch is at the bottom of the dialog — click it via snapshot ref
+# The switch is at the bottom of the dialog — click it via a snapshot -i ref
 ```
 
 ## Detecting modals
@@ -135,7 +140,7 @@ Facebook uses `dialog` role for the shortcuts panel:
 | Keyboard shortcuts (`Shift+?`) | `dialog "Todos los métodos abreviados de teclado de Facebook"` |
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot | grep "dialog"
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i | grep "dialog"
 ```
 
 ## Core flows
@@ -157,11 +162,11 @@ Wait 6-8 seconds for the group feed to load.
 **Solution:** Before scraping posts, check `document.body.innerText` for "pausó" or "reanudará". If paused, skip scraping and note the resume date.
 
 ```javascript
-async () => {
+(async () => {
   const text = document.body.innerText;
   const paused = text.includes('pausó') || text.includes('reanudará');
   return JSON.stringify({paused, snippet: text.substring(0, 500)});
-}
+})()
 ```
 
 ### Sort posts by recency
@@ -174,23 +179,21 @@ By default, Facebook shows "Más relevantes" (algorithmic sort). To see recent p
 **Preferred (using `find` — more robust than parsing snapshot text):**
 
 ```bash
-# Find the sort button by text
-node .agents/skills/browser-automation/scripts/browser.js exec find "ordenar feed del grupo por"
-# Click the ref returned by find
-node .agents/skills/browser-automation/scripts/browser.js exec click <sort_ref>
-# Wait for the dropdown, then find the recency option
-node .agents/skills/browser-automation/scripts/browser.js exec find "Publicaciones nuevas"
-node .agents/skills/browser-automation/scripts/browser.js exec click <recent_ref>
+# Find the sort button by text and click it in one step
+node .agents/skills/browser-automation/scripts/browser.js exec find text "ordenar feed del grupo por" click
+# Wait for the dropdown, then click the recency option
+node .agents/skills/browser-automation/scripts/browser.js exec wait 2000
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Publicaciones nuevas" click
 ```
 
-**Alternative (fragile — relies on `sed` parsing of snapshot output, breaks if ref format changes):**
+**Alternative (fragile — relies on `sed` parsing of `snapshot -i` output, breaks if ref format changes):**
 
 ```bash
-SORT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep 'ordenar feed del grupo por' | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node .agents/skills/browser-automation/scripts/browser.js exec click $SORT_REF
+SORT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i 2>/dev/null | grep 'ordenar feed del grupo por' | sed 's/.*\[ref=\(e[0-9]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click "@$SORT_REF"
 sleep 2
-RECENT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot 2>/dev/null | grep "Publicaciones nuevas" | sed 's/.*\[ref=\(f[0-9a-f]*\)\].*/\1/')
-node .agents/skills/browser-automation/scripts/browser.js exec click $RECENT_REF
+RECENT_REF=$(node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i 2>/dev/null | grep "Publicaciones nuevas" | sed 's/.*\[ref=\(e[0-9]*\)\].*/\1/')
+node .agents/skills/browser-automation/scripts/browser.js exec click "@$RECENT_REF"
 ```
 
 ### Extract posts
@@ -198,7 +201,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec click $RECENT_REF
 Facebook does not use stable `data-testid` attributes for posts. Use `[role="article"]` or text-based extraction:
 
 ```javascript
-async () => {
+(async () => {
   const all = document.body.innerText;
   const lines = all.split('\n').filter(l =>
     l.length > 25 &&
@@ -209,7 +212,7 @@ async () => {
     !l.includes('Grupo de')
   );
   return JSON.stringify(lines.slice(0, 40));
-}
+})()
 ```
 
 ### Scroll to load more posts
@@ -217,10 +220,10 @@ async () => {
 Facebook lazy-loads posts. Scroll gradually to trigger loading:
 
 ```javascript
-async () => {
+(async () => {
   window.scrollBy(0, 2000);
   return 'scrolled';
-}
+})()
 ```
 
 Wait 3-4 seconds after each scroll for new posts to render. Repeat as needed.
@@ -232,7 +235,7 @@ Wait 3-4 seconds after each scroll for new posts to render. Repeat as needed.
 Posts appear as: `<Author Name>` followed by the post text. Parse consecutive lines:
 
 ```javascript
-async () => {
+(async () => {
   const lines = document.body.innerText.split('\n');
   const posts = [];
   for (let i = 0; i < lines.length; i++) {
@@ -243,7 +246,7 @@ async () => {
     }
   }
   return JSON.stringify(posts);
-}
+})()
 ```
 
 ## Gotchas and anti-patterns
@@ -281,3 +284,9 @@ async () => {
 ## Validation
 
 **Validated:** 2026-08-21 against live Facebook Groups.
+
+## agent-browser notes (verified 2026-10-24)
+- `exec find ... click` can fail on overlays (element intercepts click) — prefer `snapshot -i` + grep + `click @eN`.
+- Ref regex: current format is `[ref=eN]`/`@eN` — the old `f[0-9a-f]*` prefix no longer matches; use `[ref=\(e[0-9]+\)\]`.
+- Group default sort varies (it can be "Actividad reciente", not "Más relevantes").
+- Single-char shortcuts are disabled by default.

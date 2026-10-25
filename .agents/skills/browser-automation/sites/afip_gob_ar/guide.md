@@ -2,6 +2,9 @@
 name: afip-gov-ar
 description: Automate AFIP/ARCA (Argentina tax authority) portal and SiRADIG F572 Web form for annual income tax deductions. Use when navigating AFIP/ARCA, loading SiRADIG, managing tax deductions, family charges, rent deductions, or any ARCA clave fiscal workflow.
 verified: 2026-09-02
+domains:
+  - afip.gob.ar
+  - www.afip.gob.ar
 ---
 
 # AFIP / ARCA — Automation guide
@@ -159,16 +162,23 @@ If Datos Personales or Empleadores are missing, "Carga de Formulario" redirects 
 ## Anti-patterns
 
 - **Do NOT navigate directly to SiRADIG JSP URLs after session expiry.** The portal session and JSP session are independent. Always re-navigate from the portal.
-- **Do NOT set input values via `element.value = X` in modals.** JSP forms often don't register JS-set values. Use `exec click <ref>` → `exec type "<value>"` instead.
-- **Do NOT hardcode playwright refs.** Refs change between snapshots. Always fetch fresh refs from a new snapshot.
+- **Do NOT set input values via `element.value = X` in modals.** JSP forms often don't register JS-set values. Use `exec click <ref>` → `exec keyboard type "<value>"` instead.
+- **Do NOT hardcode agent-browser refs.** Refs change between snapshots. Always fetch fresh refs from a new snapshot.
 - **Do NOT assume "Agregar Rango de Meses" loads the full range.** It only loads the first month. Load each month individually.
 - **Do NOT submit the form without "Vista Previa" and explicit user confirmation.** Submission is irreversible.
 
 ## General gotchas
 
 - **Fragile JSP session:** expires on inactivity (~30-60 min). If the app responds "Sesión inactiva", return to portal and re-navigate to SiRADIG.
-- **Popups:** SiRADIG opens in a popup. The browser wrapper may not name the new tab. Use `tab-list --json` to find it by URL.
-- **Refs change:** playwright-cli refs change between snapshots. Don't hardcode them — fetch fresh each time.
-- **Click + type:** for inputs in modals, use `exec click <ref>` → `exec type "<value>"` → `exec click <button_ref>`. Setting `.value` via JS sometimes doesn't register in the JSP form.
+- **Popups:** SiRADIG opens in a popup/new tab. The wrapper follows the active tab automatically after a click that opens a popup — no tab-listing step needed.
+- **Refs change:** agent-browser refs change between snapshots. Don't hardcode them — fetch fresh each time.
+- **Click + type:** for inputs in modals, use `exec click <ref>` → `exec keyboard type "<value>"` → `exec click <button_ref>`. Setting `.value` via JS sometimes doesn't register in the JSP form.
 - **Timing:** wait 3-5s after clicking links/buttons before reading the page. The JSP app is slow.
 - **Do NOT close the browser:** the session is lost if closed. Keep the browser open between operations.
+
+## agent-browser notes (verified 2026-10-24)
+- Clave fiscal password field: it appears as `type=text` with a CSS mask (name/id `F1:password`) — `input[type=password]` does not match it.
+- Refs go stale mid-flow: if a click fails with "Could not locate element", re-snapshot (the page re-renders).
+- No tab-listing command exists: `exec` follows the active tab automatically after clicks that open popups.
+- SiRADIG menu changed (Oct 2026): the landing shows Crear Nuevo Borrador / Consulta de Formularios Enviados / Liquidaciones; the internal bar has the rest.
+- The ARCA session persists in `.browser-profile` between opens — the "never close" anti-pattern is less critical than documented.

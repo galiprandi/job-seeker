@@ -13,9 +13,9 @@ The user says `apply` (or variants: "apply to N jobs", "postulate", "search jobs
 
 ## Pre-flight (applies to ALL applications: LinkedIn Easy Apply AND direct career pages)
 
-- [ ] Verify active LinkedIn session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `playwright-cli open` directly, never open Chrome directly
-- [ ] **Parallel execution:** if running alongside other flows (e.g: `news` or `targets`), attach a session with `node scripts/browser.js attach --session apply-1` and pass `--session apply-1` to `linkedin-easy-apply.js` and all browser commands. Use `detach` when done (never `close` — it's ref-counted)
+- [ ] Verify active LinkedIn session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
+- [ ] **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" and "Parallel execution" for details. Never call `agent-browser open` directly, never open Chrome directly
+- [ ] **Parallel execution:** if running alongside other flows (e.g: `news` or `targets`), pass `--session apply-1` to `linkedin-easy-apply.js` and all `browser.js exec` commands. agent-browser sessions are created implicitly by the flag — no attach step needed. When done, just stop using the session (never `close-all` — that kills the browser for other agents too)
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
@@ -47,7 +47,7 @@ node scripts/linkedin-easy-apply.js --dry-run --max 15
 node scripts/linkedin-easy-apply.js --max 10
 
 # Run in a specific browser session (for parallel execution with other agents)
-# First attach a session: node scripts/browser.js attach --session apply-1
+# Sessions are implicit in agent-browser — just pass --session apply-1 to every command
 # Then run the script with --session:
 node scripts/linkedin-easy-apply.js --max 10 --session apply-1
 ```

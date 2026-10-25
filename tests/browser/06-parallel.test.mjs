@@ -1,4 +1,9 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests de paralelismo: ejecución concurrente con attached sessions.
  * Verifica que cada worker opera en su tab correcto sin interferencia.
  */
@@ -8,7 +13,7 @@ import path from 'path';
 import { run, runShell, cleanup, tmpDir, BROWSER_JS,
   HEADLESS, TEST_URL_A, TEST_URL_B, TEST_URL_C, TEST_URL_D } from './helpers.mjs';
 
-describe('parallel read', () => {
+describe.skip('parallel read', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -44,7 +49,7 @@ describe('parallel read', () => {
   });
 });
 
-describe('parallel write + no interference', () => {
+describe.skip('parallel write + no interference', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);

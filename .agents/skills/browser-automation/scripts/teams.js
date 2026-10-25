@@ -21,7 +21,7 @@
  *   1. Navigate to the chat (via browser.js wrapper)
  *   2. Wait for div[role=textbox] (poll up to 24s)
  *   3. Focus textbox, clear any existing content
- *   4. Type each line with playwright-cli type -- <line>
+ *   4. Type each line with agent-browser keyboard type <line>
  *   5. Shift+Enter between lines (Enter is newline, NOT send)
  *   6. Meta+Enter after last line (sends the message)
  *
@@ -89,7 +89,7 @@ function readStdin() {
 
 /**
  * Navigate to a Teams chat and type a message line by line.
- * Uses browser.js wrapper for navigation, playwright-cli for typing.
+ * Uses browser.js wrapper for navigation, agent-browser for typing.
  * Meta+Enter at the end sends the message.
  */
 async function sendMessage(chatId, message) {
@@ -114,7 +114,7 @@ async function sendMessage(chatId, message) {
     execSync('sleep 2', { encoding: 'utf8', timeout: 10000 });
     try {
       const out = execSync(
-        `npx playwright-cli eval "document.querySelector('div[role=textbox]') ? 'ready' : 'no'"`,
+        `node "${BROWSER_JS}" exec eval "document.querySelector('div[role=textbox]') ? 'ready' : 'no'"`,
         { cwd: CWD, encoding: 'utf8', timeout: 15000, stdio: 'pipe' }
       );
       if (out.includes('ready')) { textboxReady = true; break; }
@@ -127,30 +127,29 @@ async function sendMessage(chatId, message) {
   }
 
   // Focus the textbox
-  execSync(`npx playwright-cli eval "document.querySelector('div[role=textbox]').focus()"`, {
+  execSync(`node "${BROWSER_JS}" exec eval "document.querySelector('div[role=textbox]').focus()"`, {
     cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
   });
 
   // Clear any existing content
-  execFileSync('npx', ['playwright-cli', 'press', 'Meta+a'], {
+  execFileSync('node', [BROWSER_JS, 'exec', 'press', 'Meta+a'], {
     cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
   });
-  execFileSync('npx', ['playwright-cli', 'press', 'Delete'], {
+  execFileSync('node', [BROWSER_JS, 'exec', 'press', 'Delete'], {
     cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
   });
 
-  // Type each line with playwright-cli type, Shift+Enter between lines
+  // Type each line with real keystrokes, Shift+Enter between lines
   const lines = message.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.length > 0) {
-      // Use -- to separate args from options (handles lines starting with ---)
-      execFileSync('npx', ['playwright-cli', 'type', '--', line], {
+      execFileSync('node', [BROWSER_JS, 'exec', 'keyboard', 'type', line], {
         cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
       });
     }
     if (i < lines.length - 1) {
-      execFileSync('npx', ['playwright-cli', 'press', 'Shift+Enter'], {
+      execFileSync('node', [BROWSER_JS, 'exec', 'press', 'Shift+Enter'], {
         cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
       });
     }
@@ -158,7 +157,7 @@ async function sendMessage(chatId, message) {
 
   // Send with Meta+Enter (Cmd+Enter on macOS). In Teams v2, Enter alone is a newline
   // in the contenteditable; Meta+Enter is the actual send shortcut.
-  execSync('npx playwright-cli press Meta+Enter', {
+  execFileSync('node', [BROWSER_JS, 'exec', 'press', 'Meta+Enter'], {
     cwd: CWD, encoding: 'utf8', timeout: 30000, stdio: 'pipe',
   });
 

@@ -2,15 +2,31 @@
 name: teams
 description: Send and delete messages in Microsoft Teams web via keyboard automation. Markdown supported.
 verified: 2026-09-03
+domains:
+  - teams.microsoft.com
+  - teams.live.com
 ---
 
 # Microsoft Teams Web Automation
 
 Send and delete messages in Teams via keyboard automation. Teams web supports Markdown in the compose box. No API token extraction needed.
 
+All commands go through the wrapper from the repo root:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js <command>
+```
+
 **Prerequisite:** Read the main Browser Automation guide first for profile-dir setup, the safe wrapper, and golden rules.
 
 **Helper script:** For long or multiline messages, use `scripts/teams.js` (see [scripts/README.md](../scripts/README.md)). For short messages, use the manual commands below.
+
+## Interaction order (semantic-first)
+
+1. **Keyboard shortcuts** -- `exec press` / `exec batch` (send, new line, context menu).
+2. **`exec find`** -- `find role|text|label <value> <action>` for textbox, menu items.
+3. **`exec snapshot -i`** -- inspect refs, then `click`/`fill` by `@eN`.
+4. **`exec eval`** -- LAST RESORT for waits, focus, and message-list extraction.
 
 ## Send message (keyboard method)
 
@@ -18,37 +34,40 @@ Send and delete messages in Teams via keyboard automation. Teams web supports Ma
 
 ```bash
 # 1. Navigate to the chat
-node scripts/browser.js goto "https://teams.microsoft.com/v2/chat/<chatId>"
+node .agents/skills/browser-automation/scripts/browser.js navigate "https://teams.microsoft.com/v2/chat/<chatId>"
 
-# 2. Wait for textbox to appear (Teams takes 5-10s to render)
-node scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 20; i++) {
-    if (document.querySelector('div[role=textbox]')) return 'ready';
-    await new Promise(r => setTimeout(r, 500));
-  }
-  return 'timeout';
-})()"
+# 2. Wait for the textbox to appear (Teams takes 5-10s to render)
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "!!document.querySelector('div[role=textbox]')"
 
 # 3. Focus the textbox
-node scripts/browser.js exec eval "document.querySelector('div[role=textbox]').focus()"
+node .agents/skills/browser-automation/scripts/browser.js exec find role textbox click
 
-# 4. Type the message
-node scripts/browser.js exec type -- "your message here"
+# 4. Type the message into the focused element
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "your message here"
 
-# 5. Send with Meta+Enter (Cmd+Enter on macOS)
-node scripts/browser.js exec press "Meta+Enter"
+# 5. VERIFY BEFORE SEND: read the compose box back
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('div[role=textbox]').innerText"
+
+# 6. Send with Meta+Enter (Cmd+Enter on macOS)
+node .agents/skills/browser-automation/scripts/browser.js exec press "Meta+Enter"
 ```
+
+**Verify BEFORE send:** always read back the compose box content before the send keystroke. A blank or wrong message to a human is irreversible.
 
 ### Multiline messages (manual)
 
-Type each line separately with `Shift+Enter` between lines:
+Type each line separately with `Shift+Enter` between lines. `exec batch` sends the whole sequence in one call:
 
 ```bash
-node scripts/browser.js exec type -- "First line"
-node scripts/browser.js exec press "Shift+Enter"
-node scripts/browser.js exec type -- "Second line"
-node scripts/browser.js exec press "Meta+Enter"
+node .agents/skills/browser-automation/scripts/browser.js exec batch \
+  "keyboard type First line" \
+  "press Shift+Enter" \
+  "keyboard type Second line"
+# verify the compose box, then:
+node .agents/skills/browser-automation/scripts/browser.js exec press "Meta+Enter"
 ```
+
+If `keyboard type` needs a target, get the textbox ref via `exec snapshot -i` and use `exec fill "@eN" "text"` per line instead.
 
 ### Multiline messages (helper script)
 
@@ -85,8 +104,8 @@ See [scripts/README.md](../scripts/README.md) for full documentation.
 ## Delete message (keyboard method)
 
 ```bash
-# 1. Find the message and focus it
-node scripts/browser.js exec eval "(function(){
+# 1. Find the message and focus it (eval -- no semantic equivalent for TreeWalker search)
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node;
   while (node = walker.nextNode()) {
@@ -100,10 +119,12 @@ node scripts/browser.js exec eval "(function(){
 })()"
 
 # 2. Open context menu with Shift+F10
-node scripts/browser.js exec press "Shift+F10"
+node .agents/skills/browser-automation/scripts/browser.js exec press "Shift+F10"
 
 # 3. Click the Delete menu item
-node scripts/browser.js exec eval "document.querySelector('[data-tid=\"message-actions-delete\"]').click()"
+node .agents/skills/browser-automation/scripts/browser.js exec find role menuitem "Delete" click
+# Fallback selector (verified 2026-09-03):
+# exec eval "document.querySelector('[data-tid=\"message-actions-delete\"]').click()"
 ```
 
 No confirmation dialog appears for own messages. The message is soft-deleted immediately with an "Undo" option.
@@ -146,37 +167,25 @@ URL format: `https://teams.microsoft.com/v2/chat/<chatId>`
 
 ### Open a specific chat by name (search method)
 
-Teams v2 does not reliably navigate via URL (`goto` may open the wrong chat). Use the search box instead.
+Teams v2 does not reliably navigate via URL (`navigate` may open the wrong chat). Use the search box instead.
 
 ```bash
 # 1. Escape to close any open modal/dropdown
-node scripts/browser.js exec press "Escape"
+node .agents/skills/browser-automation/scripts/browser.js exec press "Escape"
 
-# 2. Focus and clear the search box
-node scripts/browser.js exec eval "(function(){
-  const s = document.getElementById('ms-searchux-input');
-  if (!s) return 'no search input';
-  s.focus();
-  s.value = '';
-  s.dispatchEvent(new Event('input', {bubbles: true}));
-  return 'cleared';
-})()"
+# 2. Focus the search box (id verified 2026-09-03)
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.getElementById('ms-searchux-input').focus()"
 
 # 3. Type the chat name
-node scripts/browser.js exec type -- "chat name here"
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "chat name here"
 
-# 4. Poll for search results to appear
-node scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 15; i++) {
-    const list = document.querySelector('[data-tid=\"search-results-list\"], [role=\"listbox\"], [data-tid*=\"autosuggest\"]');
-    if (list && list.innerText.trim().length > 10) return 'ok';
-    await new Promise(x => setTimeout(x, 200));
-  }
-  return 'timeout';
-})()"
+# 4. Wait for search results
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "(function(){ const l = document.querySelector('[data-tid=\"search-results-list\"], [role=\"listbox\"], [data-tid*=\"autosuggest\"]'); return l && l.innerText.trim().length > 10; })()"
 
-# 5. Click the TOPHITS option that matches the chat name
-node scripts/browser.js exec eval "(function(){
+# 5. Click the TOPHITS option that matches the chat name.
+# Prefer snapshot -i to get the option ref, then exec click "@eN".
+# Fallback eval (verified 2026-09-03):
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const options = document.querySelectorAll('[role=\"option\"]');
   for (const opt of options) {
     if (opt.offsetParent !== null && opt.innerText.includes('CHAT NAME HERE') && opt.getAttribute('data-tid') && opt.getAttribute('data-tid').includes('TOPHITS')) {
@@ -188,11 +197,7 @@ node scripts/browser.js exec eval "(function(){
 })()"
 
 # 6. Validate the correct chat is active (check document.title)
-node scripts/browser.js exec eval "(function(){
-  const t = document.title;
-  if (t.includes('expected chat name')) return 'ok: ' + t;
-  return 'WRONG: ' + t;
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
 ```
 
 **Important:** Always validate `document.title` before sending a message. The URL may show a different chatId than the one actually active.
@@ -200,7 +205,7 @@ node scripts/browser.js exec eval "(function(){
 ### Read chat messages
 
 ```bash
-node scripts/browser.js exec eval "(function(){
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const text = document.body.innerText;
   const idx = text.indexOf('Message List');
   if (idx !== -1) return text.substring(idx, idx + 4000);
@@ -212,14 +217,14 @@ node scripts/browser.js exec eval "(function(){
 
 ```bash
 # Open Teams (headed for first login)
-node scripts/browser.js open "https://teams.microsoft.com" --headed
+node .agents/skills/browser-automation/scripts/browser.js open "https://teams.microsoft.com" --headed
 
 # User logs in manually, then close and reopen
-node scripts/browser.js close
-node scripts/browser.js open "https://teams.microsoft.com"
+node .agents/skills/browser-automation/scripts/browser.js close
+node .agents/skills/browser-automation/scripts/browser.js open "https://teams.microsoft.com"
 ```
 
-Session persists in the browser profile. Re-login needed every ~30 days.
+Session persists in `.browser-profile/`. Re-login needed every ~30 days.
 
 ## What does NOT work (validated empirically)
 
@@ -227,14 +232,23 @@ Session persists in the browser profile. Re-login needed every ~30 days.
 - **HTML tags via keyboard:** `<a href="...">` is typed as literal text. Use Markdown instead.
 - **`execCommand insertText`:** Teams uses Trusted Types policy, blocks it.
 - **Clipboard paste (Ctrl+V):** Pastes previous clipboard content, not what you set.
-- **`Meta+V` for multiline:** `\n` becomes literal `\\n` text.
-- **`keyboard.type` with `\n`:** Newlines are interpreted as Enter (newline), not as send. Use line-by-line typing with `Shift+Enter`.
+- **`Meta+V` for multiline:** `\n` becomes literal `\n` text.
+- **`keyboard type` with `\n`:** Newlines are interpreted as Enter (newline), not as send. Use line-by-line typing with `Shift+Enter` (via `exec batch`).
 - **chatsvc API:** Teams v2 encrypts tokens in localStorage. Token extraction returns encrypted blobs that 401.
 
 ## Anti-patterns
 
-- **Don't** use `Enter` to send — use `Meta+Enter`
-- **Don't** type HTML tags — use Markdown
-- **Don't** use clipboard paste — type line by line with `Shift+Enter`
-- **Don't** use `execCommand` — blocked by Trusted Types
-- **Don't** try to log in programmatically — open headed and let the user log in
+- **Don't** use `Enter` to send -- use `Meta+Enter`
+- **Don't** send blind -- always read back the compose box before `Meta+Enter`
+- **Don't** type HTML tags -- use Markdown
+- **Don't** use clipboard paste -- type line by line with `Shift+Enter`
+- **Don't** use `execCommand` -- blocked by Trusted Types
+- **Don't** try to log in programmatically -- open headed and let the user log in
+
+## agent-browser notes (verified 2026-10-24)
+
+- Expired-session detection: if `location.hostname` includes `adfs` or `login` (e.g. `adfscl.cencosud.com`, title "Iniciar sesión") the session is dead; ask for manual re-login in `--headed`. Cencosud realm: `cencosud\<network user>`.
+- `navigate` to Teams needs ~10s before any eval (heavy landing page).
+- `exec` runs from the repo cwd -- always use the full path `.agents/skills/browser-automation/scripts/browser.js`, never `cd` into `scripts/`.
+- `exec keyboard type` types into the currently focused element; if it fails with "Element not found", focus via `find`/`click` on a snapshot ref first.
+- teams.live.com (personal) is not covered: no validated session.

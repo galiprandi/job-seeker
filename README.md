@@ -97,7 +97,7 @@ Your profile, preferences, writing style and history live in Postgres (Neon). Yo
 
 | Tool | Location | Usage |
 |---|---|---|
-| `playwright-cli` | `.agents/skills/browser-automation/scripts/browser.js` wrapper | Browser automation: open/close/goto/tabs/sessions via wrapper. Other commands (click, fill, snapshot) via `exec` or direct call |
+| `agent-browser` | `.agents/skills/browser-automation/scripts/browser.js` wrapper | Browser automation: open/close/goto/tabs via wrapper. Other commands (click, fill, snapshot) via `exec` passthrough |
 | `db` | `scripts/db.js` | Safe Postgres CLI. Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes) |
 | `linkedin-warm-sourcing` | `scripts/linkedin-warm-sourcing.js` | Discover internal contacts, alumni, ex-colleagues, and recruiters at target companies |
 | `pipeline` | `scripts/pipeline.js` | Kanban board CLI for application tracking. Print board, move cards, view funnel, card details |
@@ -115,7 +115,7 @@ Works best for tech professionals who use LinkedIn as their primary job platform
 - A Gmail account
 - A Postgres database (Neon recommended, free tier works)
 
-`npm install` handles all dependencies, including `playwright-cli` and `pg`.
+`npm install` handles all dependencies. `agent-browser` needs no install — the wrapper resolves it (node_modules/.bin → global → `npx -y agent-browser`); `npm i -g agent-browser` is optional and only saves the npx lookup.
 
 ## Quick Start
 
@@ -146,9 +146,9 @@ After onboarding, try:
 
 ## Stack
 
-- **Browser:** `playwright-cli` (installed via `npm install`). Persistent profile, headless by default
+- **Browser:** `agent-browser` (resolved by the wrapper, no install required). Persistent `.browser-profile`, `headed` per `agent-browser.json`
 - **DB:** PostgreSQL via Neon (cloud). Portable across machines
-- **Node:** `pg` for DB access, `playwright-cli` for browser automation
+- **Node:** `pg` for DB access, `agent-browser` for browser automation
 - **Skills:** Markdown in `.agents/skills/`. Universal, not tied to one agent
 - **Tests:** Vitest for browser wrapper and script tests
 
@@ -167,8 +167,7 @@ After onboarding, try:
   referrals/SKILL.md         # Warm sourcing & referral request staging
   strategy/SKILL.md          # Search aggressiveness configuration
   targets/SKILL.md           # Active direct sourcing
-scripts/                     # Automation scripts
-  browser.js                 # Browser wrapper (open/close/goto/tabs/sessions)
+scripts/                     # Automation scripts (browser via .agents/skills/browser-automation/scripts/browser.js)
   db.js                      # Safe Postgres CLI
   linkedin-search.js         # Search LinkedIn posts for job openings
   linkedin-warm-sourcing.js  # Discover internal contacts, alumni, ex-colleagues, recruiters
@@ -195,10 +194,9 @@ assets/                      # Visual assets for README
   pipeline-demo.png          # Pipeline kanban screenshot
   demo-terminal.webm         # Demo video of apply flow
 vitest.config.mjs            # Vitest configuration
-.playwright/cli.config.json  # playwright-cli config (timeouts, blocked domains)
+agent-browser.json            # agent-browser config (namespace, profile, headed)
 .env                         # DATABASE_URL (not tracked)
-.browser-profile/            # Chrome profile with sessions (not tracked)
-.playwright-cli/             # Snapshots and logs (not tracked)
+.browser-profile/            # Persistent Chrome profile (not tracked)
 PLATFORMS.md                 # Platform catalog (community)
 STRATEGIES.md                # Job search and networking strategies (ordered by effectiveness)
 DATA.md                      # Data map: tables, JSONB keys, flow ownership
@@ -213,7 +211,7 @@ LICENSE                      # MIT
 
 See `ADR.md` for details, or the [architecture reference](https://<your-username>.github.io/job-seeker/reference/architecture) in the docs. Summary:
 
-- **playwright-cli** over MCP: native CLI, no JSON config, token-efficient
+- **agent-browser** over MCP: native CLI, token-efficient snapshot refs
 - **Postgres** over Mongo: 70% of data is relational. JSONB for semi-structured
 - **Neon** for portability: clone on another machine, same `DATABASE_URL`, same profile
 - **npx** over global installs: zero friction on clone

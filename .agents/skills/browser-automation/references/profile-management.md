@@ -7,23 +7,44 @@ How to manage the browser profile directory, auth state, and headed/headless wor
 The profile directory (`.browser-profile/`) stores cookies, localStorage, and session data. It must NEVER be committed to git.
 
 ```bash
-# Create the profile dir
-mkdir -p .browser-profile
-
 # Add to .gitignore IMMEDIATELY
 echo ".browser-profile/" >> .gitignore
-echo ".playwright-cli/" >> .gitignore
-echo "*.session-state.json" >> .gitignore
+echo "agent-browser.json" >> .gitignore      # optional: per-repo browser contract
+echo "downloads/" >> .gitignore              # agent-browser downloadPath
+echo "screenshots/" >> .gitignore            # agent-browser screenshotDir
 echo "*.auth-state.json" >> .gitignore
-echo ".browser-config.json" >> .gitignore
 ```
 
-The wrapper always passes `--profile=.browser-profile`. This ensures:
+The wrapper always sets `AGENT_BROWSER_PROFILE` to `<repo-root>/.browser-profile`. This ensures:
 1. Cookies and localStorage persist across browser restarts
 2. Logins are preserved (no need to re-login every session)
 3. Profile is isolated from personal browser sessions
 
 The profile resolves to `process.cwd()/.browser-profile` — i.e. the consuming repo's root, not the skill directory. Run the wrapper from the repo root so the profile lands in the right place.
+
+## Repo config: agent-browser.json
+
+On first run the wrapper creates `agent-browser.json` in the repo root from `agent-browser.template.json` (never overwrites). It is the repo's browser contract:
+
+```json
+{
+  "$schema": "https://agent-browser.dev/schema.json",
+  "namespace": "<repo-name>",
+  "profile": "./.browser-profile",
+  "headed": true,
+  "idleTimeout": "0",
+  "downloadPath": "./downloads",
+  "screenshotDir": "./screenshots",
+  "screenshotFormat": "jpeg",
+  "screenshotQuality": 80,
+  "annotate": true,
+  "maxOutput": 50000
+}
+```
+
+- `namespace` gives the repo its own agent-browser daemon socket — per-repo isolation (replaces the old workspace-marker approach).
+- `headed` sets the default mode; override per call with `--headed`/`--headless`.
+- Env vars override everything: `AGENT_BROWSER_NAMESPACE`, `AGENT_BROWSER_PROFILE`, `AGENT_BROWSER_CONFIG`, `AGENT_BROWSER_ARGS`, `AGENT_BROWSER_EXECUTABLE_PATH`.
 
 ## Auth state persistence
 
@@ -35,59 +56,43 @@ node .agents/skills/browser-automation/scripts/browser.js open "https://mail.goo
 
 # 2. User logs in manually (handles captcha, 2FA, etc.)
 
-# 3. Save auth state (cookies + localStorage)
-node .agents/skills/browser-automation/scripts/browser.js save-state
-# Saves to .browser-profile/auth-state.json
+# 3. Save auth state (cookies + localStorage) — path is required
+node .agents/skills/browser-automation/scripts/browser.js save-state .browser-profile/auth-state.json
 
 # 4. Close browser
 node .agents/skills/browser-automation/scripts/browser.js close
 
 # 5. Next session: open + load state (no re-login needed)
 node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"
-node .agents/skills/browser-automation/scripts/browser.js load-state
+node .agents/skills/browser-automation/scripts/browser.js load-state .browser-profile/auth-state.json
 ```
+
+`save-state`/`load-state` are wrapper commands that map to agent-browser `state save <path>` / `state load <path>`.
 
 ### Auth state vs persistent profile
 
-The persistent profile (`--profile=.browser-profile`) already preserves cookies across restarts. The `save-state`/`load-state` commands are an additional layer that explicitly saves cookies + localStorage to a JSON file. Use cases:
+The persistent profile (`.browser-profile/`) already preserves cookies across restarts. `save-state`/`load-state` are an additional layer that explicitly saves cookies + localStorage to a JSON file. Use cases:
 
 - **Profile alone:** Works for most sites. Cookies persist in the profile dir.
-- **Profile + save-state:** Use when the profile gets corrupted or when you want a portable auth state file.
+- **Profile + save-state:** Use when the profile gets corrupted or when you want a portable auth state file (e.g. seeding a separate agent-browser session for parallel work).
 - **load-state after open:** Use when a site logged you out despite the profile (rare, but happens with aggressive session expiration).
 
 ### Multiple sites in one profile
 
 The profile is shared across all sites. Logging into Gmail and LinkedIn in the same profile means both sessions persist. This is fine for most use cases.
 
-If you need isolation (e.g. testing with different accounts), use separate profile dirs by running the wrapper from different working directories, since the profile resolves to `process.cwd()/.browser-profile`.
+If you need isolation (e.g. testing with different accounts), run the wrapper from a different working directory (profile resolves to `process.cwd()/.browser-profile`) or use separate agent-browser sessions via `AGENT_BROWSER_SESSION`.
 
 ## Headed vs headless workflow
 
-### Config file
+### Resolution order
 
-```bash
-# .browser-config.json
-{
-  "browser_mode": "headed"
-}
-```
+The mode is resolved on every `open` call:
 
-Mode values:
-- `headless` — always headless. Use for pure automation where login is already persisted.
-- `headed` — always headed. Use for development/debugging.
+1. `--headed` / `--headless` flag on the command line (always wins)
+2. `headed` field in `agent-browser.json`
 
-The recommended setup is to leave the config at `headless` (or omit it — headless is the default) and pass `--headed` explicitly only when a manual login is needed. This keeps automation headless by default while still allowing headed sessions on demand.
-
-### Config resolution order
-
-The wrapper resolves browser mode on every `open` call, in this order:
-
-1. `--headed` / `--headless` flag on the command line
-2. `.browser-config.json` `browser_mode` field
-3. `BROWSER_MODE` environment variable
-4. Default: headless
-
-The first match wins. The flag always overrides config and env.
+Note: the shipped template defaults `headed` to `true`. Set it to `false` (or pass `--headless` explicitly) for unattended automation.
 
 ### When to use headed
 
@@ -96,6 +101,7 @@ The first match wins. The flag always overrides config and env.
 - 2FA / hardware key authentication
 - Visual debugging (seeing what the agent sees)
 - UI review / design feedback
+- Sites that block headless browsers (e.g. Reddit)
 
 ### When to use headless
 
@@ -112,9 +118,9 @@ When a site logs you out:
 2. Open headed browser: `node .agents/skills/browser-automation/scripts/browser.js open "https://site.com" --headed`
 3. Notify the user to log in manually
 4. Wait for confirmation
-5. Save state: `node .agents/skills/browser-automation/scripts/browser.js save-state`
+5. Save state: `node .agents/skills/browser-automation/scripts/browser.js save-state .browser-profile/auth-state.json`
 6. Close: `node .agents/skills/browser-automation/scripts/browser.js close`
-7. Continue headless: `open` + `load-state`
+7. Continue headless: `open --headless` + `load-state .browser-profile/auth-state.json`
 
 ### Captcha flow
 
@@ -127,22 +133,14 @@ When a captcha appears (hCaptcha, reCAPTCHA, image challenge):
 5. Never attempt to solve captchas programmatically
 6. Never retry captchas in a loop
 
-## Config file reference
-
-`.browser-config.json` (in repo root, gitignored):
-
-```json
-{
-  "browser_mode": "headed"
-}
-```
-
-Only `browser_mode` is currently supported. Valid values are `headed` and `headless`. The wrapper reads this file on every `open` call (unless `--headed`/`--headless` is passed explicitly).
-
 ## Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
-| `BROWSER_MODE` | (none) | Override browser mode (`headed` or `headless`) |
-| `BROWSER_DEBUG` | 0 | Set to 1 for verbose logging to stderr |
-| `BROWSER_NO_UPDATE_CHECK` | 0 | Set to 1 to disable the update check on `open` |
+| `AGENT_BROWSER_CONFIG` | `<repo>/agent-browser.json` | Config file path |
+| `AGENT_BROWSER_NAMESPACE` | repo dir name | Daemon socket namespace (per-repo isolation) |
+| `AGENT_BROWSER_PROFILE` | `<repo>/.browser-profile` | Chrome profile dir |
+| `AGENT_BROWSER_ARGS` | `--no-sandbox,--disable-blink-features=AutomationControlled` | Extra Chrome args |
+| `AGENT_BROWSER_EXECUTABLE_PATH` | auto-detected | Chrome binary path |
+| `AGENT_BROWSER_SESSION` | `default` | Session name (use for parallel agents) |
+| `BROWSER_DEBUG` | 0 | Set to 1 for verbose wrapper logging to stderr |

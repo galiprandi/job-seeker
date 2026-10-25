@@ -24,8 +24,8 @@ Three alert sources:
 
 ### 0. Pre-flight
 
-- [ ] Verify active Gmail session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5)
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
+- [ ] Verify active Gmail session. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed` (Gold Rule 5)
+- [ ] **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `agent-browser open` directly, never open Chrome directly
 - [ ] Read `PLATFORMS.md` "Alert Tracking" section to see which platforms need configuration
 - [ ] Read `PROFILE.md` to get keywords, seniority, location, preferences
 - [ ] Load active preferences (see `memory` skill):
@@ -42,7 +42,7 @@ Three alert sources:
 For each unconfigured platform (column "Profile" = "—"):
 
 - [ ] Navigate to the platform
-- [ ] **Login with Google** when possible (preferred). If no Google login → open browser with wrapper (`node scripts/browser.js open <url> --headed`) and ask user to login manually (Gold Rule 5)
+- [ ] **Login with Google** when possible (preferred). If no Google login → open browser with wrapper (`node .agents/skills/browser-automation/scripts/browser.js open <url> --headed`) and ask user to login manually (Gold Rule 5)
 - [ ] Complete minimum profile:
   - First name, last name
   - Title / headline (from PROFILE.md)
@@ -88,7 +88,7 @@ Beyond job board alerts, configure alerts directly on career sites of high-value
 | Snowflake | careers.snowflake.com | "Job alerts" via Workday | Search user's role + skills |
 
 For each company with native alerts:
-- [ ] Navigate to the career site using `node scripts/browser.js goto <url>`
+- [ ] Navigate to the career site using `node .agents/skills/browser-automation/scripts/browser.js goto <url>`
 - [ ] Search with keywords derived from `profile.title` and `profile.skills` (the user's primary role + key skills)
 - [ ] Filter: Remote, and locations from `job_preferences.location` / `job_preferences.timezones`
 - [ ] Look for "Save search", "Create alert", "Job alerts", "Notify me" button

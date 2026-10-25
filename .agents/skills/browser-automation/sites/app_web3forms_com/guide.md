@@ -1,12 +1,15 @@
 ---
 name: web3forms
-description: Automate Web3Forms dashboard with playwright-cli. Covers keyboard navigation of form settings, submissions, spam protection, and integrations. Use when managing Web3Forms forms, checking submissions, or configuring spam protection. Part of the browser-automation skill.
+description: Automate Web3Forms dashboard with agent-browser. Covers keyboard navigation of form settings, submissions, spam protection, and integrations. Use when managing Web3Forms forms, checking submissions, or configuring spam protection. Part of the browser-automation skill.
 verified: 2026-09-08
+domains:
+  - app.web3forms.com
+  - web3forms.com
 ---
 
 # Web3Forms Dashboard Automation
 
-Automate the Web3Forms dashboard via `playwright-cli` using keyboard-first patterns. Web3Forms is a standard HTML app with simple navigation — keyboard interaction works without any special configuration.
+Automate the Web3Forms dashboard via `agent-browser` using keyboard-first patterns. Web3Forms is a standard HTML app with simple navigation — keyboard interaction works without any special configuration.
 
 ## Keyboard shortcuts
 
@@ -25,19 +28,15 @@ The sidebar nav links are standard `<a>` tags. Focus + Enter navigates to each s
 
 **Usage:**
 ```bash
-# Focus a nav link by text
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
-  const links = document.querySelectorAll('nav a, [role=navigation] a');
-  const target = Array.from(links).find(a => a.textContent.includes('Settings'));
-  if (target) { target.focus(); return 'focused: ' + target.href; }
-  return 'not_found';
-})()"
+# Find a nav link by text and click it (PREFERRED — semantic locator)
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Settings" click
 
-# Activate the focused link
+# Alternative: focus the link via find, then activate with Enter
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Settings" focus
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
 
-**Note:** Some nav items (Inbox, Spam) may not appear in `nav a` queries — they may be rendered as buttons or in a different container. Use `find` or a broader selector if a link is not found.
+**Note:** Some nav items (Inbox, Spam) may not be links — they can be rendered as buttons or in a different container. If `find text` does not match, try `find role link "<name>"` / `find role button "<name>"`, or take a `snapshot -i` and click the ref.
 
 ### Direct URL navigation (PREFERRED)
 
@@ -57,13 +56,11 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://app.web3
 # Open Web3Forms (headed for login)
 node .agents/skills/browser-automation/scripts/browser.js open "https://app.web3forms.com" --headed
 
-# If login needed: user logs in manually, then save state
-node .agents/skills/browser-automation/scripts/browser.js save-state
-node .agents/skills/browser-automation/scripts/browser.js close
+# If login needed: user logs in manually. The session persists in .browser-profile —
+# no save/load step exists or is needed.
 
-# Next sessions: load state and go headless
+# Next sessions: just reopen
 node .agents/skills/browser-automation/scripts/browser.js open "https://app.web3forms.com"
-node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Core flows
@@ -75,14 +72,7 @@ node .agents/skills/browser-automation/scripts/browser.js load-state
 node .agents/skills/browser-automation/scripts/browser.js goto "https://app.web3forms.com/forms/<form_id>/submissions"
 
 # Wait for submissions to load
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 30; i++) {
-    const rows = document.querySelectorAll('tr, [role=row]');
-    if (rows.length > 0) return 'ready: ' + rows.length + ' rows';
-    await new Promise(r => setTimeout(r, 500));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "document.querySelectorAll('tr, [role=row]').length > 0"
 
 # Extract submission data
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
@@ -101,7 +91,10 @@ Web3Forms has three spam protection levels: Strict, Basic, and None. Strict can 
 # Navigate to settings
 node .agents/skills/browser-automation/scripts/browser.js goto "https://app.web3forms.com/forms/<form_id>/settings"
 
-# Find and change the spam protection select/radio
+# Try a semantic locator first (unverified after agent-browser migration — control may be a select or radios)
+node .agents/skills/browser-automation/scripts/browser.js exec find role radio "Basic" click
+
+# Fallback: set the select/radio via eval
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   // Look for select or radio group with spam protection options
   const select = document.querySelector('select[name*=\"spam\"], select[id*=\"spam\"]');
@@ -140,7 +133,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 - **Do NOT use Strict spam protection during testing.** Strict mode classifies many legitimate submissions as spam. Use Basic for testing, switch to Strict only in production after verifying deliverability.
 - **Do NOT hardcode the form access key in scripts.** The access key is a secret. Store it in environment variables or a secret manager (e.g. Infisical), not in tracked files.
-- **Do NOT rely on `nav a` for all navigation items.** Some items (Inbox, Spam) may be rendered differently. Use `find` or direct URL navigation as fallback.
+- **Do NOT rely on `nav a` for all navigation items.** Some items (Inbox, Spam) may be rendered differently. Use `find role button`/`find role link` or direct URL navigation as fallback.
 
 ## API reference
 
@@ -174,3 +167,8 @@ Content-Type: application/json
 ```
 
 **Note:** The access key is exposed in client-side code by design (it's a public form endpoint). For production, consider using a backend proxy or serverless function to keep the key out of the client bundle. Alternatively, inject the key at build time from a secret manager.
+
+## agent-browser notes (verified 2026-10-24)
+- `save-state`/`load-state` do not exist — the session persists in `.browser-profile/`.
+- BLOCKER: `app.web3forms.com` gets stuck on the Cloudflare JS Challenge (headless and headed, ~50s without clearing) — the dashboard is NOT accessible via automated browser.
+- Reliable path: `POST https://api.web3forms.com/submit` directly (documented above) — works without a browser.

@@ -9,7 +9,7 @@ Key technical decisions for the project. See `ADR.md` in the repository for the 
 
 ## Browser
 
-- **playwright-cli** with `--profile=&lt;path&gt;` for persistent session. Installed as devDependency via `npm install`. Reason: native CLI, no MCP or JSON config, token-efficient.
+- **agent-browser** via the `browser.js` wrapper for persistent session (`.browser-profile`). Resolved via node_modules/.bin → global → `npx -y`; no install required. Reason: native CLI, no MCP, token-efficient `@eN` snapshot refs.
 - **Headless by default.** Headed only when user intervention is required (manual login, 2FA). Reason: speed and fewer resources.
 - **Initial login headed**, rest headless. If captcha detected, switch to headed. Reason: speed when safe, safety when blocked.
 
@@ -22,7 +22,7 @@ Key technical decisions for the project. See `ADR.md` in the repository for the 
 ## Conventions
 
 - **`npx` over global installs** - mitigate friction. No `npm install -g`.
-- **playwright-cli as devDependency** - installed via `npm install`, not globally.
+- **agent-browser** - resolved by the wrapper (`AGENT_BROWSER_BIN` → node_modules/.bin → global → `npx -y`); global install optional.
 
 ## Operation
 

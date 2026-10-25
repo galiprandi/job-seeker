@@ -12,8 +12,8 @@ Repo of skills + guides + scripts to automate job search. Not an agent; consumed
 
 ### Browser
 
-- **playwright-cli** with `--profile=<path>` for persistent session. Installed as devDependency via `npm install`. Reason: native CLI, no MCP or JSON config, token-efficient.
-- **Headless by default.** Headed only when user intervention is required (manual login, 2FA). Config in `.playwright/cli.config.json` with `headless: true`. Override with `--headed` when needed. Reason: speed and fewer resources when no human intervention.
+- **agent-browser** (Vercel CLI) via the `browser.js` wrapper for persistent session (`.browser-profile`) and repo-scoped daemon namespace. Resolved via node_modules/.bin → global → `npx -y` — no install required. Reason: native CLI, no MCP, token-efficient `@eN` snapshot refs. (Supersedes the earlier playwright-cli choice — migrated 2026.)
+- **Headless by default.** Headed only when user intervention is required (manual login, 2FA). Config in `agent-browser.json` via the `headed` field; override per call with `--headed`/`--headless`. Reason: speed and fewer resources when no human intervention.
 - **Initial login headed**, rest headless. If block/captcha detected → switch to headed and remember. Reason: speed when safe, safety when banned.
 - **Anti-ban rules** don't live here. They go in the navigation skill when built.
 

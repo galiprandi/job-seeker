@@ -1,6 +1,9 @@
 ---
 name: groq-signup-apikey
 description: Create a Groq account and generate an API key for transcription (Whisper) or LLM inference. Use when a user needs a free Groq API key for audio transcription or chat completions.
+domains:
+  - groq.com
+  - console.groq.com
 ---
 
 # Groq — Account Signup & API Key Creation
@@ -34,28 +37,30 @@ The landing page shows a "Create Account or Login" panel with four options:
 1. Fill the email input (placeholder: `example@email.com`):
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot
-# Find the email input ref, then fill it
-node .agents/skills/browser-automation/scripts/browser.js exec fill <email_ref> "user@email.com"
+# Semantic-first: fill by placeholder
+node .agents/skills/browser-automation/scripts/browser.js exec find placeholder "example@email.com" fill "user@email.com"
+# Fallback: snapshot -i for the input ref, then fill it
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i
+node .agents/skills/browser-automation/scripts/browser.js exec fill "@<email_ref>" "user@email.com"
 ```
 
 2. Click "Continue with email":
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Continue with email"
-node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Continue with email" click
 ```
 3. The page shows "Check your email" with the address confirmation.
 4. Open the user's inbox, find the email from Groq titled "Your login request to Groq".
 5. Extract the magic link from the "Log in" button href:
 
 ```js
-() => {
+// run via: browser.js exec eval "<snippet>"
+(() => {
   const link = Array.from(document.querySelectorAll('a')).find(a =>
     a.textContent.trim() === 'Log in' && a.href.includes('stytch.com/v1/magic_links/redirect')
   );
   return link ? link.href : 'not found';
-}
+})()
 ```
 
 6. Navigate to that URL in the browser. The redirect chain is:
@@ -64,10 +69,11 @@ node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
 7. Wait for the dashboard to load. Verify success by checking for the organization selector:
 
 ```js
-() => {
+// run via: browser.js exec eval "<snippet>"
+(() => {
   const btn = document.querySelector('[data-testid="organization-selector"]');
   return btn ? 'logged in' : 'not logged in';
-}
+})()
 ```
 
 ### Option B: Google OAuth
@@ -75,8 +81,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
 1. Click "Continue with Google":
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Continue with Google"
-node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Continue with Google" click
 ```
 
 2. Google's account chooser appears. Select the account.
@@ -100,15 +105,14 @@ Or click `link "API Keys"` in the left navigation.
 1. Click "Create API Key" (`data-testid="keys-page-create-button"`):
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Create API Key"
-node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Create API Key" click
 ```
 
 2. A dialog appears with:
    - Display Name input (`data-testid="key-name-input"`) — fill with a descriptive name (max 50 chars):
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec fill <name_ref> "descriptive name"
+node .agents/skills/browser-automation/scripts/browser.js exec fill "[data-testid=key-name-input]" "descriptive name"
 ```
 
    - Expiration combobox (`data-testid="key-expiration-select"`) — defaults to "No expiration".
@@ -118,8 +122,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec fill <name_ref> "
 4. After the captcha is solved, the Submit button (`data-testid="key-form-submit-button"`) appears in the dialog. Click it:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Submit"
-node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Submit" click
 ```
 
 5. The response shows:
@@ -130,17 +133,17 @@ node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
 6. Extract the key value:
 
 ```js
-() => {
+// run via: browser.js exec eval "<snippet>"
+(() => {
   const input = document.querySelector('[role="dialog"] input[readonly], [role="dialog"] input:not([placeholder])');
   return input ? input.value : 'not found';
-}
+})()
 ```
 
 7. Click "Done" to close the dialog:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Done"
-node .agents/skills/browser-automation/scripts/browser.js exec click <ref>
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Done" click
 ```
 
 ## Step 5: Store the API key

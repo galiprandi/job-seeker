@@ -1,3 +1,8 @@
+---
+domains:
+  - calendar.google.com
+---
+
 # Google Calendar add-event deeplink
 
 A way to pre-fill and open a new Google Calendar event without navigating through the UI.
@@ -25,6 +30,15 @@ https://calendar.google.com/calendar/render?action=TEMPLATE&text=Rotación%20tok
 ```
 
 This opens Google Calendar with the fields pre-filled. The user still must confirm/save.
+
+## Usage with agent-browser
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js open "<deeplink URL>"
+# or with an active session: goto "<deeplink URL>"
+```
+
+No DOM interaction is needed — the deeplink pre-fills the form. If programmatic confirmation is ever required, prefer `exec find text "Save" click` (ES: "Guardar") over eval. (unverified after agent-browser migration)
 
 ## Gotchas
 

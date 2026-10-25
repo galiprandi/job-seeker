@@ -15,7 +15,7 @@ The user says `referrals` or launches warm sourcing for a target company/role. A
 
 ### 0. Pre-flight
 
-- [ ] Verify active browser session (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) if session closed
+- [ ] Verify active browser session (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed` (Gold Rule 5) if session closed
 - [ ] Load profile, university background, past companies, and job preferences from Postgres DB:
   ```bash
   node scripts/db.js "SELECT data->'profile' AS profile, data->'job_preferences' AS prefs, data->'style_profile' AS style FROM users WHERE id = <user_id>"

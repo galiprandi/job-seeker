@@ -1,5 +1,5 @@
 /**
- * Helpers compartidos para los tests del browser wrapper.
+ * Shared helpers for the browser wrapper tests (agent-browser backend).
  */
 import { spawnSync, execSync } from 'child_process';
 import fs from 'fs';
@@ -10,11 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const BROWSER_JS = path.join(REPO_ROOT, 'scripts', 'browser.js');
+const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 const PROFILE_DIR = path.join(REPO_ROOT, '.browser-profile');
-const CONFIG_PATH = path.join(REPO_ROOT, '.playwright', 'cli.config.json');
-const TABS_PATH = path.join(PROFILE_DIR, 'tabs.json');
-const LOCK_PATH = path.join(PROFILE_DIR, '.lock');
+const CONFIG_PATH = path.join(REPO_ROOT, 'agent-browser.json');
 const AUTH_STATE_PATH = path.join(PROFILE_DIR, 'auth-state.json');
 
 const HEADLESS = '--headless';
@@ -52,13 +50,9 @@ function runShell(cmd, opts = {}) {
 }
 
 function cleanup() {
-  // Force-close all browser sessions, then clean up state files.
-  // We try close-all --force first, then kill-all as fallback.
-  try { spawnSync('node', [BROWSER_JS, 'close-all', '--force'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }); } catch {}
-  try { spawnSync('npx', ['playwright-cli', 'kill-all'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }); } catch {}
-  try { fs.unlinkSync(LOCK_PATH); } catch {}
-  try { fs.unlinkSync(TABS_PATH); } catch {}
-  try { fs.unlinkSync(path.join(PROFILE_DIR, 'session-state.json')); } catch {}
+  // Close all agent-browser sessions for this repo's namespace.
+  try { run(['close', '--all'], { timeout: 10000 }); } catch {}
+  try { run(['close-all'], { timeout: 10000 }); } catch {}
 }
 
 function tmpDir() {
@@ -67,6 +61,6 @@ function tmpDir() {
 
 export {
   run, runShell, cleanup, tmpDir,
-  REPO_ROOT, BROWSER_JS, PROFILE_DIR, CONFIG_PATH, TABS_PATH, LOCK_PATH, AUTH_STATE_PATH,
+  REPO_ROOT, BROWSER_JS, PROFILE_DIR, CONFIG_PATH, AUTH_STATE_PATH,
   HEADLESS, TEST_URL_A, TEST_URL_B, TEST_URL_C, TEST_URL_D,
 };

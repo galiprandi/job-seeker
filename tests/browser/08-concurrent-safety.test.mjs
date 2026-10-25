@@ -1,4 +1,9 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests empiricos: paralelizacion segura con ref-count y tab isolation.
  *
  * Antes de los fixes:
@@ -18,7 +23,7 @@ import path from 'path';
 import { run, runShell, cleanup, tmpDir,
   HEADLESS, TEST_URL_A, TEST_URL_B, TEST_URL_C, TEST_URL_D } from './helpers.mjs';
 
-describe('PROBLEMA 1: dos agentes en la misma sesion sin --tab se pisan', () => {
+describe.skip('PROBLEMA 1: dos agentes en la misma sesion sin --tab se pisan', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -45,7 +50,7 @@ describe('PROBLEMA 1: dos agentes en la misma sesion sin --tab se pisan', () => 
   });
 });
 
-describe('PROBLEMA 2 fix: close protege a otros agentes con ref-count', () => {
+describe.skip('PROBLEMA 2 fix: close protege a otros agentes con ref-count', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 
@@ -123,7 +128,7 @@ describe('PROBLEMA 2 fix: close protege a otros agentes con ref-count', () => {
   });
 });
 
-describe('PROBLEMA 3 fix: open con --session diferente hace attach', () => {
+describe.skip('PROBLEMA 3 fix: open con --session diferente hace attach', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 
@@ -158,7 +163,7 @@ describe('PROBLEMA 3 fix: open con --session diferente hace attach', () => {
   });
 });
 
-describe('SOLUCION: tab isolation con --tab', () => {
+describe.skip('SOLUCION: tab isolation con --tab', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);
@@ -179,7 +184,7 @@ describe('SOLUCION: tab isolation con --tab', () => {
   });
 });
 
-describe('who: listar agentes activos', () => {
+describe.skip('who: listar agentes activos', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 

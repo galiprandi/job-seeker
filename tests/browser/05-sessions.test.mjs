@@ -1,10 +1,15 @@
 /**
+ * SUPERSEDED (agent-browser migration): this suite asserts the old
+ * playwright-cli wrapper API (attach/detach/ensure/who/lock files).
+ * Pending rewrite per plans/004-revive-test-suite-and-ci.md.
+ */
+/**
  * Tests de sesiones nombradas y attach/detach para paralelismo.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { run, cleanup, HEADLESS, TEST_URL_A, TEST_URL_B, TEST_URL_C } from './helpers.mjs';
 
-describe('named sessions', () => {
+describe.skip('named sessions', () => {
   beforeAll(() => cleanup());
   afterAll(() => cleanup());
 
@@ -29,7 +34,7 @@ describe('named sessions', () => {
   });
 });
 
-describe('attach/detach', () => {
+describe.skip('attach/detach', () => {
   beforeAll(() => {
     cleanup();
     run(['open', TEST_URL_A, HEADLESS]);

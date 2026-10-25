@@ -1,13 +1,17 @@
 ---
 name: docs-google
-description: Automate Google Docs and Google Sheets (docs.google.com) with playwright-cli. Covers keyboard shortcuts for Sheets (cell selection, formatting, navigation, menus, rows/columns), Docs editing basics, and the tool finder. Use when editing spreadsheets or documents, filling cells, formatting, or extracting data from Google Editors. Part of the browser-automation skill.
+description: Automate Google Docs and Google Sheets (docs.google.com) with agent-browser. Covers keyboard shortcuts for Sheets (cell selection, formatting, navigation, menus, rows/columns), Docs editing basics, and the tool finder. Use when editing spreadsheets or documents, filling cells, formatting, or extracting data from Google Editors. Part of the browser-automation skill.
 verified: 2026-09-26
 source: https://support.google.com/docs/answer/181110
+domains:
+  - docs.google.com
+  - sheets.google.com
+  - slides.google.com
 ---
 
 # Google Docs / Sheets Automation
 
-Automate Google Editors via `playwright-cli`. Docs lives at `docs.google.com/document/...`, Sheets at `docs.google.com/spreadsheets/...` — same host, same guide.
+Automate Google Editors via `agent-browser`. Docs lives at `docs.google.com/document/...`, Sheets at `docs.google.com/spreadsheets/...` — same host, same guide.
 
 ## Keyboard shortcuts (PREFERRED over UI clicks)
 
@@ -77,14 +81,14 @@ Docs shares the same editing shortcuts: `Ctrl+b/i/u`, `Ctrl+k` (link), `Ctrl+f` 
 - **Focus:** shortcuts only work when the editor grid/canvas has focus. If the agent just clicked a menu or the formula bar, `press Escape` or click a cell first.
 - **Auto-save:** everything saves automatically to Drive — there is no save step; don't wait for one.
 - **`Alt+/` tool finder > menus:** menu mnemonics vary by locale (Spanish UI changes underlined letters). The tool finder accepts typed action names in the UI language — more stable than `Alt+<letter>` sequences.
-- **Two-key shortcuts:** like Gmail, send sequences (e.g. `Alt+i` then `r`) as ONE `exec press "Alt+i"` followed quickly — or use `batch` to guarantee latency: `[["press","Alt+i"],["press","r"]]`.
+- **Two-key shortcuts:** like Gmail, send sequences (e.g. `Alt+i` then `r`) as ONE `exec press "Alt+i"` followed quickly — or use `batch` to guarantee latency: `exec batch "press Alt+i" "press r"`.
 - **Reading data:** for extracting cell values, `eval` on the DOM is unreliable (canvas-rendered grid). Prefer copy range + read clipboard, or File → Download via tool finder.
 - **Spanish locale:** some date/time shortcuts differ (`Ctrl+Shift+d` date, `Ctrl+Shift+h` time in ES/DE/IT/PT).
 
 ## Sheets — cell navigation & bulk editing (validated 2026-10-04)
 
 - **`#t-name-box`** (the input at top-left, "Cuadro de nombre") — jump to any cell or range by reference: `exec fill` it with `A2` or `E2:E12`, then `Enter`. Far more reliable than clicking cells in the canvas. Works in any sheet tab.
-- **TSV paste via clipboard**: write a tab/newline-separated block to the clipboard (`page.evaluate` + `navigator.clipboard.writeText`), click the anchor cell, `Ctrl+V` — fills multi-row/multi-column ranges in one shot. More robust than typing cell by cell.
+- **TSV paste via clipboard**: write a tab/newline-separated block to the clipboard (`exec eval` + `navigator.clipboard.writeText`), click the anchor cell, `Ctrl+V` — fills multi-row/multi-column ranges in one shot. More robust than typing cell by cell.
 - **`u$s` prefix bug**: typing or pasting `u$s 123,45` makes Sheets parse it as currency and store `u 123,45` (eats `$s`). If the column's number format already prefixes `u$s`, write only the number. Same for any custom prefix — never type the prefix itself.
 - **Clone formatting + value**: `Ctrl+C` a healthy cell, `Ctrl+V` on a corrupted one — restores format and content; then just retype the value. Useful when a cell's format got mangled by a bad paste.
 - **Read a cell's formula**: select the cell via `#t-name-box`, then read `.cell-input` (the formula bar element) — the DOM grid does not expose formulas.
@@ -99,3 +103,10 @@ Docs shares the same editing shortcuts: `Ctrl+b/i/u`, `Ctrl+k` (link), `Ctrl+f` 
 
 - **CSV export** (fastest full read): `exec eval` with `(async () => (await fetch('https://docs.google.com/spreadsheets/d/{doc}/export?format=csv&gid={gid}', {credentials:'include'})).text())()` — runs in the page context so it uses the browser session's cookies, no DOM scraping. Get `doc`/`gid` from the tab's URL. Export can lag ~2s behind edits — wait before verifying.
 
+
+## agent-browser notes (verified 2026-10-24)
+- Home: documents are `option` elements in a `listbox` (not `a[href*="/document/d/"]` links) — clicking the option opens the doc.
+- The export trick also applies to Docs: `/document/d/{id}/export?format=txt|pdf|docx|html`. The fetch can fail — wrap in a retry.
+- The canvas gotcha also applies to Docs (not only Sheets): without screen-reader mode the content is not in the DOM.
+- Refs outside the viewport fail: `scrollIntoView` + native click via eval.
+- View-only Docs have a reduced menu and editing shortcuts do not apply.

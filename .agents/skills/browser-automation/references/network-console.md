@@ -3,23 +3,23 @@
 ## Network inspection
 
 ```bash
-playwright-cli requests                 # list all network requests
-playwright-cli request <index>          # full details of request N
-playwright-cli request-headers <index>  # request headers only
-playwright-cli request-body <index>     # request body only
-playwright-cli response-headers <index> # response headers only
-playwright-cli response-body <index>    # response body
+node .agents/skills/browser-automation/scripts/browser.js exec network requests                    # list all network requests
+node .agents/skills/browser-automation/scripts/browser.js exec network requests --filter "api"   # filter by URL pattern
+node .agents/skills/browser-automation/scripts/browser.js exec network requests --clear          # clear the log
+node .agents/skills/browser-automation/scripts/browser.js exec network har start                 # start HAR recording
+node .agents/skills/browser-automation/scripts/browser.js exec network har stop /tmp/net.har     # stop and save HAR
 ```
 
 Useful for:
 - Capturing API calls sites make internally
-- Extracting CSRF tokens from request headers
+- Extracting CSRF tokens from request headers (use the HAR file for full headers/bodies)
 - Debugging failed requests
 
 ## Console
 
 ```bash
-playwright-cli console                  # all console messages
-playwright-cli console error            # only errors
-playwright-cli console warning          # only warnings
+node .agents/skills/browser-automation/scripts/browser.js exec console          # console messages
+node .agents/skills/browser-automation/scripts/browser.js exec console --clear  # clear console buffer
+node .agents/skills/browser-automation/scripts/browser.js exec errors           # page errors only
+node .agents/skills/browser-automation/scripts/browser.js exec errors --clear   # clear error buffer
 ```

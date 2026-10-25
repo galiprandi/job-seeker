@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-browser.dev/schema.json",
+  "namespace": "__REPO_NAME__",
+  "profile": "./.browser-profile",
+  "headed": true,
+  "idleTimeout": "0",
+  "downloadPath": "./downloads",
+  "screenshotDir": "./screenshots",
+  "screenshotFormat": "jpeg",
+  "screenshotQuality": 80,
+  "annotate": true,
+  "maxOutput": 50000
+}

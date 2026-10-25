@@ -18,7 +18,7 @@
  *   Prints the PDF path to stdout on success.
  *
  * Requirements:
- *   - playwright-cli must be installed and on PATH
+ *   - agent-browser (resolved by the wrapper: node_modules/.bin → global → npx)
  *   - .agents/skills/browser-automation/scripts/browser.js wrapper for browser open/close/exec
  *   - scripts/db.js for DB access (reading cv_markdown, writing cv_path)
  *
@@ -476,22 +476,21 @@ function generatePdfFromHtml(htmlPath, outputPath, session) {
     })()
   `, { session });
 
-  // Step 4: Export to PDF via playwright-cli (through browser.js exec)
+  // Step 4: Export to PDF via agent-browser (through browser.js exec)
   console.error(`[generate-cv] Exporting PDF to: ${outputPath}`);
   const pdfResult = browser(`exec pdf "${outputPath}" --session ${session}`, 30000);
 
-  // Check if PDF was created
+  // Check if PDF was created; retry once — first pdf call may race page load
   if (!fs.existsSync(outputPath)) {
-    // Fallback: try playwright-cli directly with session flag
-    console.error('[generate-cv] PDF not found after exec, trying playwright-cli directly...');
+    console.error('[generate-cv] PDF not found after exec, retrying...');
     try {
-      execSync(`playwright-cli -s=${session} pdf "${outputPath}"`, {
+      execSync(`node "${BROWSER_JS}" exec pdf "${outputPath}" --session ${session}`, {
         encoding: 'utf8',
         timeout: 30000,
         cwd: REPO_ROOT,
       });
     } catch (e) {
-      console.error(`[generate-cv] playwright-cli pdf failed: ${e.message}`);
+      console.error(`[generate-cv] pdf retry failed: ${e.message}`);
     }
   }
 
@@ -578,7 +577,7 @@ function main() {
   // --- Close browser session ---
   console.error('[generate-cv] Closing browser session...');
   try {
-    browser(`close --session ${opts.session}`, 10000);
+    browser(`exec close --session ${opts.session}`, 10000);
   } catch (e) {
     // Best effort — don't fail if close fails
     console.error(`[generate-cv] Warning: could not close browser session: ${e.message}`);

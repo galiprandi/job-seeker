@@ -2,7 +2,7 @@
 /**
  * linkedin-invite.js — Send LinkedIn connection requests without a note.
  *
- * Uses playwright-cli (must be running via browser.js wrapper first).
+ * Uses agent-browser via the browser.js wrapper (browser must be running first).
  * Navigates to the custom-invite URL, clicks "Send without a note".
  *
  * Usage:
@@ -20,16 +20,19 @@
 'use strict';
 
 const { execSync } = require('child_process');
+const path = require('path');
+
+const REPO_ROOT = path.resolve(__dirname, '..');
+const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 
 let SESSION = 'default';
 
 function cli(args, timeout = 30000) {
-  const sessionFlag = SESSION !== 'default' ? `-s=${SESSION} ` : '';
   try {
-    return execSync(`playwright-cli ${sessionFlag}${args}`, {
+    return execSync(`node "${BROWSER_JS}" exec ${args} --session ${SESSION}`, {
       encoding: 'utf-8',
       timeout,
-      cwd: __dirname,
+      cwd: REPO_ROOT,
     });
   } catch (e) {
     return e.stdout || e.message;
@@ -49,8 +52,7 @@ function click(ref) {
 }
 
 function goto(url) {
-  const sessionArg = SESSION !== 'default' ? `--session ${SESSION}` : '';
-  execSync(`node ${__dirname}/browser.js goto "${url}" ${sessionArg}`, { stdio: 'pipe', cwd: __dirname });
+  cli(`navigate "${url}"`);
 }
 
 function sendInvite(vanity) {
@@ -69,13 +71,15 @@ function sendInvite(vanity) {
     return { vanity, status: 'no_dialog', error: 'Invite dialog did not appear (likely 3rd+ or not found)' };
   }
 
-  // Find "Send without a note" button
-  const match = snap.match(/ref=(f[0-9a-f]+)[^\n]*Send without a note/);
+  // Find "Send without a note" button — agent-browser refs look like @e12
+  // on lines formatted as `@e12 [button] "Send without a note"`.
+  const match = snap.match(/(@e\d+) \[button\][^\n]*"Send without a note"/)
+    || snap.match(/ref=(f[0-9a-f]+)[^\n]*Send without a note/);
   if (!match) {
     return { vanity, status: 'no_button', error: 'Send without a note button not found' };
   }
 
-  click(match[1]);
+  click(match[1].startsWith('@') ? match[1] : `@${match[1]}`);
   sleep(2000);
 
   return { vanity, status: 'sent' };

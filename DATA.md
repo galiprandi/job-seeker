@@ -187,12 +187,12 @@ Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`)
 | `PLATFORMS.md` | Platform catalog (35 platforms) + alert tracking table (which platforms have alerts configured) | `radar` (alert tracking section), manual | `radar`, `profile` (platform tiering), `apply` |
 | `AGENTS.md` | Operational rules, flow map, this data map reference | manual | agent (every session) |
 | `ADR.md` | Architecture decisions (append-only) | manual | agent (when needed) |
-| `.playwright/cli.config.json` | Playwright-cli config: `channel: chrome` only. Profile is NOT here (requires `launchPersistentContext`, passed via wrapper `--profile` flag) | `onboarding` (initial setup) | `playwright-cli` (auto-loaded from repo root) |
+| `agent-browser.json` | agent-browser config: `namespace`, `profile` (`.browser-profile`), `headed`, output limits. Auto-created by the wrapper on first run | wrapper `browser.js` (first run) | `agent-browser` (auto-loaded via `AGENT_BROWSER_CONFIG`) |
 
 ## Scripts
 
 | Script | Purpose | Used by |
 |---|---|---|
 | `scripts/db.js` | Safe Postgres CLI. Reads `DATABASE_URL` from `.env`, JSON output, read-only by default (`--write` for writes) | All flows (see `db` skill) |
-| `scripts/browser.js` | Browser wrapper. Guarantees `--profile=.browser-profile` is always used. Reads `preferences.tooling.browser_mode` from DB to decide headed/headless. Reuses existing sessions automatically. All flows that need to open/navigate/close the browser must use this instead of `playwright-cli open` directly | All flows that use the browser (see AGENTS.md "Browser session") |
+| `.agents/skills/browser-automation/scripts/browser.js` | Browser wrapper. Guarantees `.browser-profile` isolation and repo-scoped daemon namespace. All flows that need to open/navigate/close the browser must use this instead of `agent-browser open` directly. Non-wrapper commands go through `exec` (eval, snapshot, click, fill, press, ...) with `--session <name>` for parallel work | All flows that use the browser (see AGENTS.md "Browser isolation") |
 | `scripts/pipeline.js` | Kanban board CLI. Prints pipeline grouped by stage, supports `--move`, `--funnel`, `--card`, `--stage`, `--company`, `--closed`. No dependencies beyond `pg`. See AGENTS.md "Pipeline kanban" | `daily` (overview), user (manual tracking), agent (status updates via `--move`) |

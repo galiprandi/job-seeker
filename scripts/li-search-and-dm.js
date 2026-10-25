@@ -42,8 +42,8 @@ function findRef(snap, text) {
   const lines = snap.split('\n');
   for (const line of lines) {
     if (line.includes(text) && !line.includes('disabled')) {
-      const match = line.match(/\[ref=(\w+)\]/);
-      if (match) return match[1];
+      const match = line.match(/@e(\d+)/) || line.match(/\[ref=(\w+)\]/);
+      if (match) return match[0].startsWith('@') ? match[0] : `@e${match[1]}`;
     }
   }
   return null;

@@ -4,24 +4,25 @@
 
 **1. Use `find` to locate elements (no snapshot needed):**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Redactar"       # find by text
-node .agents/skills/browser-automation/scripts/browser.js exec find "Compose"
-node .agents/skills/browser-automation/scripts/browser.js exec find --regex "/sign (in|up)/i"
-node .agents/skills/browser-automation/scripts/browser.js exec find "Easy Apply"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Redactar"          # find by text
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Compose"
+node .agents/skills/browser-automation/scripts/browser.js exec find role button --name "Send"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Easy Apply" click  # find + act in one call
 ```
 Returns matching elements with refs. Much smaller than a full snapshot.
 
 **2. Use `eval` to check state or extract data (no snapshot needed):**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.title"
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.querySelector('h1')?.textContent"
-node .agents/skills/browser-automation/scripts/browser.js exec eval "() => document.querySelectorAll('tr.zA').length + ' emails'"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('h1')?.textContent"
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelectorAll('tr.zA').length + ' emails'"
 ```
 
-**3. If you need a snapshot, use `find` first to narrow down, then snapshot a specific element:**
+**3. If you need a snapshot, scope it: interactive-only or a subtree:**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec find "Redactar"       # get the ref
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot <ref>        # snapshot just that element
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i                    # interactive elements only
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i -s "#main"         # scoped to a CSS selector
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -c -d 5               # compact, depth-limited
 ```
 
 **4. Only use full snapshots on simple pages or when you need to understand the overall structure:**
@@ -29,15 +30,20 @@ node .agents/skills/browser-automation/scripts/browser.js exec snapshot <ref>   
 node .agents/skills/browser-automation/scripts/browser.js exec snapshot              # full snapshot (avoid on complex pages)
 ```
 
-**Fill + submit in one command:**
+**Read the page as text when you only need content:**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec fill e15 "search term" --submit   # fill + press Enter atomically
+node .agents/skills/browser-automation/scripts/browser.js exec read                  # agent-readable text of active tab
+```
+
+**Fill + submit via find (one command):**
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find placeholder "Search" fill "search term"
 ```
 
 **Detect errors without snapshots:**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js console error    # check for JS errors
-node .agents/skills/browser-automation/scripts/browser.js requests         # check for failed network requests
+node .agents/skills/browser-automation/scripts/browser.js exec errors                # page JS errors
+node .agents/skills/browser-automation/scripts/browser.js exec network requests      # check for failed network requests
 ```
 
 **Extract data with eval + fetch (avoid UI navigation):**

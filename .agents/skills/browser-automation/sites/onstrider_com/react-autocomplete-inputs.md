@@ -33,6 +33,8 @@ Neither `fill` nor the native value setter persists the value. The input is a Re
 
 The working pattern is a 3-step sequence: **type a prefix → wait for the dropdown → click the matching option.**
 
+**Semantic-first variant:** `exec click <input_ref>` (from `snapshot -i` or `find`), then `exec keyboard type "<PREFIX>"`, then `exec find role option` / click the matching option ref. Use this before reaching for `eval` (unverified after agent-browser migration — the eval version below is the documented fallback).
+
 ```bash
 # Step 1: Focus the input and type a prefix
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){

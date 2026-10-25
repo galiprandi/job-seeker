@@ -2,6 +2,9 @@
 name: property-directory
 description: Scrape property rental directories for owner contacts, addresses, and WhatsApp links.
 verified: 2026-09-02
+domains:
+  - alquileresnuevaatlantis.com.ar
+  - www.alquileresnuevaatlantis.com.ar
 ---
 
 # Property Directory Scraping Guide
@@ -20,7 +23,8 @@ Directory sites (e.g. `alquileresnuevaatlantis.com.ar`) list property owners wit
 ### Extract all listings with WhatsApp links
 
 ```javascript
-async () => {
+// run via: browser.js exec eval "<snippet>"
+(async () => {
   const cards = document.querySelectorAll('a[href*="wa.me"]');
   const results = [];
   const seen = new Set();
@@ -38,7 +42,7 @@ async () => {
     results.push({name, addr, phone});
   });
   return JSON.stringify(results);
-}
+})()
 ```
 
 ### Filter by address proximity
@@ -99,3 +103,9 @@ done
 ## Validation
 
 **Validated:** 2026-08-21 against `alquileresnuevaatlantis.com.ar` (74 listings extracted).
+
+## agent-browser notes (verified 2026-10-24)
+- Eval snippets must be IIFEs `(()=>{...})()` — a bare `() => expr` returns `{}`.
+- There is no navigable "Ver Detalle" link — it is text without an href. Real links per card: `wa.me` + `tel:` + Facebook.
+- The street regex only matches ~4 hardcoded streets; for a generic address use `\w+\s\d{3,4}`.
+- Name+address are concatenated without a separator in textContent — careful when truncating.

@@ -33,7 +33,7 @@ Speak the user's language (from their messages + `style_profile`). Recruiter wri
 Cloneable by anyone, no edits. All candidate data (name, email, phone, CV path, salary, location, skills, experience, target companies, URLs, form answers) lives in `users.data.*` — never in tracked files. Docs/examples use `<placeholder>` syntax. Scripts read DB at runtime; missing key → ask (Rule 5). Before committing, grep the diff for personal data patterns; move any hits to DB.
 
 ### 10 — Browser isolation
-All browser work via `node .agents/skills/browser-automation/scripts/browser.js` (open/goto/close). Never `playwright-cli open` directly, never personal browsers — the wrapper guarantees `.browser-profile` isolation, `browser_mode`, and session management. Other commands via the wrapper's `exec` subcommand. Before any DOM interaction (click/fill/eval) on a site, read `browser-automation/SKILL.md` + `sites/<site>/guide.md` — never guess selectors or flows from memory.
+All browser work via `node .agents/skills/browser-automation/scripts/browser.js` (open/goto/close). Never `agent-browser open` directly, never personal browsers — the wrapper guarantees `.browser-profile` isolation, the repo-scoped daemon namespace (`agent-browser.json`), and session management. Other commands via the wrapper's `exec` subcommand. Before any DOM interaction (click/fill/eval) on a site, read `browser-automation/SKILL.md` + `sites/<site>/guide.md` — never guess selectors or flows from memory.
 
 ### 11 — Gmail: read-only for non-job mail
 Never archive/delete/label/mark-read/move any email not directly job-related (personal, GitHub, newsletters, bank alerts, etc.). Job-related emails can be read freely; replies per Rule 6; archive only when fully processed AND user approved. Unsure → don't touch.
@@ -65,7 +65,7 @@ Each flow = keyword trigger + `SKILL.md` detail file. AGENTS.md is the router; l
 
 | Flow | Trigger | Does | Depends on |
 |---|---|---|---|
-| onboarding | `onboarding`, missing `.env`/DB | Node, .env, DB + users table, headed Gmail+LinkedIn login, browser_mode, strategy, availability | — |
+| onboarding | `onboarding`, missing `.env`/DB | Node, .env, DB + users table, headed Gmail+LinkedIn login, browser visibility pref, strategy, availability | — |
 | profile | `profile`, CV upload | CV + questionnaire → `users.data.profile` + Must/Strong/Nice weights | onboarding |
 | strategy | `strategy` | Aggressiveness level → DB; respected by all flows. Levels + params: `strategy/SKILL.md` | onboarding |
 | radar | `radar` | Job-board alerts → Gmail `Job Alerts` folder | profile |
@@ -85,8 +85,8 @@ Passive (`radar`: platforms push alerts) · Active-broad (`apply`: full job boar
 ## Operational constraints
 
 - `npx` only, no global installs. Browser via the wrapper only.
-- `.browser-config.json` `browser_mode`: `headless` | `headed` | `headed_logins_only` (default headless; logins/captchas always headed).
-- Untracked: `.env`, `.browser-profile/`, `.playwright-cli/`, `.browser-config.json`.
+- `agent-browser.json` `headed`: `true` | `false` (auto-created by the wrapper on first run; default `headed: true`. Override per call with `--headed`/`--headless`; logins/captchas always headed).
+- Untracked: `.env`, `.browser-profile/`. `agent-browser.json` is repo config.
 - DB: custom schema as needed; semi-structured → `users.data` JSONB; single user.
 - **`DATA.md` is the source of truth for where data lives** — consult before assuming tables/keys.
 - Job platforms are an output of analysis, never user input.

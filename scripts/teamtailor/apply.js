@@ -2,14 +2,15 @@
 /**
  * teamtailor/apply.js — Fill and submit a Teamtailor job application.
  *
- * Expects a Playwright Page object and an application data object. Navigates to
- * the job's /applications/new path, fills the candidate fields, selects country
- * and location, uploads a CV, fills the cover letter, checks the privacy box,
- * submits, and verifies the confirmation page.
+ * Works against a live browser session opened via the browser wrapper
+ * (agent-browser backend). Pass { session, tab } as the first argument.
+ * Navigates to the job's /applications/new path, fills the candidate fields,
+ * selects country and location, uploads a CV, fills the cover letter, checks
+ * the privacy box, submits, and verifies the confirmation page.
  *
  * Usage:
  *   const { apply } = require('./scripts/teamtailor/apply');
- *   await apply(page, {
+ *   apply({ session: 'default' }, {
  *     jobUrl: 'https://job.site/jobs/123',
  *     firstName: '<FirstName>',
  *     lastName: '<LastName>',
@@ -23,7 +24,8 @@
  */
 'use strict';
 
-const { waitForText, handleDialog } = require('../lib/playwright-helpers');
+const { goto, evalJS, execSub, sq, waitForSelector } = require('../../lib/browser-helpers');
+const { waitForText, handleDialog } = require('../lib/dom-helpers');
 
 const FIELD_SELECTORS = {
   firstName: [
@@ -89,51 +91,59 @@ const FIELD_SELECTORS = {
   ],
 };
 
-async function safeFill(page, key, value) {
-  const locator = page.locator(FIELD_SELECTORS[key].join(', ')).first();
-  const visible = await locator.isVisible().catch(() => false);
-  if (!visible || value === undefined || value === null) return false;
+/** Return the first matching visible selector for a field, or null. */
+function firstVisibleSelector(key, opts) {
+  return evalJS(`(function(){
+    var sels = ${JSON.stringify(FIELD_SELECTORS[key])};
+    for (var i = 0; i < sels.length; i++) {
+      var el = document.querySelector(sels[i]);
+      if (el && el.offsetParent !== null) return sels[i];
+    }
+    return null;
+  })()`, opts);
+}
 
-  // select/deselect handling is done separately.
-  await locator.fill(String(value));
+function safeFill(key, value, opts) {
+  if (value === undefined || value === null) return false;
+  const sel = firstVisibleSelector(key, opts);
+  if (!sel) return false;
+  execSub(`fill ${sq(sel)} ${sq(String(value))}`, opts, 15000);
   return true;
 }
 
-async function safeSelect(page, key, value) {
-  const locator = page.locator(FIELD_SELECTORS[key].join(', ')).first();
-  const visible = await locator.isVisible().catch(() => false);
-  if (!visible || value === undefined || value === null) return false;
-
-  const tag = await locator.evaluate((el) => el.tagName.toLowerCase()).catch(() => 'input');
+function safeSelect(key, value, opts) {
+  if (value === undefined || value === null) return false;
+  const sel = firstVisibleSelector(key, opts);
+  if (!sel) return false;
+  const tag = evalJS(`(function(){var el=document.querySelector(${JSON.stringify(sel)});return el?el.tagName.toLowerCase():'input';})()`, opts);
   if (tag === 'select') {
-    await locator.selectOption(String(value), { timeout: 5000 });
+    execSub(`select ${sq(sel)} ${sq(String(value))}`, opts, 15000);
   } else {
-    await locator.fill(String(value));
+    execSub(`fill ${sq(sel)} ${sq(String(value))}`, opts, 15000);
   }
   return true;
 }
 
-async function checkPrivacy(page) {
-  const locator = page.locator(FIELD_SELECTORS.privacy.join(', ')).first();
-  const visible = await locator.isVisible().catch(() => false);
-  if (!visible) return false;
-
-  const checked = await locator.isChecked().catch(() => true);
-  if (!checked) await locator.check();
+function checkPrivacy(opts) {
+  const sel = firstVisibleSelector('privacy', opts);
+  if (!sel) return false;
+  const checked = evalJS(`(function(){var el=document.querySelector(${JSON.stringify(sel)});return el?!!el.checked:true;})()`, opts);
+  if (checked !== 'true') execSub(`check ${sq(sel)}`, opts, 15000);
   return true;
 }
 
-async function uploadCv(page, cvPath) {
-  const fileInput = page.locator('input[type="file"]').first();
-  const visible = await fileInput.isVisible().catch(() => false);
-  if (!visible) return false;
-
-  await fileInput.setInputFiles(cvPath);
+function uploadCv(cvPath, opts) {
+  const sel = evalJS(`(function(){
+    var el = document.querySelector('input[type="file"]');
+    return el ? 'input[type="file"]' : null;
+  })()`, opts);
+  if (!sel) return false;
+  execSub(`upload ${sq(sel)} ${sq(cvPath)}`, opts, 30000);
   return true;
 }
 
 /**
- * @param {import('playwright-core').Page} page
+ * @param {{ session?: string, tab?: string }} opts
  * @param {{
  *   jobUrl: string,
  *   firstName?: string,
@@ -147,46 +157,44 @@ async function uploadCv(page, cvPath) {
  * }} data
  * @param {{ timeout?: number }?} options
  */
-async function apply(page, data, options = {}) {
+async function apply(opts, data, options = {}) {
   const timeout = options.timeout ?? 30000;
   const appUrl = data.jobUrl.replace(/\/?$/, '') + '/applications/new';
 
   // Prevent leave-confirmation dialogs from interrupting the submit.
-  handleDialog(page);
+  handleDialog(opts);
 
-  await page.goto(appUrl, { waitUntil: 'domcontentloaded', timeout });
+  goto(appUrl, opts);
+  waitForSelector('form', { ...opts, timeout });
 
   // Basic text fields.
   for (const key of ['firstName', 'lastName', 'email', 'phone']) {
-    if (data[key]) await safeFill(page, key, data[key]);
+    if (data[key]) safeFill(key, data[key], opts);
   }
 
   // Country and location.
-  if (data.country) await safeSelect(page, 'country', data.country);
-  if (data.location) await safeSelect(page, 'location', data.location);
+  if (data.country) safeSelect('country', data.country, opts);
+  if (data.location) safeSelect('location', data.location, opts);
 
   // CV upload.
-  if (data.cvPath) await uploadCv(page, data.cvPath);
+  if (data.cvPath) uploadCv(data.cvPath, opts);
 
   // Cover letter.
-  if (data.coverLetter) {
-    await safeFill(page, 'coverLetter', data.coverLetter);
-  }
+  if (data.coverLetter) safeFill('coverLetter', data.coverLetter, opts);
 
   // Privacy checkbox.
-  await checkPrivacy(page);
+  checkPrivacy(opts);
 
   // Submit.
-  const submitButton = page.locator(FIELD_SELECTORS.submit.join(', ')).first();
-  await submitButton.waitFor({ state: 'visible', timeout });
-  await submitButton.click({ timeout });
+  const submitSel = firstVisibleSelector('submit', opts);
+  if (submitSel) execSub(`click ${sq(submitSel)}`, opts, 15000);
 
   // Wait for the confirmation page or banner.
-  const confirmed = await waitForText(page, /thank|gracias|application received|sent|success/i, { timeout })
+  const confirmed = await waitForText(opts, /thank|gracias|application received|sent|success/i, { timeout })
     .then(() => true)
     .catch(() => false);
 
-  return { ok: confirmed, jobUrl: data.jobUrl, url: page.url() };
+  return { ok: confirmed, jobUrl: data.jobUrl, url: evalJS('window.location.href', opts) };
 }
 
 module.exports = { apply };

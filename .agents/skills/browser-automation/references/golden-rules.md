@@ -2,9 +2,17 @@
 
 These rules were validated through extensive testing. Breaking them causes failure.
 
+### Rule 0: Verify identity before acting
+
+The first action on any logged-in site must confirm WHICH account is active (account avatar, aria-label, profile corner). If it is not the repo owner's account, STOP and report. A shared daemon or stale profile can attach you to someone else's session.
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "document.querySelector('img[alt*=\"profile\"], [aria-label*=\"Account\"]')?.getAttribute('aria-label') || document.title"
+```
+
 ### Rule 1: eval > ref-based clicks
 
-Refs (`[ref=e123]`) are per-snapshot and **do not persist** between separate `playwright-cli` CLI calls. A ref from one `snapshot` call is invalid by the next `click` call.
+Refs (`@eN`) are per-snapshot and **do not persist** reliably across separate CLI calls. A ref from one `snapshot` call may be stale by the next `click` call (agent-browser tries to re-resolve by role+name, but ambiguous matches fail).
 
 **Wrong:**
 ```
@@ -15,7 +23,10 @@ clickRef(ref)  # may fail, ref may be stale
 
 **Right:**
 ```bash
-# Use eval to find and click by text in one atomic call
+# Use find (semantic locator + action in one call)
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Message" click
+
+# Or eval to find and click by text in one atomic call
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const els = document.querySelectorAll('a, button, [role=\"link\"]');
   for (const el of els) {
@@ -27,19 +38,22 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 ### Rule 2: In-page polling > shell sleep
 
-Shell `sleep` between browser commands kills the playwright-cli daemon session. The session dies within 5-10 seconds of inactivity.
+Shell `sleep` between browser commands wastes round-trips and races async page updates: the page keeps mutating while the shell sleeps, and you still don't know if it is ready.
 
 **Wrong:**
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js goto "https://example.com"
-sleep 4                        # session may die here
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot        # fails: "No active session"
+sleep 4                        # blind wait, page may not be ready
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot
 ```
 
 **Right:**
 ```bash
-# Use eval with in-page polling (keeps connection alive)
+# wait --fn polls inside the page until a real condition is true
 node .agents/skills/browser-automation/scripts/browser.js goto "https://example.com"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "!!document.querySelector('div.target-element')"
+
+# or eval with in-page polling
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
   for (let i = 0; i < 50; i++) {
     if (document.querySelector('div.target-element')) return 'ready';
@@ -49,17 +63,17 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 })()"
 ```
 
-**Exception:** Very short sleeps (1-2s) within a single shell command using `&&` chaining are safe. The session stays alive as long as the shell process is running.
+### Rule 3: Scope snapshots, retry on failure
 
-### Rule 3: Read snapshot file as fallback
-
-When `exec snapshot` fails (session briefly busy), the `open`/`goto` commands auto-generate a snapshot YAML file in `.playwright-cli/`. Read it directly.
+`exec snapshot` on a complex SPA can be huge, truncated, or momentarily fail. Retry scoped:
 
 ```bash
-# Try exec snapshot first
-node .agents/skills/browser-automation/scripts/browser.js exec snapshot
-# If it fails, read the latest snapshot file
-ls -t .playwright-cli/page-*.yml | head -1 | xargs cat
+# Interactive elements only (much smaller)
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i
+# Scoped to a subtree
+node .agents/skills/browser-automation/scripts/browser.js exec snapshot -i -s "#main"
+# Or skip the snapshot entirely: read the page as text
+node .agents/skills/browser-automation/scripts/browser.js exec read
 ```
 
 ### Rule 4: Use URLs directly, not clicks for navigation
@@ -90,7 +104,7 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 ### Rule 6: Batch operations into a single eval call
 
-Doing wait + click + verify in one `eval` call is more robust than multiple separate CLI calls. Each separate call risks session death between steps and adds latency.
+Doing wait + click + verify in one `eval` call is more robust than multiple separate CLI calls: fewer process spawns, no race between steps.
 
 **Wrong:**
 ```bash
@@ -110,19 +124,16 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 })()"
 ```
 
-### Chaining: open + eval in a single shell command
+For non-JS sequences (open + wait + press), prefer `batch` over chained shell calls:
 
-Chain `open && eval` in a single shell command to prevent session death between calls.
-
-**Wrong:**
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com"
-# session may die here
-node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
+node .agents/skills/browser-automation/scripts/browser.js exec batch "navigate https://example.com" "wait --load load" "press Enter"
 ```
 
-**Right:**
-```bash
-node .agents/skills/browser-automation/scripts/browser.js open "https://mail.google.com" && \
-  node .agents/skills/browser-automation/scripts/browser.js exec eval "document.title"
-```
+### Rule 7: Verify before send (irreversible actions)
+
+Before any action that cannot be undone (send message, submit application, post, delete, pay): verify recipient, account identity, and the FULL content in the compose area via `get text` / `eval`. Show a draft when the flow requires it. Only then trigger the send. Never send on assumption.
+
+### Rule 8: Empirical learnings only
+
+Never write a hypothesis about site behavior ("paste doesn't register", "that selector fails") into a guide or reference without a controlled test confirming it (e.g. send to yourself first). A false learning is worse than none.

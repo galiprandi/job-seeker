@@ -1,12 +1,30 @@
 ---
 name: outlook
-description: Automate Outlook on the web (Microsoft 365) with playwright-cli. Covers reading inbox, archiving, replying, composing, searching, folder navigation, and keyboard shortcuts. Use when checking email, sending messages, managing inbox, or extracting email data in Outlook Web. Part of the browser-automation skill.
+description: Automate Outlook on the web (Microsoft 365) with agent-browser. Covers reading inbox, archiving, replying, composing, searching, folder navigation, and keyboard shortcuts. Use when checking email, sending messages, managing inbox, or extracting email data in Outlook Web. Part of the browser-automation skill.
 verified: 2026-09-02
+domains:
+  - outlook.office.com
+  - outlook.live.com
+  - outlook.com
+  - outlook.office365.com
 ---
 
 # Outlook (Web) Automation
 
-Automate Outlook on the web (Microsoft 365 / Exchange) via `playwright-cli`.
+Automate Outlook on the web (Microsoft 365 / Exchange) via `agent-browser`.
+
+All commands go through the wrapper from the repo root:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js <command>
+```
+
+## Interaction order (semantic-first)
+
+1. **Keyboard shortcuts** -- Outlook has a rich shortcut layer. Use `exec press` / `exec batch` first.
+2. **`exec find`** -- `find role|text|label <value> <action>` for buttons, links, options.
+3. **`exec snapshot -i`** -- inspect the interactive tree, then `click`/`fill` by `@eN` ref.
+4. **`exec eval`** -- LAST RESORT for list extraction and React-controlled inputs.
 
 ## Setup
 
@@ -14,12 +32,10 @@ Automate Outlook on the web (Microsoft 365 / Exchange) via `playwright-cli`.
 # Open Outlook (headed for login)
 node .agents/skills/browser-automation/scripts/browser.js open "https://outlook.office.com/mail/" --headed
 
-# User logs in manually (SSO/OAuth), then save state
-node .agents/skills/browser-automation/scripts/browser.js save-state
+# User logs in manually (SSO/OAuth). The session persists in .browser-profile/.
 
-# Next sessions: load state and go headless
+# Next sessions: headless reuse
 node .agents/skills/browser-automation/scripts/browser.js open "https://outlook.office.com/mail/"
-node .agents/skills/browser-automation/scripts/browser.js load-state
 ```
 
 ## Keyboard shortcuts (PREFERRED over UI clicks)
@@ -100,7 +116,9 @@ node .agents/skills/browser-automation/scripts/browser.js load-state
 | `End` / `Ctrl+End` | Last message |
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste messages |
 
-### Usage with playwright-cli
+### Usage with agent-browser
+
+`exec press` sends a single key or chord (`+` = simultaneous). For multi-key sequences (e.g. `G` then `I`), use `exec batch` so both keys go in one call:
 
 ```bash
 # Archive the currently open or selected email
@@ -115,15 +133,14 @@ node .agents/skills/browser-automation/scripts/browser.js exec press r
 # New message
 node .agents/skills/browser-automation/scripts/browser.js exec press n
 
-# Go to inbox (two-key shortcut with small delay)
-node .agents/skills/browser-automation/scripts/browser.js exec press g
-node .agents/skills/browser-automation/scripts/browser.js exec press i
+# Go to inbox (two-key shortcut, one batch call)
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press i"
 
 # Search mail
 node .agents/skills/browser-automation/scripts/browser.js exec press Alt+q
 ```
 
-**Note:** Two-key shortcuts (like `G` then `I`) require a small delay between keys.
+**Note:** Two-key shortcuts (like `G` then `I`) need a small delay between keys -- `exec batch` handles the sequencing in a single call.
 
 ## Reading inbox
 
@@ -132,18 +149,12 @@ node .agents/skills/browser-automation/scripts/browser.js exec press Alt+q
 Outlook Web uses `[role="option"]` for message list items. Classes are generated and unreliable.
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js goto "https://outlook.office.com/mail/inbox"
+node .agents/skills/browser-automation/scripts/browser.js navigate "https://outlook.office.com/mail/inbox"
 
 # Wait for messages to load
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 50; i++) {
-    if (document.querySelectorAll('[role=\"option\"]').length > 0) return 'ready';
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "document.querySelectorAll('[role=\"option\"]').length > 0"
 
-# Extract message list
+# Extract message list (eval -- no semantic equivalent for bulk extraction)
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const items = Array.from(document.querySelectorAll('[role=\"option\"]')).filter(o => o.offsetParent !== null);
   return JSON.stringify(items.slice(0, 20).map(o => ({
@@ -155,8 +166,17 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 
 ### UI: open a specific email
 
+Prefer `find` by visible text (sender or subject):
+
 ```bash
-# Click by sender or subject text
+node .agents/skills/browser-automation/scripts/browser.js exec find text "OTC-7376" click
+```
+
+Or use `snapshot -i` and click the matching `option` ref, or keyboard-navigate with `Ctrl+.` / `Ctrl+,` then `Enter` to open.
+
+Fallback eval (only if `find` misses -- e.g. text split across nodes):
+
+```bash
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const items = Array.from(document.querySelectorAll('[role=\"option\"]')).filter(o => o.offsetParent !== null);
   const target = items.find(o => o.textContent.includes('OTC-7376'));
@@ -164,8 +184,6 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
   return 'not_found';
 })()"
 ```
-
-Or use keyboard: navigate with `Ctrl+.` / `Ctrl+,` then `Enter` to open.
 
 ### UI: read email content
 
@@ -187,16 +205,12 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(async func
 node .agents/skills/browser-automation/scripts/browser.js exec press e
 ```
 
-### Fallback: button click
+### Fallback: semantic click on the Archive button
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
-  const btn = Array.from(document.querySelectorAll('button')).find(b =>
-    b.offsetParent !== null && b.getAttribute('aria-label')?.includes('Archivar')
-  );
-  if (btn) { btn.click(); return 'archived'; }
-  return 'not_found';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec find label "Archivar" click
+# or, if the UI is in English:
+node .agents/skills/browser-automation/scripts/browser.js exec find label "Archive" click
 ```
 
 ## Folder navigation
@@ -204,20 +218,19 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 ### PREFERRED: keyboard shortcuts
 
 ```bash
-# Go to inbox
-node .agents/skills/browser-automation/scripts/browser.js exec press g
-node .agents/skills/browser-automation/scripts/browser.js exec press i
-
-# Go to sent
-node .agents/skills/browser-automation/scripts/browser.js exec press g
-node .agents/skills/browser-automation/scripts/browser.js exec press s
-
-# Go to drafts
-node .agents/skills/browser-automation/scripts/browser.js exec press g
-node .agents/skills/browser-automation/scripts/browser.js exec press d
+# Go to inbox / sent / drafts (two-key sequences via batch)
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press i"
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press s"
+node .agents/skills/browser-automation/scripts/browser.js exec batch "press g" "press d"
 ```
 
 ### Fallback: click folder in tree
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find role treeitem "Mi Local Argentina" click
+```
+
+If `find` misses (partial text, nested structure), fall back to eval:
 
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
@@ -254,21 +267,17 @@ node .agents/skills/browser-automation/scripts/browser.js exec press n
 Or click the "Correo nuevo" / "New mail" button:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
-  const btn = Array.from(document.querySelectorAll('button')).find(b =>
-    b.offsetParent !== null && (b.textContent.includes('Correo nuevo') || b.textContent.includes('New mail'))
-  );
-  if (btn) { btn.click(); return 'clicked'; }
-  return 'not_found';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec find text "Correo nuevo" click
+# or
+node .agents/skills/browser-automation/scripts/browser.js exec find text "New mail" click
 ```
 
 ### Fill compose fields
 
-Outlook compose uses React-controlled inputs. Use the native value setter pattern.
+Outlook compose uses React-controlled inputs. Try `snapshot -i` + `fill "@eN" "text"` first; if `fill` doesn't stick (React swallows it), use the native value setter via `exec eval`:
 
 ```bash
-# To (recipients)
+# To (recipients) -- eval fallback for React input (verified)
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
   const input = document.querySelector('input[aria-label=\"Para\"], input[aria-label=\"To\"]');
   if (!input) return 'not_found';
@@ -288,7 +297,24 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
   input.dispatchEvent(new Event('input', { bubbles: true }));
   return 'set';
 })()"
+
+# Body -- focus the contenteditable and type
+node .agents/skills/browser-automation/scripts/browser.js exec find role textbox click
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "Body text here"
 ```
+
+### Verify BEFORE send
+
+Always read back the compose box content before pressing the send shortcut. A blank or wrong message to a human is irreversible.
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
+  const el = document.querySelector('div[contenteditable=\"true\"]');
+  return el ? el.innerText : 'no compose box';
+})()"
+```
+
+Confirm To / Subject / Body match the intent, THEN send.
 
 ### Send email
 
@@ -297,19 +323,12 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 node .agents/skills/browser-automation/scripts/browser.js exec press Control+Enter
 ```
 
-### Verify send
+### Verify AFTER send
 
 Wait for the compose dialog to close and the message to appear in Sent:
 
 ```bash
-node .agents/skills/browser-automation/scripts/browser.js exec eval "(async function(){
-  for (let i = 0; i < 50; i++) {
-    const compose = document.querySelector('[role=\"dialog\"]');
-    if (!compose) return 'sent';
-    await new Promise(r => setTimeout(r, 200));
-  }
-  return 'timeout';
-})()"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "!document.querySelector('[role=\"dialog\"]')"
 ```
 
 ## Replying
@@ -320,7 +339,14 @@ node .agents/skills/browser-automation/scripts/browser.js exec press r        # 
 node .agents/skills/browser-automation/scripts/browser.js exec press Shift+r  # reply all
 ```
 
-The reply body is a contenteditable div. Fill it with:
+The reply body is a contenteditable div. Prefer focusing it and typing:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec find role textbox click
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "YOUR REPLY TEXT"
+```
+
+If typing doesn't register (React contenteditable), fall back to eval:
 
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(function(){
@@ -333,41 +359,55 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "(function()
 })()"
 ```
 
+**Verify BEFORE send** (see above), then `exec press Control+Enter`.
+
 ## Search
 
 ```bash
 # PREFERRED: keyboard shortcut
 node .agents/skills/browser-automation/scripts/browser.js exec press Alt+q
 
-# Then type the search query
-node .agents/skills/browser-automation/scripts/browser.js exec type "from:juan subject:OTC"
+# Then type the query into the focused search box and submit
+node .agents/skills/browser-automation/scripts/browser.js exec keyboard type "from:juan subject:OTC"
 node .agents/skills/browser-automation/scripts/browser.js exec press Enter
 ```
+
+If focus doesn't land in the search box, use `snapshot -i` to get the ref and `fill "@eN" "query"`.
 
 ## Calendar
 
 ```bash
 # Go to calendar
-node .agents/skills/browser-automation/scripts/browser.js exec press Ctrl+Shift+2
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+Shift+2
 
 # Create new event
 node .agents/skills/browser-automation/scripts/browser.js exec press n
 
 # Save appointment
-node .agents/skills/browser-automation/scripts/browser.js exec press Ctrl+s
+node .agents/skills/browser-automation/scripts/browser.js exec press Control+s
 
 # Send meeting invite
 node .agents/skills/browser-automation/scripts/browser.js exec press Control+Enter
 ```
 
+For pre-filling events, prefer the deeplink in `calendar-deeplink.md` -- it skips most of this UI.
+
 ## Multiple accounts
 
 Outlook Web supports multiple accounts. The URL may include the account index:
-- `outlook.office.com/mail/` — default account
-- `outlook.cloud.microsoft/mail/` — alternative domain (redirects to same UI)
+- `outlook.office.com/mail/` -- default account
+- `outlook.cloud.microsoft/mail/` -- alternative domain (redirects to same UI)
 
 ## Anti-patterns
 
-- **Don't** rely on CSS class names — Outlook uses generated classes; use `[role]` attributes and `aria-label`
+- **Don't** rely on CSS class names -- Outlook uses generated classes; use `[role]` attributes and `aria-label`
 - **Don't** send or delete emails without explicit user confirmation
 - **Don't** archive emails without explicit user confirmation
+- **Don't** press send shortcuts blind -- always read back the compose box first
+
+## agent-browser notes (verified 2026-10-24)
+
+- `save-state`/`load-state` do not exist in the wrapper -- the session persists automatically in `.browser-profile/`.
+- Federated Microsoft session: outlook.office.com → adfscl.cencosud.com. If `location.host` is `adfscl.cencosud.com`, the session expired → ask for manual login in `--headed`.
+- `exec keyboard type` needs a focused element -- focus via `find`/`click` on a snapshot ref first; if it fails, use `exec fill "@eN" "text"`.
+- Final URL after login: `outlook.cloud.microsoft`, not outlook.office.com.

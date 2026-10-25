@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-browser.dev/schema.json",
+  "namespace": "job-seeker",
+  "profile": "./.browser-profile",
+  "headed": true,
+  "idleTimeout": "0",
+  "downloadPath": "./downloads",
+  "screenshotDir": "./screenshots",
+  "screenshotFormat": "jpeg",
+  "screenshotQuality": 80,
+  "annotate": true,
+  "maxOutput": 50000
+}

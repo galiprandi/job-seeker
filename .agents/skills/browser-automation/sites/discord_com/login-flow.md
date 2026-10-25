@@ -1,6 +1,6 @@
 ---
 name: discord-login
-description: Discord web sign-in flow with mobile-app approval. Use when logging in to Discord via playwright-cli in headed mode.
+description: Discord web sign-in flow with mobile-app approval. Use when logging in to Discord via agent-browser in headed mode.
 ---
 
 # Discord Web Login Flow
@@ -19,7 +19,7 @@ node .agents/skills/browser-automation/scripts/browser.js open "https://discord.
 
 ## Flow
 
-1. **Enter credentials.** Fill the email and password fields and submit the form.
+1. **Enter credentials.** Fill the email and password fields and submit the form. Prefer `exec snapshot -i` to get the field refs, then `exec fill "@eN" "<value>"`; submit via `exec press Enter` or `exec find role button "Iniciar sesión" click`.
 2. **Handle 2FA if prompted.** Discord may ask for an authenticator code or a backup code. If so, stop and ask the user.
 3. **Approve on the mobile app.** For some accounts, Discord sends an in-app approval prompt to the logged-in mobile client. The user must confirm the login from the Discord app.
 4. **Login completes.** The browser loads the Discord main interface.
@@ -30,35 +30,33 @@ node .agents/skills/browser-automation/scripts/browser.js open "https://discord.
 |---|---|
 | Email input | `input[name="email"]` or `input[placeholder*="Correo"]` |
 | Password input | `input[name="password"]` or `input[type="password"]` |
-| Submit button | `button[type="submit"]` or `button:has-text("Iniciar sesión")` |
+| Submit button | `button[type="submit"]` or visible text "Iniciar sesión" |
+
+Prefer `find`/`snapshot -i` over raw selectors; use these only as eval fallback (unverified after agent-browser migration):
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec fill "input[name=email]" "<email>"
+node .agents/skills/browser-automation/scripts/browser.js exec fill "input[name=password]" "<password>"
+node .agents/skills/browser-automation/scripts/browser.js exec click "button[type=submit]"
+```
 
 ## Verification
 
 After login, the URL should no longer be `/login`. A safe check is to wait for the Discord main layout to appear.
 
 ```bash
-playwright-cli eval "() => !location.pathname.includes('/login')"
+node .agents/skills/browser-automation/scripts/browser.js exec wait --fn "!location.pathname.includes('/login')"
 ```
 
 ## Auth state persistence
 
-After a successful login, save the storage state for headless reuse:
-
-```bash
-node .agents/skills/browser-automation/scripts/browser.js exec state-save discord-state.json
-```
-
-On the next run, load the state:
-
-```bash
-node .agents/skills/browser-automation/scripts/browser.js exec state-load discord-state.json
-```
+There is no explicit state-save/state-load step: after a successful login the session persists automatically in `.browser-profile/`. On the next run just open the site; do not commit anything profile-related to git.
 
 ## Anti-patterns
 
 - **Do not** ask the user for their Discord token to use a CLI client. Third-party clients and self-bots violate Discord's Terms of Service and can result in account bans.
 - **Do not** turn off 2FA or ask the user to do so.
-- **Do not** store `discord-state.json` in version control; add it to `.gitignore`.
+- **Do not** store `.browser-profile/` or any exported state in version control; keep it in `.gitignore`.
 
 ## Notes
 

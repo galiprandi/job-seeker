@@ -15,7 +15,7 @@ This repo has no UI. It's consumed by coding agents via skills (markdown) and sc
 
 ## Naming conventions
 
-- Skills: kebab-case (`playwright-cli`, `job-search`)
+- Skills: kebab-case (`browser-automation`, `job-search`)
 - SQL tables: snake_case (`users`, `applications`)
 - JSONB keys: snake_case (`job_preferences`, `style_profile`)
 - Doc files: UPPERCASE (`ADR.md`, `PLATFORMS.md`)

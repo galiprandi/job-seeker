@@ -17,8 +17,8 @@ Compose the `news` and `apply` flows with decision logic to keep the job search 
 
 ## Pre-flight
 
-- [ ] Verify active LinkedIn and Gmail sessions. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
-- [ ] **Browser:** always use `node scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `playwright-cli open` directly, never open Chrome directly
+- [ ] Verify active LinkedIn and Gmail sessions. If session closed → open browser with wrapper (see AGENTS.md "Browser session"): `node .agents/skills/browser-automation/scripts/browser.js open <url> --headed` (Gold Rule 5) → notify user → wait for confirmation
+- [ ] **Browser:** always use `node .agents/skills/browser-automation/scripts/browser.js` for open/close/goto. See AGENTS.md "Browser session" for details. Never call `agent-browser open` directly, never open Chrome directly
 - [ ] Load active preferences (see `memory` skill):
   ```bash
   node scripts/db.js "SELECT category, key, value, confidence, source FROM preferences WHERE user_id = <user_id> AND status = 'active' ORDER BY category, key"
@@ -91,12 +91,11 @@ For each: open the contact's profile — if the invite was accepted (Message but
 
 ### 4b. Disk purge (at least monthly)
 
-Check `du -sh .browser-profile .playwright-cli` at the start of the round. If combined > 1 GB, mention it in the summary and offer to purge — never purge without informing the user first.
+Check `du -sh .browser-profile` at the start of the round. If combined > 1 GB, mention it in the summary and offer to purge — never purge without informing the user first.
 
 Safe to delete (all in `.gitignore`, preserves logins):
 ```bash
 rm -rf .browser-profile/Default/Cache .browser-profile/Default/Code\ Cache .browser-profile/Default/Service\ Worker .browser-profile/Default/GPUCache .browser-profile/GraphiteDawnCache
-rm -rf .playwright-cli
 ```
 
 Never delete (would force re-login): `.browser-profile/Default/Cookies`, `Local Storage`, `IndexedDB`, `.browser-profile/auth-state.json`. Full reset (`rm -rf .browser-profile`) only if the user explicitly wants a clean profile.

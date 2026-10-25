@@ -2,18 +2,29 @@
 
 How to organize browser work across multiple apps and subagents.
 
-## Key learning: parallel browser work is COUNTERPRODUCTIVE
+## Isolation model (agent-browser)
 
-**Tested empirically:** running multiple subagents simultaneously on the same browser causes interference. The browser has a single active tab context, and even with named tabs and `--tab` flags, commands get routed to the wrong tab when multiple agents are active.
+agent-browser isolates at three levels:
+
+- **Namespace** — the daemon socket namespace. The wrapper sets `AGENT_BROWSER_NAMESPACE` to the repo directory name and writes it into `agent-browser.json` (auto-created on first run). Per-repo isolation is automatic; nothing to configure. Never point two repos at the same namespace.
+- **Session** — an isolated browser instance inside a namespace (own cookies, storage, tabs). Name it via `--session <name>` on any agent-browser command or the `AGENT_BROWSER_SESSION` env var. Give each parallel agent its own session name.
+- **Tab** — a labeled tab inside a session: `browser.js tab-new <url> --name <name>` (agent-browser: `tab new --label <name>`). Labels work everywhere a tab ref is accepted; `--pin-tab` fails instead of falling back if the bound tab closes.
+
+## Key learning: parallel work on ONE browser is COUNTERPRODUCTIVE
+
+**Tested empirically:** multiple subagents on the same session/tab set cause interference. Even with named tabs and `--tab` targeting, commands route to whichever tab was last active.
 
 **Symptoms observed:**
 - Agent A's commands execute on Agent B's tab
 - Agents have to create temp tabs to recover from interference
 - Agents report "another process was actively switching tabs"
 
-## Recommended pattern: one tab per app, SEQUENTIAL work
+**Two safe shapes:**
 
-Don't run browser subagents in parallel. Instead:
+1. **Sequential, one session, one tab per app** (recommended, shares the logged-in profile)
+2. **Parallel, one session per agent** (isolated, but each session needs its own login state)
+
+## Recommended pattern: one tab per app, SEQUENTIAL work
 
 1. **Coordinator opens one tab per app** (upfront)
 2. **Subagents run sequentially**, each targeting its tab with `--tab`
@@ -50,21 +61,33 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "document.ti
 node .agents/skills/browser-automation/scripts/browser.js close-all
 ```
 
-## Why not parallel?
+## Parallel with separate sessions
 
-The browser is a single process with a single active page. Even with `--tab` targeting, the underlying playwright-cli daemon serializes commands and can route them to whichever tab was last active. Named tabs help with targeting but don't provide true isolation.
+If work must run in parallel, give each agent its own session. Sessions have separate browsers, so they cannot interfere — but also separate auth, so each session needs login state (reuse `.browser-profile` is not shared; export/import via `save-state`/`load-state` if needed).
+
+```bash
+# Agent A
+AGENT_BROWSER_SESSION=agent-a node .agents/skills/browser-automation/scripts/browser.js exec eval "..."
+
+# Agent B (concurrently, different browser)
+AGENT_BROWSER_SESSION=agent-b node .agents/skills/browser-automation/scripts/browser.js exec eval "..."
+```
+
+## Why not parallel on one session?
+
+The session has a single active tab context. Even with `--tab` targeting, the agent-browser daemon serializes commands and can route them to whichever tab was last active. Named tabs help with targeting but don't provide true isolation.
 
 **What `--tab` does:** tells the wrapper which tab to target before running the command. The wrapper switches to that tab, runs the command, and returns. If two agents do this simultaneously, they fight over the active tab.
 
-There is no session attachment, ref-counting, or locking in the wrapper — it does not track which agents are active. This is intentional: the only safe model is sequential execution.
+There is no session attachment, ref-counting, or locking in the wrapper — it does not track which agents are active. This is intentional: the only safe model is sequential execution (or separate sessions).
 
-## When parallel MIGHT work
+## When parallel MIGHT work on one session
 
 Only for truly independent operations that don't depend on tab state:
 - One agent does an `eval` with `fetch()` (no DOM interaction, no tab switch needed)
 - Another agent does a `snapshot` on a different tab
 
-But even this is fragile. Prefer sequential.
+But even this is fragile. Prefer sequential or separate sessions.
 
 ## Closing the browser
 
@@ -77,8 +100,6 @@ node .agents/skills/browser-automation/scripts/browser.js close
 # Close all sessions
 node .agents/skills/browser-automation/scripts/browser.js close-all
 ```
-
-The `--force` flag is accepted for compatibility but has no special behavior — close always closes.
 
 ## Tab naming convention
 
@@ -102,8 +123,8 @@ node .agents/skills/browser-automation/scripts/browser.js exec eval "..." --tab 
 
 ## Pitfalls
 
-- **Don't** run browser subagents in parallel — they'll interfere with each other
+- **Don't** run browser subagents in parallel on one session — they'll interfere with each other
 - **Don't** close the browser until all subagents have finished (the coordinator must track this; the wrapper will not refuse)
-- **Don't** open a second browser with `playwright-cli open` directly — always go through the wrapper so the profile and tab state stay consistent
+- **Don't** open a second browser with `agent-browser open` directly — always go through the wrapper so the profile, namespace, and tab state stay consistent
 - **Don't** create temp tabs ad hoc — create all needed tabs upfront with clear names
 - **Don't** forget to clean up with `close-all` when finished
