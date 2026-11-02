@@ -45,15 +45,16 @@ function dbQuery(sql) {
         encoding: 'utf8', timeout: 15000, cwd: __dirname,
       })
     );
-  } catch (e) { return []; }
+  } catch (e) { console.error('[dbQuery] failed:', (e.stderr || e.message || '').toString().slice(0, 300)); return []; }
 }
 
 function dbWrite(sql) {
-  try { shell(`node scripts/db.js "${sql.replace(/"/g, '\\"')}" --write`, 10000); } catch (e) {}
+  try { shell(`node scripts/db.js "${sql.replace(/"/g, '\\"')}" --write`, 10000); } catch (e) { console.error('[dbWrite] failed:', (e.stderr || e.message || '').toString().slice(0, 300)); }
 }
 
 function loadUserData() {
-  const row = dbQuery("SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${process.env.USER_ID || 1}")[0];
+  const userId = process.env.USER_ID || 1;
+  const row = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`)[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
