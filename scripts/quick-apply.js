@@ -48,9 +48,30 @@ function evalJS(code, timeout = 15000) {
 }
 
 function goto(url) {
-  execSync(`node scripts/browser.js goto "${url}"`, { encoding: 'utf-8', cwd: process.cwd() });
+  execFileSync('node', [WRAPPER, 'goto', url], { encoding: 'utf-8', cwd: process.cwd() });
   sleep(3000);
 }
+
+// Candidate data comes from DB (Rule 9) — never hardcode personal data here.
+function loadAnswers() {
+  const userId = process.env.USER_ID || 1;
+  const out = execSync(`node scripts/db.js "SELECT data->'personal_info' AS pi, data->'social' AS social, data->'form_answers' AS fa FROM users WHERE id = ${userId}"`, {
+    encoding: 'utf-8', cwd: process.cwd(),
+  });
+  const row = (JSON.parse(out)[0] || {});
+  const fullName = row.social?.full_name || '';
+  const [first, ...rest] = fullName.split(' ');
+  const digits = (row.pi?.phone || '').replace(/\D/g, '');
+  return {
+    firstName: first,
+    lastName: rest.join(' '),
+    phone: digits.replace(/^(549|54)/, ''),
+    linkedin: row.fa?.linkedin_url || '',
+    website: row.social?.github_repo_url || '',
+  };
+}
+
+const ANSWERS = loadAnswers();
 
 function getAppliedUrls() {
   const out = execSync(`node scripts/db.js "SELECT url FROM applications WHERE user_id = 1"`, {
@@ -88,11 +109,11 @@ function fillTextFields(snap) {
     const ll = label.toLowerCase();
     let value = null;
 
-    if (ll.includes('first name') || ll.includes('nombre') || ll.includes('vorname')) value = 'Santiago';
-    else if (ll.includes('last name') || ll.includes('apellido') || ll.includes('nachname')) value = 'Aliprandi';
-    else if (ll.includes('mobile phone') || ll.includes('phone number') || ll.includes('handynummer')) value = '3815658239';
-    else if (ll.includes('linkedin')) value = 'https://www.linkedin.com/in/saliprandi/';
-    else if (ll.includes('website') || ll.includes('github')) value = 'https://github.com/saliprandi';
+    if (ll.includes('first name') || ll.includes('nombre') || ll.includes('vorname')) value = ANSWERS.firstName;
+    else if (ll.includes('last name') || ll.includes('apellido') || ll.includes('nachname')) value = ANSWERS.lastName;
+    else if (ll.includes('mobile phone') || ll.includes('phone number') || ll.includes('handynummer')) value = ANSWERS.phone;
+    else if (ll.includes('linkedin')) value = ANSWERS.linkedin;
+    else if (ll.includes('website') || ll.includes('github')) value = ANSWERS.website;
     else if (ll.includes('years') && (ll.includes('experience') || ll.includes('working') || ll.includes('retail') || ll.includes('erfahrung'))) value = '1';
     else if (ll.includes('salary') || ll.includes('gehalt')) value = 'Flexible';
     else if (ll.includes('buscar') || ll.includes('search') || ll.includes('suche')) continue; // search bar

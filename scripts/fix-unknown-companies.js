@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Fix applications with company = 'Unknown' by scraping job pages
 const { execSync } = require('child_process');
+const path = require('path');
+
+const BROWSER_JS = path.resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
 
 function snapshot() {
-  return execSync('node scripts/browser.js exec snapshot', { encoding: 'utf8', timeout: 15000 });
+  return execSync(`node "${BROWSER_JS}" exec snapshot`, { encoding: 'utf8', timeout: 15000 });
 }
 
 function goto(url) {
-  execSync(`node scripts/browser.js goto "${url}"`, { encoding: 'utf8', timeout: 20000 });
+  execSync(`node "${BROWSER_JS}" goto "${url}"`, { encoding: 'utf8', timeout: 20000 });
 }
 
 function sleep(ms) { execSync(`sleep ${ms/1000}`); }
