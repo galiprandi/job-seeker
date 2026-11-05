@@ -10,7 +10,7 @@ Note on 001: narrowed scope at execution time. `process-captcha-forms.js` was al
 |------|-------|----------|--------|------------|--------|
 | 001 | Scrub committed PII from tracked scripts | P1 | S | — | DONE |
 | 002 | Fix `${USER_ID}` plain-string bugs + silent DB failures | P1 | S | — | DONE |
-| 003 | Repoint ~79 stale `scripts/browser.js` references | P1 | S | — | TODO |
+| 003 | Repoint ~79 stale `scripts/browser.js` references | P1 | S | — | DONE |
 | 004 | Revive test suite + CI gate | P1 | M | 003 | TODO |
 | 005 | Harden db.js write gate + dashboard localhost bind | P1 | S | — | TODO |
 | 006 | Delete dead script family (~16 files) | P2 | M | 001, 002 | TODO |
