@@ -152,7 +152,7 @@ function getDashboardHTML() {
     if (docsUrl) {
       html = html.replace('id="docs-link" href="#"', `id="docs-link" href="${docsUrl}"`);
     }
-  } catch {}
+  } catch (e) { console.error('[dashboard] docs link inject failed:', (e.message||'').slice(0,200)); }
   return html;
 }
 

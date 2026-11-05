@@ -50,7 +50,7 @@ function dbQuery(sql) {
     });
     const jsonStart = out.indexOf('[');
     return JSON.parse(out.slice(jsonStart));
-  } catch (e) { return []; }
+  } catch (e) { console.error('[dbQuery] failed:', (e.stderr||e.message||'').toString().slice(0,300)); return []; }
 }
 
 function loadUserData() {
