@@ -124,7 +124,8 @@ function dbWrite(sql) {
 
 function loadAuthState() {
   try {
-    execSync(`node scripts/browser.js load-state`, {
+    const wrapper = require('path').resolve(__dirname, '../.agents/skills/browser-automation/scripts/browser.js');
+    execSync(`node "${wrapper}" load-state`, {
       encoding: 'utf-8',
       timeout: 10000,
       cwd: path.dirname(__dirname), // Use repo root, not scripts/ dir
