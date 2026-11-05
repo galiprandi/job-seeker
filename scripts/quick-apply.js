@@ -119,7 +119,7 @@ function fillTextFields(snap) {
     else if (ll.includes('buscar') || ll.includes('search') || ll.includes('suche')) continue; // search bar
 
     if (value) {
-      try { fillRef(ref, value); filled++; } catch(e) {}
+      try { fillRef(ref, value); filled++; } catch(e) { console.error(`[quick-apply] fill failed for "${label}":`, (e.message||'').slice(0,200)); }
     }
   }
   return filled;
@@ -165,7 +165,7 @@ function selectCombos(snap) {
         })()`);
         sleep(1000);
         selected++;
-      } catch(e) {}
+      } catch(e) { console.error('[quick-apply] option click failed:', (e.message||'').slice(0,200)); }
       continue;
     }
 
@@ -205,7 +205,7 @@ function selectCombos(snap) {
     }
 
     if (targetOption) {
-      try { selectRef(ref, targetOption); selected++; } catch(e) {}
+      try { selectRef(ref, targetOption); selected++; } catch(e) { console.error(`[quick-apply] select failed for "${label}":`, (e.message||'').slice(0,200)); }
     }
   }
   return selected;
@@ -249,7 +249,7 @@ function clickRadios(snap) {
     const targetRegex = new RegExp(`- generic \\[ref=([a-z0-9]+)\\]: "?${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?`);
     const targetMatch = block.match(targetRegex);
     if (targetMatch) {
-      try { clickRef(targetMatch[1]); clicked++; sleep(500); } catch(e) {}
+      try { clickRef(targetMatch[1]); clicked++; sleep(500); } catch(e) { console.error('[quick-apply] option click failed:', (e.message||'').slice(0,200)); }
     }
   }
   return clicked;

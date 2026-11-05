@@ -119,12 +119,12 @@ function getDefaultTab() {
     const tabs = JSON.parse(out);
     const list = tabs && (tabs.data || tabs);
     if (Array.isArray(list) && list.length) return list[0].label || list[0].id || 'default';
-  } catch {}
+  } catch (e) { console.error('[linkedin-send] tab list --json failed:', (e.message||'').slice(0,200)); }
   try {
     const out = browserExec('tab-list');
     const m = out.match(/^\s*\d+:\s*(\S+)/m) || out.match(/\[(t\d+)\]|label[=:"']?\s*(\w+)/m);
     if (m) return m[1] || m[2] || 'default';
-  } catch {}
+  } catch (e) { console.error('[linkedin-send] tab-list parse failed:', (e.message||'').slice(0,200)); }
   return 'default';
 }
 

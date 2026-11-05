@@ -107,7 +107,7 @@ const appliedRaw = shell(`node scripts/db.js "SELECT (regexp_match(url, 'jobs/vi
 const appliedSet = new Set();
 try {
   JSON.parse(appliedRaw).forEach(r => appliedSet.add(r.job_id));
-} catch (e) {}
+} catch (e) { console.error('[search-apply] failed to parse applied jobs list:', (e.message||'').slice(0,200)); }
 
 console.log(`Already applied: ${appliedSet.size} jobs`);
 

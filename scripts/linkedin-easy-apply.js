@@ -717,7 +717,7 @@ function applyToJob(jobRef, userData) {
           return JSON.stringify({selected: false});
         })()`, { session: SESSION });
         if (!selectResult || !selectResult.selected) {
-          try { selectOption(ref, answer); } catch(e) {}
+          try { selectOption(ref, answer); } catch(e) { console.error('[apply] selectOption failed:', (e.message||'').slice(0,200)); }
         }
         sleep(1000);
       }
@@ -840,7 +840,7 @@ function applyToJob(jobRef, userData) {
       }
       return JSON.stringify(answered);
     })()`, { session: SESSION });
-    const radioArr = Array.isArray(radioResult) ? radioResult : (() => { try { return JSON.parse(radioResult || '[]'); } catch { return []; } })();
+    const radioArr = Array.isArray(radioResult) ? radioResult : (() => { try { return JSON.parse(radioResult || '[]'); } catch(e) { console.error('[apply] radio parse failed:', (e.message||'').slice(0,200)); return []; } })();
     if (radioArr.length) {
       process.stdout.write(`[radios ${JSON.stringify(radioArr)}] `);
       sleep(1000);
@@ -868,7 +868,7 @@ function applyToJob(jobRef, userData) {
       });
       return JSON.stringify(done);
     })()`, { session: SESSION });
-    const selArr = (() => { try { return JSON.parse(selRes || '[]'); } catch { return []; } })();
+    const selArr = (() => { try { return JSON.parse(selRes || '[]'); } catch(e) { console.error('[apply] select parse failed:', (e.message||'').slice(0,200)); return []; } })();
     if (selArr.length) {
       process.stdout.write(`[selects ${JSON.stringify(selArr)}] `);
       sleep(1000);
@@ -962,7 +962,7 @@ function applyToJob(jobRef, userData) {
         });
         return JSON.stringify(out.slice(0,8));
       })()`, { session: SESSION });
-      const blockerArr = Array.isArray(blockers) ? blockers : (() => { try { return JSON.parse(blockers || '[]'); } catch { return []; } })();
+      const blockerArr = Array.isArray(blockers) ? blockers : (() => { try { return JSON.parse(blockers || '[]'); } catch(e) { console.error('[apply] blockers parse failed:', (e.message||'').slice(0,200)); return []; } })();
       if (blockerArr.length) {
         process.stdout.write(`[blocked ${JSON.stringify(blockerArr)}] `);
       }
