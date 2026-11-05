@@ -37,9 +37,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const BROWSER_JS = fs.existsSync(path.join(REPO_ROOT, 'scripts', 'browser.js'))
-  ? path.join(REPO_ROOT, 'scripts', 'browser.js')
-  : path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
+const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
 
 function fail(msg, code = 1) {
   console.error(`[linkedin-send] ${msg}`);
