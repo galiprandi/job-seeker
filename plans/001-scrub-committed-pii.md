@@ -29,8 +29,8 @@ Two tracked scripts contain the repo owner's real personal data (full name, emai
 
 ```js
 // scripts/process-captcha-forms.js:9
-const CV_PATH = '/home/galiprandi/Documents/Germán Aliprandi.pdf';
-// :20-23 — fills "Germán Aliprandi", "galiprandi@gmail.com", "+5493816187329", linkedin URL
+const CV_PATH = '/home/<user>/Documents/<Full Name>.pdf';
+// :20-23 — fills "<Full Name>", "<personal-email>", "<phone>", linkedin URL
 // :27-28 — cover letter text with personal site URL and employer claims
 // :70-78 — first/last name, age, email, country, work history
 ```
@@ -88,7 +88,7 @@ rm scripts/process-captcha-forms.js scripts/gmail-batch-send.js
 ### Step 3: Verify no personal-data patterns remain in the diff
 
 ```bash
-git diff --cached | grep -inE "galiprandi|german|gmail\.com|\+54|cencosud|linkedin\.com/in/|\.github\.io/me"
+git diff --cached | grep -inE "<user-handle>|<user-name>|gmail\.com|\+54|<employer>|linkedin\.com/in/|\.github\.io/me"
 ```
 
 **Verify**: exit 1 (no matches) — deletions show as removed lines only; any `+` line matching is a problem.
@@ -105,7 +105,7 @@ Commit the deletions. In the final report, note: the PII still exists in git his
 ## Done criteria
 
 - [ ] `git ls-files scripts/process-captcha-forms.js scripts/gmail-batch-send.js` returns nothing after commit
-- [ ] `grep -rn "galiprandi\|Germán\|3816187329" scripts/` returns no matches
+- [ ] `grep -rn "<user-handle>\|<Full Name>\|<phone>" scripts/` returns no matches
 - [ ] No files outside scope modified
 - [ ] Operator report mentions git-history exposure
 - [ ] `plans/README.md` status row updated

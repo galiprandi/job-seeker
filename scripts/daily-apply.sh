@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-REPO_DIR="/home/santialiprandi/Github/job-seeker"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$REPO_DIR/logs"
 LOG_FILE="$LOG_DIR/daily-apply-$(date +%Y-%m-%d).log"
 PID_FILE="$REPO_DIR/logs/daily-apply.pid"
