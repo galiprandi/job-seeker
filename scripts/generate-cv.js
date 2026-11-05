@@ -102,7 +102,8 @@ Options:
  */
 function getMarkdownFromDB() {
   try {
-    const sql = "SELECT data->'cv_markdown' AS md FROM users WHERE id = ${process.env.USER_ID || 1}";
+    const userId = process.env.USER_ID || 1;
+    const sql = `SELECT data->'cv_markdown' AS md FROM users WHERE id = ${userId}`;
     const raw = execSync(`node "${DB_JS}" "${sql}"`, {
       encoding: 'utf8',
       timeout: 15000,
