@@ -6,14 +6,16 @@ const { execSync } = require('child_process');
 
 function getSocial() {
   try {
-    const out = execSync('node scripts/db.js "SELECT data->\'social\' AS social FROM users WHERE id = ${process.env.USER_ID || 1}"', {
+    const userId = process.env.USER_ID || 1;
+    const out = execSync(`node scripts/db.js "SELECT data->'social' AS social FROM users WHERE id = ${userId}"`, {
       encoding: 'utf8',
       cwd: __dirname + '/..',
       timeout: 10000,
     });
     const rows = JSON.parse(out);
     return rows[0]?.social || {};
-  } catch {
+  } catch (e) {
+    console.error('[getSocial] failed:', (e.stderr || e.message || '').toString().slice(0, 300));
     return {};
   }
 }
