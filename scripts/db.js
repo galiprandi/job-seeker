@@ -71,7 +71,10 @@ const flags = {
 };
 const positional = args.filter((a) => !a.startsWith('-'));
 
-const READ_ONLY_RE = /^\s*(select|with|show|explain|values|describe)\b/i;
+// WITH is excluded: CTEs can contain writes. EXPLAIN ANALYZE executes the
+// statement, so it's excluded too. Legit read-only WITH queries still run
+// with --write (the flag is a gate, not a block).
+const READ_ONLY_RE = /^\s*(select|show|explain(?!.*\banalyze\b)|values|describe)\b/i;
 
 function usage() {
   console.log(`Usage:
@@ -161,7 +164,11 @@ async function main() {
     return;
   }
 
-  const isReadOnly = READ_ONLY_RE.test(sql);
+  const normalized = sql.trim().replace(/;$/, '');
+  if (normalized.includes(';')) {
+    fail('Multi-statement input is not allowed. Run one statement at a time.');
+  }
+  const isReadOnly = READ_ONLY_RE.test(normalized);
   if (!isReadOnly && !flags.write) {
     fail('Refusing to run a write without --write. Add --write to confirm.');
   }

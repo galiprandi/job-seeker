@@ -203,7 +203,7 @@ function main() {
     res.end('Not found');
   });
 
-  server.listen(port, () => {
+  server.listen(port, '127.0.0.1', () => {
     const url = `http://localhost:${port}`;
     console.log(`\n  Job Seeker Dashboard running at ${url}\n`);
     console.log(`  Press Ctrl+C to stop.\n`);
