@@ -128,11 +128,34 @@ function ensureConfig() {
 
 // --- site guides ---
 
+// Site slugs (directory names under sites/) where the agent composes and
+// sends messages on behalf of the user. When a guide for one of these is
+// injected, WRITING_RULE_FOOTER is appended. See sites/CONTRIBUTING.md —
+// contributors adding a messaging site must register its slug here.
+const MESSAGING_SITES = new Set([
+  'whatsapp_com',
+  'gmail_com',
+  'outlook_office_com',
+  'teams_com',
+  'linkedin_com',
+  'discord_com',
+]);
+
+const WRITING_RULE_FOOTER = `
+---
+⚠️ SITIO DE MENSAJERÍA: REGLA DE ESCRITURA
+Este sitio se usa para redactar y enviar mensajes en nombre del usuario.
+Antes de escribir o enviar cualquier mensaje, recuperá y verificá las
+preferencias de escritura que el usuario definió (tono, idioma, formato,
+espaciado, emojis). Si no las tenés frescas en el contexto actual, leé
+las fuentes de estilo configuradas para este asistente ANTES de redactar.
+Nunca envíes sin haber pasado ese chequeo.`;
+
 // Path-based guide overrides: hostname/path → specific guide file (not guide.md).
 const PATH_GUIDES = {
-  'www.google.com/maps': 'google_com/maps-guide.md',
-  'google.com/maps': 'google_com/maps-guide.md',
-  'maps.google.com': 'google_com/maps-guide.md',
+  'www.google.com/maps': 'google_maps_com/guide.md',
+  'google.com/maps': 'google_maps_com/guide.md',
+  'maps.google.com': 'google_maps_com/guide.md',
   'calendar.google.com': 'calendar_google_com/calendar-deeplink.md',
 };
 
@@ -253,7 +276,9 @@ function printGuide(url) {
   if (!guide) return;
   try {
     const content = fs.readFileSync(guide, 'utf8');
-    console.log(`\n[browser] Site guide: ${path.relative(REPO_ROOT, guide)}\n${content}`);
+    const siteSlug = path.relative(SITES_DIR, guide).split(path.sep)[0];
+    const footer = MESSAGING_SITES.has(siteSlug) ? WRITING_RULE_FOOTER : '';
+    console.log(`\n[browser] Site guide: ${path.relative(REPO_ROOT, guide)}\n${content}${footer}`);
   } catch {}
 }
 
@@ -413,6 +438,12 @@ switch (cmd) {
         .map((d) => d.name);
       console.log(dirs.join('\n'));
     } catch { console.log('(no guides found)'); }
+    break;
+  }
+
+  case 'guide-for': {
+    const guide = findGuide(rest[0]);
+    console.log(guide ? path.relative(REPO_ROOT, guide) : 'none');
     break;
   }
 

@@ -132,6 +132,61 @@ This avoids the problem of Google Maps resolving a generic street name to the wr
 - **Do NOT extract phone numbers without verifying** the business is in the correct location.
 - **Do NOT use intersection format** (`StreetA y StreetB`) in directions URLs. Use `StreetA + number` or coordinates instead.
 
+
+## Keyboard shortcuts
+
+**Always prefer keyboard shortcuts over clicking buttons.** Verified 2026-10-24 notes: `Ctrl+/` does NOT open the shortcuts dialog on google.com/maps (it toggles the transit layer) — treat it as unreliable. `/` focuses the search box but leaves a literal `/` in the input — prefer `find placeholder ... fill` or clear first.
+
+| Shortcut | Action |
+|---|---|
+| Arrow keys / `Shift+Arrow` | Pan map (small / large jump) |
+| `+` / `-` | Zoom in / out (map must be focused) |
+| `Esc` | Close popup / dialog |
+| `Ctrl+Shift+L` | Show my location |
+| `Ctrl+Shift+E` | Share or embed map |
+| `Ctrl+Shift+1..5` | Toggle satellite / traffic / transit / biking / terrain layers |
+| `Ctrl+Shift+D` | Add destination (requires directions panel open) |
+| `.` / `,` | Show/hide menu / side panel |
+
+```bash
+# Focus search box semantically (preferred over "/" which inserts a literal slash)
+node .agents/skills/browser-automation/scripts/browser.js exec find placeholder "Search Google Maps" fill "Obelisco Buenos Aires"
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
+
+# Pan / zoom (map must be focused first — click it or tab to [role=application])
+node .agents/skills/browser-automation/scripts/browser.js exec press ArrowUp
+node .agents/skills/browser-automation/scripts/browser.js exec press "+"
+```
+
+## UI flows (when URL-driven navigation is not enough)
+
+```bash
+# Directions via UI
+node .agents/skills/browser-automation/scripts/browser.js exec find label "Directions" click   # ES: "Cómo llegar"
+node .agents/skills/browser-automation/scripts/browser.js exec find placeholder "Choose destination" fill "<DEST>"   # ES: "Elige un destino..."
+node .agents/skills/browser-automation/scripts/browser.js exec press Enter
+```
+
+**URL pattern:** after opening directions the URL becomes `/dir/<from>/<to>@<lat>,<lng>,<zoom>z`. The `@lat,lng,zoom` updates as you pan/zoom — use it to verify map position:
+
+```bash
+node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
+  const m = window.location.href.match(/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+)z/);
+  return m ? { lat: m[1], lng: m[2], zoom: m[3] } : 'no match';
+})()"
+```
+
+## Detecting modals
+
+Maps panels like Keyboard Shortcuts use the `dialog` role — find them via `exec snapshot -i | grep "dialog"`.
+
+## Gotchas (UI interaction)
+
+- **Map must be focused for arrow keys and `+`/`-`** — focus `[role="application"]` first or they do nothing.
+- **`Ctrl+Shift+D` requires the directions panel open** with at least one destination set.
+- **`/` leaves a literal `/` in the search input** — use semantic locators or clear with `Ctrl+A`.
+- **There is no `exec type`** — typing into the focused element is `keyboard type`, filling a located element is `fill <sel|@eN>`.
+
 ## agent-browser notes (verified 2026-10-24)
 - First command must be `open` (`goto` requires an active session).
 - Eval must be an IIFE `(()=>{...})()` — `async () => {` snippets do not run as-is.

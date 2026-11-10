@@ -98,6 +98,16 @@ print('saved')
 "
 ```
 
+> **Output truncation caveat (verified 2026-11-02):** the wrapper output is capped at ~50,000 chars. Files whose base64 exceeds ~50KB (i.e., most voice notes longer than ~25s) come out truncated and fail to decode ("Incorrect padding" or empty files). Fix: extract the base64 in chunks under 50KB each and concatenate:
+>
+> ```bash
+> # for CHUNK in 0..N-1 (N = ceil(base64_len / 40000)):
+> #   resolve(d.slice(CHUNK*40000, (CHUNK+1)*40000))
+> # append each chunk to a file, then base64 -d
+> ```
+>
+> Quick sizing rule: 16kbps Opus → ~2KB/s → ~2.7KB base64/s, so notes under ~25s fit in one shot; longer ones need 2-3 chunks.
+
 ### Step 4: Check duration with ffprobe
 
 ```bash

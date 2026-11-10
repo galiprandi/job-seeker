@@ -22,7 +22,7 @@ Run one `exec eval` that pulls every visible `div[role="row"]` inside `#main` an
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const main = document.querySelector('#main');
   if (!main) return 'no main';
-  const rows = main.querySelectorAll('div[role=\"row\"]');
+  const rows = main.querySelectorAll('[data-pre-plain-text]');
   const results = Array.from(rows).map(r => {
     const text = r.innerText?.replace(/\n/g, ' | ') || '';
     return text.substring(0, 500);
@@ -63,7 +63,7 @@ After typing, wait 2–3 seconds and extract results:
 node .agents/skills/browser-automation/scripts/browser.js exec eval "(() => {
   const grid = document.querySelector('div[role=\"grid\"]');
   if (!grid) return 'no grid';
-  const rows = grid.querySelectorAll('div[role=\"row\"]');
+  const rows = grid.querySelectorAll('[data-pre-plain-text]');
   const results = Array.from(rows).map(r => r.innerText?.replace(/\n/g, ' | ').substring(0, 300));
   return JSON.stringify(results.filter(t => t && t.length > 0));
 })()"
