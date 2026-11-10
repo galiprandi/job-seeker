@@ -465,3 +465,8 @@ node .agents/skills/browser-automation/scripts/browser.js exec batch \
 - `exec type "<text>"` needs a ref; free typing is `exec keyboard type "<text>"` (types into current focus). `exec fill <sel> "text"` sets a field value — prefer `keyboard type` for WhatsApp's contenteditable boxes.
 - `eval` snippets must be IIFE: `(() => {...})()` or `(async () => {...})()` — a bare `async () => {...}` returns `{}` silently.
 - Search textbox residue: leftover text breaks the unread filter — clear with the "End icon" button or `press Control+a` then `press Delete`.
+
+## Message reading (verified 2026-10-24)
+- Mensajes: `[data-pre-plain-text]` contiene `[hora, remitente]`; `.message-in` incoming, `.message-out` outgoing. `div[role=row]` ya no funciona para mensajes.
+- Leer últimos: `[...document.querySelectorAll('#main [data-pre-plain-text]')].slice(-10)`
+- Click directo en rows puede fallar cubierto por overlay — preferir search (`Ctrl+Alt+/` → fill → Enter).

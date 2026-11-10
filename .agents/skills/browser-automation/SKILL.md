@@ -113,6 +113,8 @@ In all other cases, use the keyboard.
 - A persistent profile directory (gitignored) for auth state
 - Manual login for each new site (agent opens headed mode, user logs in once)
 
+Full first-time setup (Chrome, profile, config): [SETUP.md](SETUP.md)
+
 ## Limitations
 
 - **No captcha solving**: if a captcha appears, stop and ask the user
@@ -131,9 +133,9 @@ In all other cases, use the keyboard.
 - **Stale refs:** Take a fresh `find` or `snapshot` before interacting
 - **`fill` doesn't work on custom input:** Use `eval` with native value setter (see [references/key-patterns.md](references/key-patterns.md))
 - **Button click does nothing:** Use `eval` with mousedown→click→mouseup sequence
-- **SPA navigation stuck:** Poll DOM content with `eval`, don't check URL (Rule 5)
+- **SPA navigation stuck:** Poll DOM content with `eval`, don't check URL (Rule 6)
 - **401 from API:** Token expired — re-extract from localStorage
-- **Session killed:** Never use shell `sleep` — use in-page polling via `eval` (Rule 2)
+- **Session killed:** Never use shell `sleep` — use in-page polling via `eval` (Rule 3)
 - **Two browser instances:** Use `--tab`, never open twice
 - **Site returns 403 on curl/HTTP but works in browser:** Sites like Reddit block non-browser User-Agents on HTTP APIs (JSON, RSS) but do NOT block the agent-browser session in headed mode. If curl returns 403, do NOT assume the browser is also blocked. Use `goto` + `eval` in the browser. If the browser also returns 403, you are likely in headless mode — `close` and reopen with `--headed`. Some sites (Reddit) detect headless browsers and block them, but allow headed browsers with a real profile.
 
@@ -149,20 +151,33 @@ If a site has a guide, you will see it. If you don't see a guide, the site is no
 
 | App | Guide | When to load |
 |---|---|---|
-| Gmail | `sites/gmail_com/guide.md` | Before any Gmail operation (compose, reply, read inbox, search, delete) |
-| LinkedIn | `sites/linkedin_com/guide.md` | Before any LinkedIn operation (messaging, connections, jobs, Easy Apply, notifications) |
-| Microsoft Teams | `sites/teams_com/guide.md` | Before any Teams operation (send/delete messages via keyboard, Markdown support, chat navigation) |
-| Outlook Web | `sites/outlook_office_com/guide.md` | Before any Outlook Web operation (read, compose, reply, archive, search) |
-| WhatsApp Web | `sites/whatsapp_com/guide.md` | Before any WhatsApp operation (send messages, read conversations, voice notes) |
-| Discord | `sites/discord_com/guide.md` | Before any Discord operation (messaging, navigation, voice) |
-| Jira | `sites/jira_com/guide.md` | Before any Jira operation (create issue, add comment, transition status) |
-| Teamtailor | `sites/teamtailor_com/guide.md` | Before applying to jobs on Teamtailor-based career sites |
-| Humand.co | `sites/humand_co/guide.md` | Before applying to jobs on Humand.co-based career sites |
-| Reddit | `sites/reddit_com/guide.md` | Before any Reddit operation (reading posts/comments, posting submissions, replying to comments, posting in megathreads) |
-| Google Maps | `sites/google_com/maps-guide.md` | Before any Google Maps operation (search, directions, navigation, layers) |
-| Facebook | `sites/facebook_com/guide.md` | Before any Facebook operation (groups, feed, chat, posts) |
+| AFIP (AR) | `sites/afip_gob_ar/guide.md` | Before any AFIP operation |
+| Buk ATS | `sites/buk_co/guide.md` | Before applying to jobs on Buk-based ATS |
+| Calendly | `sites/calendly_com/guide.md` | Before any Calendly operation (scheduling, event types) |
+| EPAM Careers | `sites/careers_epam_com/guide.md` | Before applying to jobs on EPAM careers |
 | Cloudflare Dashboard | `sites/dash_cloudflare_com/guide.md` | Before any Cloudflare operation (Quick Search, ARIA tablist navigation, Email Routing, DNS) |
+| Discord | `sites/discord_com/guide.md` | Before any Discord operation (messaging, navigation, voice) |
+| Google Docs/Sheets | `sites/docs_google_com/guide.md` | Before any Docs/Sheets/Slides operation |
+| Facebook | `sites/facebook_com/guide.md` | Before any Facebook operation (groups, feed, chat, posts) |
+| Gmail | `sites/gmail_com/guide.md` | Before any Gmail operation (compose, reply, read inbox, search, delete) |
+| Google Search | `sites/google_com/guide.md` | Before any Google Search operation |
+| Google Home | `sites/google_home_com/guide.md` | Before any Google Home operation |
+| Google Maps | `sites/google_maps_com/guide.md` | Before any Google Maps operation (search, directions, navigation, layers) |
+| Humand.co | `sites/humand_co/guide.md` | Before applying to jobs on Humand.co-based career sites |
+| Jira | `sites/jira_com/guide.md` | Before any Jira operation (create issue, add comment, transition status) |
+| LinkedIn | `sites/linkedin_com/guide.md` | Before any LinkedIn operation (messaging, connections, jobs, Easy Apply, notifications) |
+| Onstrider | `sites/onstrider_com/guide.md` | Before any Onstrider operation |
+| Outlook Web | `sites/outlook_office_com/guide.md` | Before any Outlook Web operation (read, compose, reply, archive, search) |
+| Property directories | `sites/property_directory/guide.md` | Before scraping property rental directories |
+| Reddit | `sites/reddit_com/guide.md` | Before any Reddit operation (reading posts/comments, posting submissions, replying to comments, posting in megathreads) |
+| Microsoft Teams | `sites/teams_com/guide.md` | Before any Teams operation (send/delete messages via keyboard, Markdown support, chat navigation) |
+| Teamtailor | `sites/teamtailor_com/guide.md` | Before applying to jobs on Teamtailor-based career sites |
+| Vea (AR) | `sites/vea_com_ar/guide.md` | Before any Vea supermarket operation |
 | Web3Forms | `sites/app_web3forms_com/guide.md` | Before any Web3Forms operation (submissions, settings, spam protection, form config) |
+| WhatsApp Web | `sites/whatsapp_com/guide.md` | Before any WhatsApp operation (send messages, read conversations, voice notes) |
+| Work at a Startup | `sites/workatastartup_com/guide.md` | Before applying via YC's Work at a Startup |
+
+**Learnings only (no `guide.md` yet):** `sites/calendar_google_com/`, `sites/groq_com/`.
 
 **Before each interaction with a documented site:** grep the specific pattern you need (compose, reply, send, fill, contenteditable, etc.) in the site guide. Do not trial-and-error blindly. The guides contain validated methods and explicit warnings about what does NOT work.
 
@@ -417,6 +432,7 @@ See [references/api-capture.md](references/api-capture.md) for the capture scrip
 - [references/network-console.md](references/network-console.md) — Network inspection & console commands
 - [references/efficiency-patterns.md](references/efficiency-patterns.md) — Token-saving patterns
 - [references/ats-patterns.md](references/ats-patterns.md) — ATS-specific patterns (Ashby, scheduling links)
+- [references/custom-combobox.md](references/custom-combobox.md) — Transient dropdown/combobox strategy ladder
 
 ## Contributing learnings back to this skill
 
@@ -514,8 +530,8 @@ Cuts ~50% of wait time vs sleeps and removes timing false-positives. Default tim
 
 ## batch (multiple commands in one call)
 
-`agent-browser batch "cmd1" "cmd2"` runs commands sequentially with no extra process spawn — lower overhead and, critically, minimal latency between commands (required for two-key sequences like Gmail's `g`+`i`). Note: JS inside wait/eval args needs correct nested quoting — prefer batch for simple sequences (open+wait+eval) and verify.
+`exec batch "cmd1" "cmd2"` runs commands sequentially in one daemon call — lower overhead and, critically, minimal latency between commands (required for two-key sequences like Gmail's `g`+`i`). Note: JS inside wait/eval args needs correct nested quoting — prefer batch for simple sequences and verify.
 
 ```bash
-agent-browser batch "open <url>" "wait --fn '<js>'" "eval '<js>'"   # all in 1 call
+node .agents/skills/browser-automation/scripts/browser.js exec batch "goto <url>" "wait --fn '<js>'" "eval '<js>'"
 ```
