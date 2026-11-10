@@ -27,3 +27,6 @@ logs/
 .browser-profile-*/
 assets/*.pdf
 logs/
+
+# Browser downloads (may contain personal docs)
+downloads/
