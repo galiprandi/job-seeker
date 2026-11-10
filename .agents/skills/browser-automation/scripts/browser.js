@@ -143,13 +143,13 @@ const MESSAGING_SITES = new Set([
 
 const WRITING_RULE_FOOTER = `
 ---
-⚠️ SITIO DE MENSAJERÍA: REGLA DE ESCRITURA
-Este sitio se usa para redactar y enviar mensajes en nombre del usuario.
-Antes de escribir o enviar cualquier mensaje, recuperá y verificá las
-preferencias de escritura que el usuario definió (tono, idioma, formato,
-espaciado, emojis). Si no las tenés frescas en el contexto actual, leé
-las fuentes de estilo configuradas para este asistente ANTES de redactar.
-Nunca envíes sin haber pasado ese chequeo.`;
+⚠️ MESSAGING SITE: WRITING RULES
+This site is used to draft and send messages on behalf of the user.
+Before writing or sending any message, retrieve and verify the user's
+defined writing preferences (tone, language, format, spacing, emojis).
+If they are not fresh in the current context, read the style sources
+configured for this assistant BEFORE drafting.
+Never send without completing that check.`;
 
 // Path-based guide overrides: hostname/path → specific guide file (not guide.md).
 const PATH_GUIDES = {
