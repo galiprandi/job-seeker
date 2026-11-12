@@ -31,7 +31,7 @@ On first run the wrapper creates `agent-browser.json` in the repo root from `age
   "$schema": "https://agent-browser.dev/schema.json",
   "namespace": "<repo-name>",
   "profile": "./.browser-profile",
-  "headed": true,
+  "headed": false,
   "idleTimeout": "0",
   "downloadPath": "./downloads",
   "screenshotDir": "./screenshots",
