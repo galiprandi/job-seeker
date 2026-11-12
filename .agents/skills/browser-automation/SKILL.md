@@ -412,6 +412,7 @@ See [references/api-capture.md](references/api-capture.md) for the capture scrip
 - **Don't** commit `.browser-profile/` or any auth state file
 - **Don't** open a second browser instance if one is already running (use tabs)
 - **Don't** use `--headless` flag (it's the default; use `--headed` when you need visible)
+- **Headless is the default** (`"headed": false` in `agent-browser.json`): browsers run without a window so multiple agents never fight for OS focus. Escalate to headed ONLY when a human must act: captcha, login/credential entry, 2FA, QR scan, or a site that blocks headless. Flow: `close` → `open --headed <url>` → user solves → continue (optionally `close` + `open` to return to headless). The `.browser-profile/` persists across mode switches; only open tabs are lost.
 - **Don't** try to solve captchas programmatically (open headed and ask the user)
 - **Don't** use shell `sleep` between separate CLI calls (kills the session, see Rule 3)
 - **Don't** split wait + click + verify into separate CLI calls (batch into one eval, see Rule 7)
