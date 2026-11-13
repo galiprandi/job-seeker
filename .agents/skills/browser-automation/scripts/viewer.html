@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Acceso temporal</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;background:#000;color:#eee;font-family:system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+  #bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#111;font-size:12px;flex-shrink:0}
+  #dot{width:9px;height:9px;border-radius:50%;background:#f44}
+  #dot.on{background:#4c4}
+  #url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.7}
+  #exp{opacity:.7;font-variant-numeric:tabular-nums}
+  #kbdBtn{background:#333;border:0;color:#eee;border-radius:6px;padding:4px 10px;font-size:16px}
+  #tabs{display:none;gap:6px;padding:6px 10px;background:#0d0d0d;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch}
+  #tabs.on{display:flex}
+  .tab{flex-shrink:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#262626;border:1px solid #3a3a3a;color:#bbb;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .tab.active{background:#1d4ed8;border-color:#3b82f6;color:#fff}
+  #stage{flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center;background:#000;touch-action:none;overflow:hidden}
+  #view{display:block;user-select:none;-webkit-user-select:none}
+  #kbd{display:none;padding:8px;background:#1a1a1a;flex-shrink:0}
+  #kbd.open{display:block}
+  #typebox{width:100%;padding:10px;font-size:16px;border-radius:8px;border:1px solid #444;background:#0d0d0d;color:#eee}
+  #hint{font-size:11px;opacity:.5;padding:4px 2px}
+</style></head><body>
+<div id="bar"><span id="dot"></span><span id="url">conectando…</span><span id="exp"></span><button id="kbdBtn">Teclado</button></div>
+<div id="tabs"></div>
+<div id="stage"><img id="view" alt=""></div>
+<div id="kbd" class="open"><input id="typebox" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus placeholder="Tocá un campo del navegador y escribí acá"><div id="hint">Los caracteres se escriben en el campo que tocaste. Enter = Enter remoto. Las teclas Backspace/Delete funcionan.</div></div>
+<script>
+const K="%%K%%";
+const EXPIRES=%%EXPIRES%%;
+const img=document.getElementById('view'),stage=document.getElementById('stage'),
+      dot=document.getElementById('dot'),urlEl=document.getElementById('url'),expEl=document.getElementById('exp'),
+      kbd=document.getElementById('kbd'),typebox=document.getElementById('typebox'),
+      tabsEl=document.getElementById('tabs');
+document.getElementById('kbdBtn').onclick=()=>kbd.classList.toggle('open');
+function renderTabs(m){const list=(m.tabs||[]).filter(t=>!t.type||t.type==='page');
+  if(list.length<2){tabsEl.classList.remove('on');tabsEl.innerHTML='';return;}
+  tabsEl.classList.add('on');
+  tabsEl.innerHTML=list.map(t=>`<button class="tab${t.active?' active':''}" data-tab="${t.tabId}">${(t.title||t.url||t.tabId).slice(0,60)}</button>`).join('');
+  tabsEl.querySelectorAll('.tab').forEach(b=>b.onclick=()=>send({type:'__tab',tab:b.dataset.tab}));}
+let ws=null,vw=0,vh=0,seq=0;
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
+function scale(e){const r=img.getBoundingClientRect();
+  if(!vw||!vh)return{x:0,y:0};
+  // object-fit:contain letterboxes the frame inside the img box — map through
+  // the painted rect, not the element rect.
+  const s=Math.min(r.width/vw,r.height/vh),pw=vw*s,ph=vh*s;
+  const px=r.left+(r.width-pw)/2,py=r.top+(r.height-ph)/2;
+  return {x:Math.round((e.clientX-px)/s),y:Math.round((e.clientY-py)/s)};}
+function mod(m){let v=0;if(m.altKey)v|=1;if(m.ctrlKey)v|=2;if(m.metaKey)v|=4;if(m.shiftKey)v|=8;return v;}
+const VK={Enter:13,Backspace:8,Tab:9,Escape:27,Delete:46,Home:36,End:35,PageUp:33,PageDown:34,' ':32,
+  ArrowLeft:37,ArrowUp:38,ArrowRight:39,ArrowDown:40};
+function keyPayload(key,code,text,evt){return{type:'input_keyboard',eventType:'keyDown',key,code:code||'',
+  text:text||'',windowsVirtualKeyCode:VK[key]||(key&&key.length===1?key.toUpperCase().charCodeAt(0):0),
+  modifiers:mod(evt||{})};}
+function sendChar(ch){send(keyPayload(ch,'',ch,{}));send({...keyPayload(ch,'',ch,{}),eventType:'keyUp'});}
+function sendSpecial(key){const p=keyPayload(key,'','',{});send(p);send({...p,eventType:'keyUp'});}
+// pointer → mouse
+const pts=new Map();let lastMove=0;
+stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const p=scale(e);send({type:'input_mouse',eventType:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1,modifiers:0});e.preventDefault();});
+stage.addEventListener('pointerup',e=>{pts.delete(e.pointerId);
+  const p=scale(e);send({type:'input_mouse',eventType:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1,modifiers:0});});
+stage.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const now=Date.now();if(now-lastMove<50)return;lastMove=now;
+  if(pts.size>=2){const a=[...pts.values()];send({type:'input_mouse',eventType:'mouseWheel',x:0,y:0,button:'none',clickCount:0,deltaX:0,deltaY:(a[0].y-a[1].y)*3,modifiers:0});return;}
+  const p=scale(e);send({type:'input_mouse',eventType:'mouseMoved',x:p.x,y:p.y,button:'none',clickCount:0,modifiers:0});});
+stage.addEventListener('wheel',e=>{e.preventDefault();const p=scale(e);
+  send({type:'input_mouse',eventType:'mouseWheel',x:p.x,y:p.y,button:'none',clickCount:0,deltaX:-e.deltaX,deltaY:e.deltaY,modifiers:0});},{passive:false});
+// typing box → remote keystrokes. The input behaves like a normal editable
+// field: `typed` tracks the believed remote content and each edit is mapped to
+// appended chars / Backspaces; complex edits (middle changes, paste over a
+// selection) trigger a full remote-field resync (Ctrl+A, Backspace, retype).
+let composing=false,typed='';
+function resyncRemote(str){
+  const p=keyPayload('a','KeyA','a',{ctrlKey:true});
+  send(p);send({...p,eventType:'keyUp'});
+  sendSpecial('Backspace');
+  for(const ch of str)sendChar(ch);
+}
+typebox.addEventListener('compositionstart',()=>{composing=true;});
+typebox.addEventListener('compositionend',()=>{composing=false;});
+typebox.addEventListener('input',()=>{
+  if(composing)return;
+  const v=typebox.value;
+  if(v===typed)return;
+  if(v.startsWith(typed)){const add=v.slice(typed.length);for(const ch of add)sendChar(ch);}
+  else if(typed.startsWith(v)){for(let i=0;i<typed.length-v.length;i++)sendSpecial('Backspace');}
+  else resyncRemote(v);
+  typed=v;
+});
+typebox.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendSpecial('Enter');typed='';typebox.value='';typebox.blur();kbd.classList.remove('open');}});
+// physical keyboard (desktop)
+window.addEventListener('keydown',e=>{if(document.activeElement===typebox)return;e.preventDefault();
+  const p=keyPayload(e.key,e.code,e.key.length===1?e.key:'',e);send(p);send({...p,eventType:'keyUp'});});
+window.addEventListener('keyup',e=>{if(document.activeElement===typebox)return;});
+// focus the typing box so mobile keyboards open immediately
+typebox.focus();
+// size the frame to fit the stage and anchor it to the bottom (next to the
+// keyboard) instead of letterboxing it in the middle
+function fit(){if(!vw||!vh)return;const r=stage.getBoundingClientRect();
+  const s=Math.min(r.width/vw,r.height/vh);
+  img.style.width=Math.floor(vw*s)+'px';img.style.height=Math.floor(vh*s)+'px';}
+window.addEventListener('resize',fit);
+// ws
+function connect(){
+  ws=new WebSocket(location.origin.replace(/^http/,'ws')+'/ws?k='+encodeURIComponent(K)+'&pacing=ack&maxFps=8');
+  ws.onopen=()=>{dot.classList.add('on');send({type:'config',pacing:'ack',maxFps:8});};
+  ws.onclose=()=>{dot.classList.remove('on');urlEl.textContent='desconectado — recargá para reintentar';setTimeout(connect,2000);};
+  ws.onmessage=ev=>{const m=JSON.parse(ev.data);
+    if(m.type==='frame'){img.src='data:image/jpeg;base64,'+m.data;seq=m.seq;
+      if(m.metadata){vw=m.metadata.deviceWidth||vw;vh=m.metadata.deviceHeight||vh;fit();}
+      img.onload=()=>send({type:'ack',seq});}
+    else if(m.type==='url'){urlEl.textContent=m.url||m.data||'';typed='';typebox.value='';}
+    else if(m.type==='status'&&m.url){urlEl.textContent=m.url;typed='';typebox.value='';}
+    else if(m.type==='tabs'){renderTabs(m);
+      const act=(m.tabs||[]).find(t=>t.active);
+      if(act&&(act.url||act.title))urlEl.textContent=act.url||act.title;}
+  };
+}
+connect();
+const iv=setInterval(()=>{const s=Math.max(0,Math.round((EXPIRES-Date.now())/1000));
+  expEl.textContent=s>0?'⏱ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'):'⏱ vencido';
+  if(s<=0)clearInterval(iv);},1000);
+</script></body></html>

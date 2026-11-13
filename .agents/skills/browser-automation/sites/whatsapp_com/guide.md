@@ -431,6 +431,8 @@ node .agents/skills/browser-automation/scripts/browser.js exec batch \
 
 **Anti-pattern:** Sending a single wall of text. Recipients reading on mobile will struggle. Keep paragraphs to 1-2 sentences each.
 
+**Unicode/emoji (verified 2026-11, headless):** `keyboard type` may drop emoji and non-ASCII. Use `keyboard inserttext "<line>"` per line instead — it handles all unicode but truncates at `\n`, so one call per line with `press Shift+Enter` between lines (two consecutive `Shift+Enter` = blank line). `document.execCommand('insertText')`, `navigator.clipboard.writeText` + `Ctrl+V` (permission denied headless), and synthetic `ClipboardEvent('paste')` all FAIL — WA requires trusted events. Before sending, verify structure via `<p>` count (`querySelectorAll('p')`, empty `<p><br></p>` = blank line) — `innerText` over-reports `\n` on the Lexical editor.
+
 ## Voice note transcription via Cache Storage
 
 > See also: `voice-notes.md` in this directory for the full transcription flow.

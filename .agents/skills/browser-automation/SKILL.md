@@ -404,6 +404,61 @@ When an app's internal API is undocumented, capture network requests to discover
 
 See [references/api-capture.md](references/api-capture.md) for the capture script and usage patterns.
 
+## Remote browser share (user watches/controls from their phone)
+
+`browser-share.js` gives the user a temporary live view of this repo's browser
+with remote click/type — for credential entry, "show me what you're doing",
+remote login, etc. The agent never sees typed passwords: keystrokes go from the
+user's device straight into the remote page.
+
+**When to use it** — launch this script whenever the user asks to see or take
+over the browser, in any phrasing: "mostrame la pantalla/el navegador/la
+ventana", "quiero ver el navegador", "pasame acceso", "dejame entrar yo",
+"necesito ingresar la contraseña", "show me what you're doing", or when a site
+requires credentials/2FA the agent cannot provide. Don't make the user ask for
+the tool by name — recognize the intent and run it.
+
+**When NOT to use it:** if the agent runs on the same computer the user is
+physically sitting at, the user can already see the browser window — just tell
+them to look at it (or use `--headed` so the window is visible) instead of
+exposing a link. `browser-share` is for remote viewing: agent on a different
+machine, or user away from the computer using their phone.
+
+**Which mode:**
+- Credential entry or a single focused page → default mode with the URL
+  (isolated single-tab instance, cleanest and safest).
+- "Show me what you're doing" / observe multi-step work → `--attach` so the
+  user sees all open tabs with the tab bar.
+
+Always tell the user the link is temporary (≤5 min unless they ask for
+`--ttl 0`) and send it over the chat channel.
+
+```bash
+# Fresh isolated instance: single tab on <url>, nothing else exposed
+node .agents/skills/browser-automation/scripts/browser-share.js <url> [--ttl <sec>] [--viewport <WxH>] [--headed] [--lan]
+
+# Attach to the running session: all open tabs, switchable in the viewer
+node .agents/skills/browser-automation/scripts/browser-share.js --attach [--ttl <sec>] [--lan]
+```
+
+- Prints a `https://*.trycloudflare.com/?k=<token>` link — send it to the user
+  (Telegram). `--lan` skips the tunnel and prints a `http://<lan-ip>:<port>`
+  link instead (same WiFi only). cloudflared resolves via PATH or `npx -y`.
+- TTL: default 300s and clamped to 300s max; `--ttl 0` = infinite, explicit
+  opt-in only. Teardown kills tunnel+viewer; the browser stays open.
+- Default mode restarts this repo's browser with a single tab (cookies persist
+  in `.browser-profile`); other repos/agents are unaffected. `--attach` shares
+  the live session — the viewer shows a tab bar to switch tabs remotely.
+- Requires Node ≥22. Random ports per run — no collisions between agents.
+- The viewer UI lives in `scripts/viewer.html` (served with `%%K%%`/`%%EXPIRES%%`
+  placeholders substituted per run) — edit it there to iterate on the UI.
+- The stream WS only accepts localhost origins, so the viewer page is served by
+  the script's own server which bridges to `ws://127.0.0.1:<streamport>`.
+- `--viewport <WxH>` sets the remote viewport (default `1280x720`, VNC-like
+  desktop view; `390x844` gives a mobile layout, `desktop` keeps native size).
+- Gotcha: `agent-browser open` relaunches and wipes all tabs when a browser is
+  already running — that's exactly what the default mode wants here.
+
 ## Anti-patterns
 
 - **Don't** use snapshot + find + click when a keyboard shortcut exists — use `exec press` instead
