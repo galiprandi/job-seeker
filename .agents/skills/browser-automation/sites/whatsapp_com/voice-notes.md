@@ -1,6 +1,6 @@
 ---
 name: whatsapp-web-voice-notes
-description: Extract and transcribe WhatsApp Web voice notes from the browser's Cache Storage using Groq's Whisper API. Use when you need to read the content of a voice message.
+description: Extract WhatsApp Web voice notes from the browser's Cache Storage and transcribe them locally. Use when you need to read the content of a voice message.
 ---
 
 # WhatsApp Web — Voice Note Extraction & Transcription
@@ -13,8 +13,8 @@ You need to know the content of a WhatsApp Web voice note (push-to-talk audio me
 
 - A WhatsApp Web session is authenticated and the conversation containing the voice note is open.
 - The voice note has been played at least once (this triggers WhatsApp to fetch and cache the audio). If it hasn't been played, click the play button first.
-- `ffmpeg` installed locally (for duration inspection).
-- A Groq API key (`GROQ_API_KEY` env var). See `groq_com/signup-apikey.md` for setup.
+- `ffmpeg`/`ffprobe` installed locally (for duration inspection).
+- Nothing else — transcription runs locally via `audio-transcription` (auto-installed on first use, ~640MB one-time download to `~/.cache/audio-transcription`). See `references/audio-transcription.md`.
 
 ## Why DOM extraction fails
 
@@ -114,24 +114,13 @@ print('saved')
 ffprobe audios/voice_<INDEX>.ogg 2>&1 | grep "Duration"
 ```
 
-### Step 5: Transcribe with Groq API
+### Step 5: Transcribe locally
 
 ```bash
-curl -s -X POST "https://api.groq.com/openai/v1/audio/transcriptions" \
-  -H "Authorization: Bearer $GROQ_API_KEY" \
-  -F "file=@audios/voice_<INDEX>.ogg" \
-  -F "model=whisper-large-v3-turbo" \
-  -F "language=es" \
-  -F "response_format=json"
+node .agents/skills/browser-automation/scripts/transcribe-audio.js audios/voice_<INDEX>.ogg
 ```
 
-Response:
-
-```json
-{"text":" <transcribed text>","x_groq":{"id":"req_..."}}
-```
-
-Use `whisper-large-v3-turbo` for speed or `whisper-large-v3` for maximum accuracy. Both run on Groq's servers and return in seconds.
+Prints the transcript to stdout and writes `audios/voice_<INDEX>.txt` next to it. Fully local (sherpa-onnx Parakeet) — no API key, audio never leaves the machine. First run downloads the model once; later runs take seconds. See `references/audio-transcription.md` for options (`--stdout-only`, `--threads`, `--out`).
 
 ### Step 6: Clean up
 
@@ -158,32 +147,20 @@ If two files have similar durations, transcribe both and pick the one whose cont
 - **Do not** look for `<audio>` elements in the DOM — WhatsApp Web does not use them for voice notes.
 - **Do not** rely on network interception alone — the audio may already be cached from a previous play.
 - **Do not** assume the first Ogg file in the cache is the target — always match by duration.
-- **Do not** use local `openai-whisper` with `--model large` on CPU — it is very slow. Use Groq's API instead, which is faster and free.
+- **Do not** use local `openai-whisper` with `--model large` on CPU — it is very slow and heavy. Use `transcribe-audio.js` (Parakeet int8 via sherpa-onnx) instead: ~3x realtime, ~650MB RAM.
 
 ## Limitations
 
 - The voice note must have been played or pre-fetched at least once for it to appear in Cache Storage.
 - The Cache Storage key `lru-media-array-buffer-cache` may change in future WhatsApp Web versions.
 - The cache is LRU-based; old media may be evicted if many files are loaded.
-- Groq free tier has rate limits; for bulk transcription, add delays between requests.
-- Audio is uploaded to Groq servers for processing. If the audio is sensitive, consider local transcription with `openai-whisper` as a fallback.
-
-## Local transcription fallback (no API key)
-
-If Groq is unavailable or the audio is sensitive, use `openai-whisper` locally:
-
-```bash
-pip install --break-system-packages openai-whisper
-python3 -m whisper audios/voice_<INDEX>.ogg --language Spanish --model tiny
-```
-
-This requires ~500 MB of dependencies (torch). Use `--model tiny` for speed or `--model base` for accuracy. Slower than Groq but runs entirely offline.
+- Transcription is serialized machine-wide: concurrent voice notes queue rather than run in parallel (protects CPU).
+- Parakeet v3 covers 25 European languages; heavy code-switching or very noisy audio may transcribe worse than Whisper-large. If quality is insufficient, report it — the engine can be swapped inside `audio-transcription`.
 
 ## Notes
 
 - WhatsApp voice notes are Ogg/Opus format, mono, 16-48 kHz.
 - The Cache API is accessible via `caches.open()` in the page context.
 - Other media types in the cache: JPEG (`ÿØÿà`), WAV/RIFF (`RIFF`).
-- Groq API is OpenAI-compatible: base URL `https://api.groq.com/openai/v1`.
 
-**Validated:** 2026-08-21 against live `web.whatsapp.com` with Groq `whisper-large-v3-turbo` and `whisper-large-v3` models.
+**Validated:** 2026-08-21 against live `web.whatsapp.com`; transcription path updated 2026-11-14 to local `audio-transcription` (was Groq Whisper).

@@ -489,6 +489,7 @@ node .agents/skills/browser-automation/scripts/browser-share.js --attach [--ttl 
 - [references/efficiency-patterns.md](references/efficiency-patterns.md) — Token-saving patterns
 - [references/ats-patterns.md](references/ats-patterns.md) — ATS-specific patterns (Ashby, scheduling links)
 - [references/custom-combobox.md](references/custom-combobox.md) — Transient dropdown/combobox strategy ladder
+- [references/audio-transcription.md](references/audio-transcription.md) — Local audio→text for any source (no API keys)
 
 ## Contributing learnings back to this skill
 
