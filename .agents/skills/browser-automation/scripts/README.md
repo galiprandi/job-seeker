@@ -29,6 +29,16 @@ Environment: `BROWSER_DEBUG=1` for verbose logging; `AGENT_BROWSER_*` vars pass 
 
 See `SKILL.md` for the full usage reference.
 
+## `transcribe-audio.js`
+
+Local audio→text transcription (sherpa-onnx Parakeet via the `audio-transcription` npm package). No API keys, no cloud — audio never leaves the machine. Auto-installs the package into `~/.cache/agent-tools` on first use; the model/runtime (~640MB) downloads once into `~/.cache/audio-transcription`, shared by all agents on the machine.
+
+```bash
+node .agents/skills/browser-automation/scripts/transcribe-audio.js <audio-file> [--out f.txt] [--stdout-only] [--threads N]
+```
+
+See `../references/audio-transcription.md` for details and limitations.
+
 ## `teams.js`
 
 Helper for sending messages to Microsoft Teams web via keyboard automation. Useful for long or multiline messages where typing line by line manually is impractical.
