@@ -10,7 +10,15 @@ Recruiters post vacancies as feed posts before/instead of job listings. Post-min
 
 ## Query anatomy (validated)
 
-`/search/results/content/?keywords=<kw>&sortBy=%22date_posted%22`
+`/search/results/content/?keywords=<kw>&datePosted=%22past-week%22&sortBy=%22date_posted%22`
+
+`datePosted` is optional (`past-24h`, `past-week`, `past-month`); `past-week` keeps the results to openings that are still active. The script does the same:
+
+```bash
+node scripts/linkedin-search.js '"estamos buscando" backend argentina' --date-posted past-week --scroll 3 --json
+```
+
+It returns one object per post: `author`, `vanity` (profile slug), `email` (if written in the post), `when` (age shown by LinkedIn), `url` (when LinkedIn exposes it) and `content`.
 
 - **Employer voice (required):** `"we are hiring"`, `"estamos buscando"`, `"busco"`, `"sumamos al equipo"`, `"te estamos buscando"`, `"vacante"`, `"abrimos vacante"`
 - **Role signal (required):** developer, engineer, software, programador, frontend, backend, python, javascript, QA, data — without a role word, employer voice surfaces non-tech roles

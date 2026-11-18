@@ -16,6 +16,7 @@
  *   --scroll <n>   Number of times to scroll down for more results (default: 2)
  *   --json         Output raw JSON (default: human-readable table)
  *   --session <name> Browser session name (default: "default". Use a different name for parallel agents)
+ *   --date-posted <v> LinkedIn date filter: past-24h | past-week | past-month (default: none)
  *
  * Exit codes:
  *   0 = success (results found)
@@ -26,6 +27,7 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const { evalJSON } = require('../lib/browser-helpers');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
@@ -124,6 +126,37 @@ function extractPosts(snap) {
   return posts;
 }
 
+/**
+ * 2026 content-search UI: each post is a div two levels above a visually hidden
+ * "Publicación en el feed" / "Feed post" label, without the old control-menu
+ * button. Read posts straight from the DOM.
+ */
+function extractPostsFromDOM() {
+  const out = evalJSON(`(function(){
+    const labels = [...document.querySelectorAll('main span, main h2')].filter(e =>
+      e.children.length === 0 && /^(Publicación en el feed|Feed post)$/.test(e.textContent.trim()));
+    const posts = [];
+    for (const l of labels) {
+      let c = l.parentElement;
+      for (let i = 0; i < 6 && c && !c.querySelector('a[href*="/in/"], a[href*="/company/"]'); i++) c = c.parentElement;
+      if (!c) continue;
+      const lines = (c.innerText || '').split(String.fromCharCode(10)).map(s => s.trim()).filter(Boolean)
+        .filter(s => !/^(Publicación en el feed|Feed post)$/.test(s));
+      const profile = c.querySelector('a[href*="/in/"]');
+      const vanity = profile ? (profile.href.match(/\\/in\\/([^/?#]+)/) || [])[1] || null : null;
+      const text = lines.join(' ');
+      const email = (text.match(/[\\w.+-]+@[\\w-]+\\.[\\w.]+/) || [null])[0];
+      const when = lines.slice(0, 8).find(s => /^\\d+\\s?(min|h|d|sem|w|mo)/.test(s)) || '';
+      const update = c.querySelector('a[href*="/feed/update/"], a[href*="/posts/"]');
+      posts.push({ author: lines[0] || '', vanity, email, when,
+        url: update ? update.href.split('?')[0] : null,
+        content: lines.slice(1).join(' ').substring(0, 1500) });
+    }
+    return JSON.stringify(posts);
+  })()`, { session: SESSION });
+  return Array.isArray(out) ? out : [];
+}
+
 function filterRelevant(posts, keywords) {
   // Extract search terms from the keywords string (split by OR, strip quotes)
   const searchTerms = keywords
@@ -145,7 +178,8 @@ function filterRelevant(posts, keywords) {
 function dedupe(posts) {
   const seen = new Set();
   return posts.filter((p) => {
-    const key = p.vanity || p.author;
+    // One author can publish several openings: key on author + content start.
+    const key = `${p.vanity || p.author}|${(p.content || '').substring(0, 80)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -162,6 +196,7 @@ function main() {
   const keywords = args[0];
   let scrollCount = 2;
   let jsonOutput = false;
+  let datePosted = null;
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--scroll' && args[i + 1]) {
@@ -169,11 +204,13 @@ function main() {
       i++;
     }
     else if (args[i] === '--session' && args[i + 1]) { SESSION = args[i + 1]; i++; }
+    else if (args[i] === '--date-posted' && args[i + 1]) { datePosted = args[i + 1]; i++; }
     if (args[i] === '--json') jsonOutput = true;
   }
 
   const encodedKeywords = encodeURIComponent(keywords);
-  const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodedKeywords}&sortBy=%22date_posted%22`;
+  const dateFilter = datePosted ? `&datePosted=${encodeURIComponent(`"${datePosted}"`)}` : '';
+  const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodedKeywords}${dateFilter}&sortBy=%22date_posted%22`;
 
   // Navigate to search (exec navigate forwards --session; wrapper goto does not)
   cli(`navigate "${searchUrl}"`);
@@ -181,14 +218,16 @@ function main() {
 
   // Collect posts from initial load + scrolls
   let allPosts = [];
-  let snap = snapshot();
-  allPosts.push(...extractPosts(snap));
+  const collect = () => {
+    const fromDom = extractPostsFromDOM();
+    allPosts.push(...(fromDom.length ? fromDom : extractPosts(snapshot())));
+  };
+  collect();
 
   for (let i = 0; i < scrollCount; i++) {
     scroll(5000);
     sleep(3000);
-    snap = snapshot();
-    allPosts.push(...extractPosts(snap));
+    collect();
   }
 
   // Dedupe and filter

@@ -1,7 +1,7 @@
 ---
 name: linkedin
 description: Automate LinkedIn with agent-browser. Covers messaging (send text + attachments via Voyager endpoints), bulk inbox fetch, profile navigation, job search, Easy Apply, connection requests, notifications, saved jobs, and the tiptap editor fix. Use when sending LinkedIn messages, reading inbox, applying to jobs, connecting with people, or extracting profile data. Part of the browser-automation skill.
-verified: 2026-09-02
+verified: 2026-11-18
 domains:
   - linkedin.com
   - www.linkedin.com
@@ -333,9 +333,23 @@ URL parameters:
 
 ```bash
 node .agents/skills/browser-automation/scripts/browser.js goto "https://www.linkedin.com/jobs/search/?keywords=<keywords>&location=<loc>&f_AL=true&f_WT=2&sortBy=DD"
-# Poll for main (up to 10s), then extract:
-# querySelectorAll('main .job-card-container, [data-job-id]') → map { title: h3/.job-title, company: h4/.company-name, easyApply: textContent.includes('Easy Apply'), url: a[href] }
+# Poll for main (up to 10s), scroll the list (see below), then extract the job cards.
 ```
+
+**Job card DOM (verified 2026-11-18).** The current search UI no longer renders `.job-card-container`, `[data-job-id]`, `li[data-occludable-job-id]` or `a[href*="/jobs/view/"]` in the result list. Each card is:
+
+```html
+<div componentkey="job-card-component-ref-<jobId>"> … </div>   <!-- rendered twice per card -->
+```
+
+- **Job id:** the digits at the end of `componentkey`. The job URL is `https://www.linkedin.com/jobs/view/<jobId>/`; there is no link to read it from.
+- **Fields:** no stable classes. Split the card's `innerText` by newline, drop empty lines, `·`, and consecutive duplicates (the title is rendered twice). Then line 0 = title, line 1 = company, line 2 = location. The selected card starts with an extra `Seleccionado, <title>` / `Selected, <title>` line: drop it.
+- **Flags in the text:** `Solicitud sencilla` / `Easy Apply` = Easy Apply. `Solicitados` / `Applied` = you already applied. `Visto` / `Viewed`, `Publicado hace …` / `Posted …` are informational.
+- **Dedupe by job id:** the same `componentkey` appears on two nested divs; keep the one with the most lines.
+- **Lazy loading:** only ~7 cards render on load. The list has its own scroll container (the first ancestor of a card with `overflow-y: auto|scroll` and `scrollHeight > clientHeight`). Set its `scrollTop = scrollHeight` 3-4 times, waiting ~1 s each time, to render the 25 cards of the page. `window.scrollBy` does not load more cards.
+- Some search URLs redirect to `/jobs/search-results/?currentJobId=…`; the card DOM is the same.
+
+`scripts/linkedin-easy-apply.js` (`findEasyApplyJobsFromDOM`) implements this and falls back to the old selectors when no `componentkey` cards are found.
 
 ### Post search for job openings (content search)
 
@@ -350,13 +364,16 @@ node .agents/skills/browser-automation/scripts/browser.js goto "https://www.link
 - Very long combinations with many ANDs: returns 0 results or irrelevant results
 - Niche hashtags: low volume, almost no results
 
-**Post extraction pattern:**
-1. Go to `search/results/content/?keywords=...&sortBy="date_posted"`
-2. Snapshot -> grep `button.*post by` for authors
-3. grep `url.*in/` for profile URLs (3 repeated URLs per author)
-4. grep `text:.*<Role keywords>|text:.*hiring` for post content
-5. grep `mailto:` to extract direct contact emails
-6. Scroll with `window.scrollBy(0, 5000)` + snapshot for more results
+**Date filter:** add `&datePosted="past-24h"`, `"past-week"` or `"past-month"` (URL encoded: `%22past-week%22`). Combined with `sortBy="date_posted"` it keeps only fresh openings.
+
+**Post extraction pattern (verified 2026-11-18).** Posts no longer have the `Open control menu for post by <name>` button, so the old snapshot grep finds no authors. Read the DOM instead:
+1. Go to `search/results/content/?keywords=...&datePosted=%22past-week%22&sortBy=%22date_posted%22`
+2. Each post has a visually hidden label: a leaf `span` whose text is exactly `Publicación en el feed` (es) or `Feed post` (en).
+3. The post container is the closest ancestor of that label that contains an `a[href*="/in/"]` or `a[href*="/company/"]` link (two levels up today).
+4. From the container: `innerText` line 0 = author name; first `a[href*="/in/"]` = author profile (vanity); `\d+ (min|h|d|sem)` in the first lines = age; emails = regex over the text (posts rarely use `mailto:` links); post URL = `a[href*="/feed/update/"]` if present (often absent).
+5. Scroll with `window.scrollBy(0, 5000)` + wait ~3 s and extract again; dedupe on author + start of content (one recruiter can post several openings).
+
+`scripts/linkedin-search.js` implements this (`extractPostsFromDOM`) and supports `--date-posted past-24h|past-week|past-month`. It falls back to the snapshot parser when no labelled posts are found.
 
 ## Easy Apply flow
 

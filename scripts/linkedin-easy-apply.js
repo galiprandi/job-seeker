@@ -203,6 +203,31 @@ function findEasyApplyJobs(snap) {
  */
 function findEasyApplyJobsFromDOM() {
   return evalJSON(`(function(){
+    // 2026 job search UI: cards are div[componentkey="job-card-component-ref-<jobId>"]
+    // with no stable classes or /jobs/view/ links. Parse innerText lines instead.
+    const newCards = document.querySelectorAll('main div[componentkey^="job-card-component-ref-"]');
+    if (newCards.length > 0) {
+      const byId = {};
+      newCards.forEach(c => {
+        const m = c.getAttribute('componentkey').match(/(\\d{6,})/);
+        if (!m) return;
+        const lines = (c.innerText || '').split(String.fromCharCode(10)).map(s => s.trim())
+          .filter(s => s && s !== '·' && !/^(Seleccionado|Selected), /.test(s));
+        const dedup = lines.filter((s, i) => i === 0 || s !== lines[i - 1]);
+        if (!byId[m[1]] || byId[m[1]].length < dedup.length) byId[m[1]] = dedup;
+      });
+      return JSON.stringify(Object.entries(byId).map(([id, l]) => {
+        const txt = l.join(' | ');
+        return {
+          role: l[0] || '',
+          company: l[1] || '',
+          location: l[2] || '',
+          easyApply: /Solicitud sencilla|Easy Apply/.test(txt),
+          alreadyApplied: /\\b(Solicitados?|Applied)\\b/.test(txt),
+          url: 'https://www.linkedin.com/jobs/view/' + id + '/',
+        };
+      }).filter(j => j.role && !j.alreadyApplied));
+    }
     const cards = document.querySelectorAll('main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id]');
     if (cards.length === 0) return JSON.stringify([]);
     return JSON.stringify(Array.from(cards).map(c => {
@@ -1176,7 +1201,19 @@ function main() {
   goto(searchUrl);
 
   // Wait for job cards to load (in-page polling, not shell sleep)
-  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id]").length > 0', { timeout: 10000, session: SESSION });
+  waitFor('document.querySelectorAll("main .job-card-container, [data-job-id], .jobs-search-results__list-item, li[data-occludable-job-id], main div[componentkey^=\\"job-card-component-ref-\\"]").length > 0', { timeout: 10000, session: SESSION });
+
+  // The job list is lazy-loaded inside its own scroll container: scroll it to render all cards.
+  for (let i = 0; i < 4; i++) {
+    evalJSON(`(function(){
+      const c = document.querySelector('main div[componentkey^="job-card-component-ref-"], main .job-card-container, li[data-occludable-job-id]');
+      let s = c;
+      while (s && !(s.scrollHeight > s.clientHeight + 50 && /auto|scroll/.test(getComputedStyle(s).overflowY))) s = s.parentElement;
+      if (s) s.scrollTop = s.scrollHeight; else window.scrollTo(0, document.body.scrollHeight);
+      return JSON.stringify(true);
+    })()`, { session: SESSION });
+    sleep(900);
+  }
 
   // Try DOM extraction first (more reliable, gets all cards)
   let jobs = findEasyApplyJobsFromDOM();
