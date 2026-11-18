@@ -245,7 +245,10 @@ node scripts/linkedin-search.js '"<Role>" "<City>" "hiring"' --scroll 3 --json
 #   '"<Role>" "hiring" <Region>'               (most productive)
 #   '"<Role>" "<City>" "hiring"'      (geo-specific)
 #   '"ingeniero IA" "buscamos"'                  (Spanish)
+
+# Only posts from the last week
+node scripts/linkedin-search.js '"<Role>" "hiring" <Region>' --date-posted past-week --json
 ```
 
-**Flags:** `--scroll <n>` (default 2), `--json` (raw JSON output)
-**Output JSON:** `[{author, vanity, email, content}, ...]`
+**Flags:** `--scroll <n>` (default 2), `--json` (raw JSON output), `--date-posted past-24h|past-week|past-month` (default: no date filter), `--session <name>`
+**Output JSON:** `[{author, vanity, email, when, url, content}, ...]`. `when` and `url` come from the DOM parser; `url` is often `null` because LinkedIn does not always link the post.
