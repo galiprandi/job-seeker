@@ -1,0 +1,28 @@
+{
+  "agentCmd": "agy acp --dangerously-skip-permissions",
+  "sessionId": "3f881472-12e9-418e-b5f9-f345c10e4cc1",
+  "agentCwd": "/home/galiprandi/repos/job-seeker",
+  "timezone": "America/Argentina/Buenos_Aires",
+  "platforms": {
+    "telegram": {
+      "token": "***REMOVED-TELEGRAM-TOKEN***",
+      "allowedChatIds": [
+        951169665
+      ]
+    }
+  },
+  "showThoughts": false,
+  "showTools": false,
+  "showPlan": false,
+  "streaming": true,
+  "logLevel": "info",
+  "cron": [
+    {
+      "name": "cron-1790421421708",
+      "schedule": "0 11 * * *",
+      "prompt": "Realiza una ronda daily y hazme un resumen tl;dr de los hallazgos importantes",
+      "chatId": 951169665
+    }
+  ],
+  "routines": []
+}

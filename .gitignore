@@ -30,3 +30,7 @@ logs/
 
 # Browser downloads (may contain personal docs)
 downloads/
+
+# acp-connector runtime state
+.acp-connector/state.json
+.acp-connector/*.migrated
