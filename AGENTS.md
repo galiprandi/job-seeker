@@ -85,7 +85,7 @@ Passive (`radar`: platforms push alerts) · Active-broad (`apply`: full job boar
 ## Operational constraints
 
 - `npx` only, no global installs. Browser via the wrapper only.
-- `agent-browser.json` `headed`: `true` | `false` (auto-created by the wrapper on first run; default `headed: false`. Override per call with `--headed`/`--headless`; logins/captchas always headed via `--headed` escalation).
+- `agent-browser.json` `headed`: `true` | `false` (auto-created by the wrapper on first run; default `headed: true`. Override per call with `--headless`; logins/captchas are already headed).
 - Untracked: `.env`, `.browser-profile/`. `agent-browser.json` is repo config.
 - DB: custom schema as needed; semi-structured → `users.data` JSONB; single user.
 - **`DATA.md` is the source of truth for where data lives** — consult before assuming tables/keys.
